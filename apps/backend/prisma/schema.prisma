@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Org {
+  id        String    @id @default(cuid())
+  name      String
+  properties Property[]
+  users     User[]
+  reports   ReportSnapshot[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  state       String
+  zip         String
+  org         Org      @relation(fields: [orgId], references: [id])
+  orgId       String
+  leads       Lead[]
+  leases      Lease[]
+  reviews     Review[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  org       Org      @relation(fields: [orgId], references: [id])
+  orgId     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  source      String
+  cost        Float?
+  events      LeadEvent[]
+  application Application?
+  createdAt   DateTime @default(now())
+}
+
+model LeadEvent {
+  id        String   @id @default(cuid())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  leadId    String
+  type      LeadEventType
+  occurredAt DateTime @default(now())
+}
+
+enum LeadEventType {
+  created
+  contacted
+  toured
+  applied
+  approved
+  denied
+  leased
+}
+
+model Application {
+  id        String   @id @default(cuid())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  leadId    String   @unique
+  status    ApplicationStatus
+  submittedAt DateTime @default(now())
+}
+
+enum ApplicationStatus {
+  pending
+  approved
+  denied
+  cancelled
+}
+
+model Lease {
+  id        String   @id @default(cuid())
+  property  Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  leadId    String
+  startDate DateTime
+  endDate   DateTime
+  status    LeaseStatus
+}
+
+enum LeaseStatus {
+  draft
+  active
+  terminated
+  expired
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  author     String
+  rating     Int
+  body       String
+  submittedAt DateTime @default(now())
+}
+
+model ReportSnapshot {
+  id          String   @id @default(cuid())
+  org         Org      @relation(fields: [orgId], references: [id])
+  orgId       String
+  generatedAt DateTime @default(now())
+  highlights  Json
+  watchlist   Json
+}

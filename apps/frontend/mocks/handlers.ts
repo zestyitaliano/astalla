@@ -1,0 +1,84 @@
+import { HttpResponse, http } from "msw";
+
+const mockOccupancy = {
+  occupancyRate: 0.93,
+  change: 0.01,
+  unitsOccupied: 325,
+  totalUnits: 350
+};
+
+const mockPipeline = {
+  newLeads: 78,
+  toursScheduled: 35,
+  applicationsStarted: 22,
+  applicationsApproved: 15
+};
+
+const mockCost = {
+  costPerLead: 128.5,
+  marketingSpend: 15400,
+  spendChange: -0.08
+};
+
+const mockReviews = {
+  summary: {
+    averageRating: 4.3,
+    reviewCount: 124,
+    responseRate: 0.82
+  },
+  recent: [
+    {
+      id: "rev-1",
+      author: "Alex Johnson",
+      rating: 5,
+      body: "Maintenance turnaround has been excellent—keep it up!",
+      submittedAt: new Date().toISOString()
+    },
+    {
+      id: "rev-2",
+      author: "Taylor Smith",
+      rating: 3,
+      body: "Amenities are great, but parking is still limited.",
+      submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString()
+    }
+  ]
+};
+
+const mockReport = {
+  generatedAt: new Date().toISOString(),
+  highlights: [
+    "Occupancy climbed 1% WoW with 9 net new leases",
+    "Lead-to-lease velocity improved by 14%",
+    "CPL dipped below $130 driven by organic traffic"
+  ],
+  watchlist: [
+    {
+      propertyId: "prop-red-001",
+      propertyName: "Elmwood Flats",
+      tag: "red" as const,
+      issue: "Spike in negative reviews around maintenance"
+    },
+    {
+      propertyId: "prop-watch-002",
+      propertyName: "Harbor View Lofts",
+      tag: "watch" as const,
+      issue: "Pipeline slowing week-over-week"
+    }
+  ]
+};
+
+const mockUser = {
+  id: "user_mock",
+  name: "Mock User",
+  email: "mock.user@example.com",
+  orgId: "org_123"
+};
+
+export const handlers = [
+  http.get("*/auth/me", () => HttpResponse.json(mockUser)),
+  http.get("*/metrics/occupancy", () => HttpResponse.json(mockOccupancy)),
+  http.get("*/metrics/pipeline", () => HttpResponse.json(mockPipeline)),
+  http.get("*/metrics/cost", () => HttpResponse.json(mockCost)),
+  http.get("*/reviews/latest", () => HttpResponse.json(mockReviews)),
+  http.get("*/reports/weekly", () => HttpResponse.json(mockReport))
+];
