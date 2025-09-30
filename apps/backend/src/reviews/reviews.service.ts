@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Review } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -6,11 +7,11 @@ export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async latest(propertyId: string) {
-    const reviews = await this.prisma.review.findMany({
+    const reviews = (await this.prisma.review.findMany({
       where: { propertyId },
       orderBy: { at: 'desc' },
       take: 10,
-    });
+    })) as Review[];
 
     const total = reviews.reduce<number>((acc, review) => acc + review.rating, 0);
     const avg = reviews.length === 0 ? 0 : total / reviews.length;

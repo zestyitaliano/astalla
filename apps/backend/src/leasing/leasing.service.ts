@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Lead, LeadEvent, Property } from '@prisma/client';
 import dayjs from 'dayjs';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface OccupancyResult {
   current: number;
@@ -14,10 +15,10 @@ export class LeasingService {
   constructor(private readonly prisma: PrismaService) {}
 
   async calculateOccupancy(propertyId: string, window: number): Promise<OccupancyResult> {
-    const property = await this.prisma.property.findUnique({
+    const property = (await this.prisma.property.findUnique({
       where: { id: propertyId },
       select: { unitCount: true },
-    });
+    })) as Pick<Property, 'unitCount'> | null;
 
     if (!property) {
       throw new Error('Property not found');
@@ -64,14 +65,18 @@ export class LeasingService {
   }
 
   async findNeglectedLeads(propertyId: string, slaHours: number) {
-    const leads = await this.prisma.lead.findMany({
+    const leads = (await this.prisma.lead.findMany({
       where: { propertyId },
       include: {
         events: {
           orderBy: { at: 'desc' },
         },
       },
-    });
+    })) as Array<
+      Lead & {
+        events: LeadEvent[];
+      }
+    >;
 
     const threshold = dayjs().subtract(slaHours, 'hour');
     return leads
@@ -80,7 +85,9 @@ export class LeasingService {
         if (!inbound) {
           return false;
         }
-        const outbound = lead.events.find((event) => event.type === 'OUTBOUND' && dayjs(event.at).isAfter(inbound.at));
+        const outbound = lead.events.find(
+          (event) => event.type === 'OUTBOUND' && dayjs(event.at).isAfter(inbound.at),
+        );
         if (!outbound) {
           return dayjs(inbound.at).isBefore(threshold);
         }

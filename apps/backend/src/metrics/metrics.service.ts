@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { LeasingService } from '../leasing/leasing.service';
+import { ChannelSpend, ConversionEvent } from '@prisma/client';
 import dayjs from 'dayjs';
+import { LeasingService } from '../leasing/leasing.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MetricsService {
@@ -40,12 +41,12 @@ export class MetricsService {
 
   async cost(propertyId: string) {
     const since = dayjs().subtract(30, 'day').startOf('day').toDate();
-    const spend = await this.prisma.channelSpend.findMany({
+    const spend = (await this.prisma.channelSpend.findMany({
       where: { propertyId, day: { gte: since } },
-    });
-    const conversions = await this.prisma.conversionEvent.findMany({
+    })) as ChannelSpend[];
+    const conversions = (await this.prisma.conversionEvent.findMany({
       where: { propertyId, day: { gte: since } },
-    });
+    })) as ConversionEvent[];
 
     const totalSpend = spend.reduce<number>((acc, item) => acc + item.cost, 0);
     const totalConversions = conversions.reduce<number>((acc, item) => acc + item.count, 0);

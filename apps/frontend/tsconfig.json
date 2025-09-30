@@ -19,6 +19,7 @@
       "@/app/*": ["./app/*"],
       "@/lib/*": ["./lib/*"],
       "@/mocks/*": ["./mocks/*"],
+      "@shared/api": ["../../packages/shared/src/index.ts"],
       "@shared/*": ["../../packages/shared/src/*"]
     }
   },

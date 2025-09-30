@@ -13,9 +13,10 @@
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "paths": {
+      "@shared/api": ["../../packages/shared/src/index.ts"],
       "@shared/*": ["../../packages/shared/src/*"]
     }
   }
