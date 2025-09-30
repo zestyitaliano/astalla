@@ -74,16 +74,16 @@ model User {
 }
 
 model UserOrgRole {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId     String
-  property  Property? @relation(fields: [propertyId], references: [id])
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  org        Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId      String
+  property   Property? @relation(fields: [propertyId], references: [id])
   propertyId String?
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role       Role
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([orgId, role])
 }
@@ -99,6 +99,7 @@ model Property {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   leads         Lead[]
+  leases        Lease[]
   units         Unit[]
   availability  AvailabilitySnapshot[]
   channelSpend  ChannelSpend[]
@@ -106,6 +107,7 @@ model Property {
   reviews       Review[]
   sentiments    SentimentSummary[]
   thresholds    KPIThreshold[]
+  members       UserOrgRole[]
   snapshots     ReportSnapshot[]
   alerts        Alert[]
   sources       SourceAccount[]
@@ -260,6 +262,8 @@ model KPIThreshold {
 
 model ReportSnapshot {
   id          String    @id @default(cuid())
+  org         Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId       String
   property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   propertyId  String
   weekStart   DateTime
