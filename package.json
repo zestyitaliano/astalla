@@ -1,6 +1,5 @@
 {
   "name": "astalla",
-codex/add-pnpm-lock.yaml-to-version-control-gsap6m
   "private": true,
   "packageManager": "pnpm@10.13.1",
   "scripts": {
@@ -11,15 +10,4 @@ codex/add-pnpm-lock.yaml-to-version-control-gsap6m
     "test": "pnpm -r test",
     "format": "pnpm -r format --if-present"
   }
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.13.1"
-main
 }

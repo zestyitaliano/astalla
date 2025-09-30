@@ -3,6 +3,8 @@ node_modules
 .next
 pnpm-debug.log*
 dist
+!packages/shared/dist
+!packages/shared/dist/**
 coverage
 *.log
 .DS_Store
