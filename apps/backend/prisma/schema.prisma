@@ -1,0 +1,232 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  ORG_ADMIN
+  REGIONAL
+  PROPERTY
+  MARKETING
+}
+
+model Org {
+  id        String     @id @default(cuid())
+  name      String
+  createdAt DateTime   @default(now())
+  properties Property[]
+  users     UserOrgRole[]
+}
+
+model User {
+  id        String       @id @default(cuid())
+  email     String       @unique
+  name      String
+  createdAt DateTime     @default(now())
+  orgRoles  UserOrgRole[]
+}
+
+model UserOrgRole {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  org        Org      @relation(fields: [orgId], references: [id])
+  orgId      String
+  role       UserRole
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id])
+  createdAt  DateTime  @default(now())
+}
+
+model Property {
+  id           String           @id @default(cuid())
+  org          Org              @relation(fields: [orgId], references: [id])
+  orgId        String
+  propertyCode String           @unique
+  name         String
+  region       String?
+  unitCount    Int
+  createdAt    DateTime         @default(now())
+  sources      SourceAccount[]
+  leads        Lead[]
+  units        Unit[]
+  availability AvailabilitySnapshot[]
+  channelSpend ChannelSpend[]
+  conversion   ConversionEvent[]
+  reviews      Review[]
+  thresholds   KPIThreshold[]
+  reports      ReportSnapshot[]
+  alerts       Alert[]
+}
+
+enum SourceType {
+  ENTRATA
+  GOOGLE_ADS
+  GA4
+  GBP
+}
+
+model SourceAccount {
+  id          String      @id @default(cuid())
+  property    Property    @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  type        SourceType
+  credential  Json
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+}
+
+model Lead {
+  id          String      @id @default(cuid())
+  property    Property    @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  externalId  String
+  source      String
+  createdAt   DateTime    @default(now())
+  events      LeadEvent[]
+  application Application?
+  lease       Lease?
+
+  @@index([propertyId, externalId])
+}
+
+model LeadEvent {
+  id      String   @id @default(cuid())
+  lead    Lead     @relation(fields: [leadId], references: [id])
+  leadId  String
+  type    String
+  at      DateTime
+  meta    Json?
+
+  @@index([leadId, at])
+}
+
+model Application {
+  id          String   @id @default(cuid())
+  lead        Lead     @relation(fields: [leadId], references: [id])
+  leadId      String   @unique
+  status      String
+  submittedAt DateTime?
+  approvedAt  DateTime?
+}
+
+model Lease {
+  id        String   @id @default(cuid())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  leadId    String   @unique
+  startDate DateTime
+  endDate   DateTime?
+  status    String
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  property  Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  unitCode  String
+  bedrooms  Int
+  bathrooms Float
+  rentable  Boolean @default(true)
+
+  @@index([propertyId, unitCode])
+}
+
+model AvailabilitySnapshot {
+  id          String   @id @default(cuid())
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  at          DateTime
+  availableUnits Int
+
+  @@index([propertyId, at])
+}
+
+model ChannelSpend {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  day        DateTime
+  channel    String
+  campaignId String
+  cost       Float
+
+  @@index([propertyId, day])
+}
+
+model ConversionEvent {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  day        DateTime
+  type       String
+  count      Int
+  gclid      String?
+  gbraid     String?
+  wbraid     String?
+
+  @@index([propertyId, day])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  provider   String
+  rating     Float
+  text       String
+  at         DateTime
+
+  @@index([propertyId, at])
+}
+
+model SentimentSummary {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  weekStart  DateTime
+  posPct     Float
+  negPct     Float
+  topics     Json
+
+  @@index([propertyId, weekStart])
+}
+
+model KPIThreshold {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  kpi        String
+  target     Float
+  warnBelow  Boolean @default(true)
+}
+
+model ReportSnapshot {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  weekStart  DateTime
+  occupancy  Float
+  cpl        Float
+  cpls       Float
+  red        Boolean
+  watch      Boolean
+  json       Json
+
+  @@index([propertyId, weekStart])
+}
+
+model Alert {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  type       String
+  message    String
+  at         DateTime @default(now())
+  severity   String
+
+  @@index([propertyId, at])
+}
