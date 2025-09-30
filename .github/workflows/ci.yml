@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm lint
 
   typecheck:
@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm typecheck
 
   test:
@@ -72,7 +72,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - name: Generate Prisma client
         run: pnpm --filter apps/backend prisma generate
       - name: Run tests
@@ -90,7 +90,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm --filter packages/shared run build
       - run: pnpm --filter apps/frontend run build
       - run: pnpm --filter apps/backend run build

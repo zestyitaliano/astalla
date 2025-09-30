@@ -95,7 +95,7 @@ ops/
    ```
 6. Seed development data (optional but recommended):
    ```bash
-   pnpm --filter ops/scripts dev-seed
+   pnpm --filter apps/backend exec ts-node --project apps/backend/tsconfig.json --transpile-only ops/scripts/src/dev-seed.ts
    ```
 7. Launch both apps:
    ```bash
@@ -133,7 +133,7 @@ ops/
 
 To run the snapshot job manually in development:
 ```bash
-pnpm --filter ops/scripts run-weekly-snapshot
+pnpm --filter apps/backend exec ts-node --project apps/backend/tsconfig.json --transpile-only ops/scripts/src/run-weekly-snapshot.ts
 ```
 This computes occupancy, pipeline, and review KPIs for each property and writes a new `ReportSnapshot` via Prisma.
 

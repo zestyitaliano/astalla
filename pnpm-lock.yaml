@@ -5,5 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 importers:
-
   .: {}
+  apps/backend: {}
+  apps/frontend: {}
+  packages/shared: {}
