@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Node16",
     "declaration": true,
     "emitDeclarationOnly": false
   },

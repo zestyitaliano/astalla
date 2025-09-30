@@ -33,6 +33,8 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm run prisma:generate
       - run: pnpm typecheck
 
   test:

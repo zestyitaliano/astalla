@@ -10,7 +10,10 @@
     "lint": "eslint ./src --ext .ts",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "pretypecheck": "prisma generate",
+    "pretest": "prisma generate",
+    "prebuild": "prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.7",
