@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: astalla-backend
+    env: node
+    buildCommand: pnpm --filter apps/backend build
+    startCommand: pnpm --filter apps/backend start:prod
+    plan: standard
+    envVars:
+      - key: DATABASE_URL
+        value: <set-in-dashboard>
+      - key: REDIS_URL
+        value: <set-in-dashboard>
+      - key: JWT_SECRET
+        value: <set-in-dashboard>
+      - key: FRONTEND_ORIGIN
+        value: <set-in-dashboard>
+      - key: WP_PROXY_SHARED_SECRET
+        value: <set-in-dashboard>
+      - key: ENTRATA_API_BASE
+        value: https://api.entrata.com
+      - key: ENTRATA_API_KEY
+        value: <set-in-dashboard>
+      - key: GOOGLE_ADS_DEVELOPER_TOKEN
+        value: <set-in-dashboard>
+      - key: GA4_MEASUREMENT_ID
+        value: <set-in-dashboard>
+      - key: GA4_API_SECRET
+        value: <set-in-dashboard>
+      - key: GBP_API_KEY
+        value: <set-in-dashboard>
+      - key: ALLOWED_GOOGLE_OAUTH_DOMAINS
+        value: astalla.com
