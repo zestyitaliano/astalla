@@ -1,5 +1,16 @@
 {
   "name": "astalla",
+codex/add-pnpm-lock.yaml-to-version-control-gsap6m
+  "private": true,
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "pnpm -r format --if-present"
+  }
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,4 +21,5 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.13.1"
+main
 }
