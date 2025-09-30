@@ -12,7 +12,8 @@ export class ReviewsService {
       take: 10,
     });
 
-    const avg = reviews.length === 0 ? 0 : reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
+    const total = reviews.reduce<number>((acc, review) => acc + review.rating, 0);
+    const avg = reviews.length === 0 ? 0 : total / reviews.length;
     return {
       averageRating: Number(avg.toFixed(2)),
       reviewCount: reviews.length,

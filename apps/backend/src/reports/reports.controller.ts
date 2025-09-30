@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
-import { ReportsService } from './reports.service';
+import { ReportUpsertPayload, ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { Roles } from '../common/roles.decorator';
 import { AppRole } from '../common/roles';
@@ -16,7 +16,7 @@ export class ReportsController {
 
   @Post('weekly')
   @Roles(AppRole.ORG_ADMIN, AppRole.MARKETING)
-  create(@Query('propertyId') propertyId: string, @Body() body: any) {
+  create(@Query('propertyId') propertyId: string, @Body() body: ReportUpsertPayload) {
     return this.reportsService.create(propertyId, body);
   }
 }

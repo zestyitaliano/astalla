@@ -47,8 +47,8 @@ export class MetricsService {
       where: { propertyId, day: { gte: since } },
     });
 
-    const totalSpend = spend.reduce((acc, item) => acc + item.cost, 0);
-    const totalConversions = conversions.reduce((acc, item) => acc + item.count, 0);
+    const totalSpend = spend.reduce<number>((acc, item) => acc + item.cost, 0);
+    const totalConversions = conversions.reduce<number>((acc, item) => acc + item.count, 0);
     const costPerLead = totalConversions === 0 ? null : totalSpend / totalConversions;
 
     return {

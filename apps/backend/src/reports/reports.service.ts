@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import dayjs from 'dayjs';
+import { PrismaService } from '../prisma/prisma.service';
+
+export interface ReportUpsertPayload {
+  occupancy?: number;
+  cpl?: number;
+  cpls?: number;
+  red?: boolean;
+  watch?: boolean;
+  summary?: unknown;
+}
 
 @Injectable()
 export class ReportsService {
@@ -13,23 +22,25 @@ export class ReportsService {
     });
   }
 
-  async create(propertyId: string, payload: Partial<{ occupancy: number; cpl: number; cpls: number; red: boolean; watch: boolean }>) {
+  async create(propertyId: string, payload: ReportUpsertPayload) {
     const weekStart = dayjs().startOf('week').toDate();
+    const { summary, ...metrics } = payload;
+    const jsonPayload = summary ?? metrics;
     return this.prisma.reportSnapshot.upsert({
       where: { propertyId_weekStart: { propertyId, weekStart } },
       update: {
-        ...payload,
-        json: payload,
+        ...metrics,
+        json: jsonPayload,
       },
       create: {
         propertyId,
         weekStart,
-        occupancy: payload.occupancy ?? 0,
-        cpl: payload.cpl ?? 0,
-        cpls: payload.cpls ?? 0,
-        red: payload.red ?? false,
-        watch: payload.watch ?? false,
-        json: payload,
+        occupancy: metrics.occupancy ?? 0,
+        cpl: metrics.cpl ?? 0,
+        cpls: metrics.cpls ?? 0,
+        red: metrics.red ?? false,
+        watch: metrics.watch ?? false,
+        json: jsonPayload,
       },
     });
   }

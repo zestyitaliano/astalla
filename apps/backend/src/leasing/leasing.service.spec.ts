@@ -1,14 +1,19 @@
 import dayjs from 'dayjs';
 import { LeasingService } from './leasing.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('LeasingService', () => {
   const prisma = {
     property: { findUnique: jest.fn() },
     lease: { count: jest.fn() },
     lead: { findMany: jest.fn() },
-  } as any;
+  } satisfies {
+    property: { findUnique: jest.Mock }; 
+    lease: { count: jest.Mock };
+    lead: { findMany: jest.Mock };
+  };
 
-  const service = new LeasingService(prisma);
+  const service = new LeasingService(prisma as unknown as PrismaService);
 
   beforeEach(() => {
     jest.clearAllMocks();

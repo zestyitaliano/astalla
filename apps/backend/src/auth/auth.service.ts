@@ -1,20 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppRole } from '../common/roles';
+import { AuthMeResponse } from '@shared/api';
+
+interface UserRoleRecord {
+  role: AppRole;
+  orgId: string | null;
+  propertyId: string | null;
+  property?: {
+    propertyCode: string | null;
+  } | null;
+}
+
+interface UserRecord {
+  id: string;
+  email: string;
+  name: string | null;
+  roles: UserRoleRecord[];
+}
 
 @Injectable()
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
+  async getProfile(userId: string): Promise<AuthMeResponse | null> {
+    const user = (await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         roles: {
           include: { property: true },
         },
       },
-    });
+    })) as UserRecord | null;
 
     if (!user) {
       return null;

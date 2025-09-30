@@ -10,7 +10,8 @@ export class JobsService {
   readonly alertsQueue: Queue;
 
   constructor(private readonly config: ConfigService) {
-    const connection = new IORedis(this.config.get<string>('REDIS_URL'));
+    const redisUrl = this.config.get<string>('REDIS_URL') ?? 'redis://localhost:6379';
+    const connection = new IORedis(redisUrl);
     this.etlQueue = new Queue('etl', { connection });
     this.alertsQueue = new Queue('alerts', { connection });
   }

@@ -1,12 +1,11 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Request } from 'express';
+import { Reflector } from '@nestjs/core';
 import jwt from 'jsonwebtoken';
 import { AppRole, ROLE_HIERARCHY } from './roles';
-import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from './roles.decorator';
 
-interface JwtPayload {
+export interface JwtPayload {
   sub: string;
   email: string;
   role: AppRole;
@@ -14,12 +13,21 @@ interface JwtPayload {
   propertyIds?: string[];
 }
 
+export type AuthenticatedUser = JwtPayload;
+
+interface RequestWithUser {
+  headers: {
+    authorization?: string;
+  };
+  user?: AuthenticatedUser;
+}
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly config: ConfigService, private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const token = this.extractToken(request);
     if (!token) {
       throw new UnauthorizedException('Missing token');
@@ -27,7 +35,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = jwt.verify(token, this.config.get<string>('JWT_SECRET', '')) as JwtPayload;
-      (request as any).user = payload;
+      request.user = payload;
       const requiredRoles = this.reflector.getAllAndOverride<AppRole[]>(ROLES_KEY, [
         context.getHandler(),
         context.getClass(),
@@ -39,12 +47,12 @@ export class JwtAuthGuard implements CanActivate {
 
       const permitted = ROLE_HIERARCHY[payload.role] ?? [];
       return requiredRoles.some((role) => permitted.includes(role));
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
   }
 
-  private extractToken(request: Request) {
+  private extractToken(request: RequestWithUser) {
     const auth = request.headers.authorization;
     if (!auth) return null;
     const [type, value] = auth.split(' ');
