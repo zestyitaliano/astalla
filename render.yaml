@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: astalla-backend
+    env: node
+    plan: starter
+    rootDir: apps/backend
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter apps/backend build
+    startCommand: pnpm --filter apps/backend start:prod
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: WP_PROXY_SHARED_SECRET
+        sync: false
+      - key: ENTRATA_API_BASE
+        sync: false
+      - key: ENTRATA_API_KEY
+        sync: false
+      - key: GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: GA4_MEASUREMENT_ID
+        sync: false
+      - key: GA4_API_SECRET
+        sync: false
+      - key: GBP_API_KEY
+        sync: false
+      - key: MOCK_MODE
+        value: "true"
