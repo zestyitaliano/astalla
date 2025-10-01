@@ -2,7 +2,18 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+ codex/fix-deployment-issue-on-vercel-6wxxpp
 import Link from "next/link";
+
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+import Link from "next/link";
+
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+import Link from "next/link";
+
+ main
+ main
+ main
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
@@ -46,7 +57,19 @@ export function LoginCard() {
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold text-foreground">Sign in to continue</h1>
         <p className="text-sm text-muted-foreground">
+ codex/fix-deployment-issue-on-vercel-6wxxpp
           Use your Astalla email or username with your password to access the dashboard.
+
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+          Use your Astalla email or username with your password to access the dashboard.
+
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+          Use your Astalla email or username with your password to access the dashboard.
+
+          Use your Astalla email or username with the shared password to access the dashboard.
+ main
+ main
+ main
         </p>
       </div>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -93,12 +116,27 @@ export function LoginCard() {
           {isSubmitting ? "Signing in..." : "Sign in"}
         </Button>
       </form>
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+ main
+ main
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Need an account?{" "}
         <Link className="font-medium text-primary hover:underline" href="/register">
           Create one
         </Link>
       </p>
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+
+
+ main
+ main
+ main
     </div>
   );
 }
