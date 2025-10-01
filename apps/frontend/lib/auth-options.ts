@@ -4,7 +4,11 @@ import type { NextAuthOptions } from "next-auth";
 import { apiBaseUrl } from "@/lib/utils";
 import { basicAuthLoginResponseSchema } from "@shared/api";
 
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+type Account = {
+
 type EnvironmentAccount = {
+ main
   id: string;
   name: string;
   email: string;
@@ -13,7 +17,11 @@ type EnvironmentAccount = {
 const isMockMode =
   process.env.NEXT_PUBLIC_MOCK_MODE === "true" || process.env.MOCK_MODE === "true";
 
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+const fallbackAccount = {
+
 const fallbackUser = {
+ main
   id: "demo-user",
   name: "Demo User",
   email: "demo@example.com",
@@ -22,6 +30,32 @@ const fallbackUser = {
 
 const envEmail = process.env.BASIC_AUTH_EMAIL;
 const envUsername = process.env.BASIC_AUTH_USERNAME;
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+const envPassword = process.env.BASIC_AUTH_PASSWORD ?? "password";
+const envDisplayName = process.env.BASIC_AUTH_NAME;
+
+function resolveEnvironmentAccount(
+  normalizedIdentifier: string,
+  password: string
+): Account | null {
+  const matchesEmail = envEmail ? normalizedIdentifier === envEmail.toLowerCase() : false;
+  const matchesUsername = envUsername ? normalizedIdentifier === envUsername.toLowerCase() : false;
+
+  if (!matchesEmail && !matchesUsername) {
+    return null;
+  }
+
+  if (password !== envPassword) {
+    return null;
+  }
+
+  const resolvedEmail = matchesEmail ? envEmail! : envEmail ?? fallbackAccount.email;
+  const resolvedName =
+    envDisplayName ?? (matchesUsername ? envUsername ?? fallbackAccount.name : fallbackAccount.name);
+  const resolvedId = matchesUsername
+    ? envUsername ?? fallbackAccount.id
+    : envEmail ?? fallbackAccount.id;
+
 const configuredEmail = envEmail?.toLowerCase();
 const configuredUsername = envUsername?.toLowerCase();
 const configuredPassword = process.env.BASIC_AUTH_PASSWORD ?? "password";
@@ -97,13 +131,18 @@ function resolveEnvironmentAccount(
     : matchesEmail && envEmail
       ? envEmail
       : fallbackUser.id;
+ main
 
   return {
     id: resolvedId,
     name: resolvedName,
     email: resolvedEmail
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+  } satisfies Account;
+
  main
   };
+ main
 }
 
 async function attemptBackendLogin(identifier: string, password: string) {
@@ -124,14 +163,22 @@ async function attemptBackendLogin(identifier: string, password: string) {
 
     return {
       id: payload.id,
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+      name: payload.name ?? fallbackAccount.name,
+      email: payload.email
+    } satisfies Account;
+
       name: payload.name ?? fallbackUser.name,
       email: payload.email
     } satisfies EnvironmentAccount;
+ main
   } catch (error) {
     console.error("Failed to verify credentials with backend", error);
     return null;
   }
 }
+
+ codex/fix-deployment-issue-on-vercel-6wxxpp
 
  codex/fix-deployment-issue-on-vercel-k6bm9d
 
@@ -141,6 +188,7 @@ const acceptedIdentifiers = [configuredEmail, configuredUsername].filter(
  main
 
  main
+ main
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -149,7 +197,11 @@ export const authOptions: NextAuthOptions = {
         identifier: {
           label: "Email or username",
           type: "text",
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+          placeholder: envEmail ?? envUsername ?? fallbackAccount.email
+
           placeholder: envEmail ?? envUsername ?? fallbackUser.email
+ main
         },
         password: { label: "Password", type: "password" }
       },
@@ -164,6 +216,15 @@ export const authOptions: NextAuthOptions = {
         if (isMockMode) {
           return {
             id: "mock-user",
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+            name: fallbackAccount.name,
+            email: identifier.includes("@") ? identifier : fallbackAccount.email
+          } satisfies Account;
+        }
+
+        const normalizedIdentifier = identifier.toLowerCase();
+
+
             name: fallbackUser.name,
             email: identifier.includes("@") ? identifier : fallbackUser.email
           };
@@ -174,6 +235,7 @@ export const authOptions: NextAuthOptions = {
 
  codex/fix-deployment-issue-on-vercel-rnbuxy
  main
+ main
         const environmentAccount = resolveEnvironmentAccount(normalizedIdentifier, password);
         if (environmentAccount) {
           return environmentAccount;
@@ -183,6 +245,30 @@ export const authOptions: NextAuthOptions = {
         if (backendAccount) {
           return backendAccount;
         }
+
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+        if (envEmail || envUsername) {
+          return null;
+        }
+
+        const fallbackIdentifiers = [
+          fallbackAccount.email.toLowerCase(),
+          fallbackAccount.username.toLowerCase()
+        ];
+
+        if (!fallbackIdentifiers.includes(normalizedIdentifier)) {
+          return null;
+        }
+
+        if (password !== envPassword) {
+          return null;
+        }
+
+        return {
+          id: fallbackAccount.id,
+          name: fallbackAccount.name,
+          email: fallbackAccount.email
+        } satisfies Account;
 
         if (configuredEmail || configuredUsername) {
           return null;
@@ -248,6 +334,7 @@ export const authOptions: NextAuthOptions = {
  main
  main
         };
+ main
       }
     })
   ],
@@ -255,8 +342,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session }) {
       if (session.user) {
+ codex/fix-deployment-issue-on-vercel-6wxxpp
+        session.user.name = session.user.name ?? fallbackAccount.name;
+        session.user.email = session.user.email ?? fallbackAccount.email;
+
         session.user.name = session.user.name ?? fallbackUser.name;
         session.user.email = session.user.email ?? fallbackUser.email;
+ main
       }
       return session;
     }
