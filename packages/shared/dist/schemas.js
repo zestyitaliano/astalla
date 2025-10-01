@@ -24,6 +24,34 @@ export const userSchema = z.object({
     createdAt: z.string().datetime({ offset: true }).optional(),
     updatedAt: z.string().datetime({ offset: true }).optional()
 });
+const usernameSchema = z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-zA-Z0-9._-]+$/, {
+    message: "Username may only include letters, numbers, dots, underscores, or hyphens"
+})
+    .transform((value) => value.toLowerCase());
+export const basicAuthAccountSchema = z.object({
+    id: z.string(),
+    email: z.string().email(),
+    name: z.string().nullable().optional(),
+    username: usernameSchema.nullable().optional(),
+    orgId: z.string().optional()
+});
+export const registerBasicAuthRequestSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    name: z.string().optional(),
+    username: usernameSchema.optional(),
+    orgName: z.string().optional()
+});
+export const registerBasicAuthResponseSchema = basicAuthAccountSchema;
+export const basicAuthLoginRequestSchema = z.object({
+    identifier: z.string().min(1),
+    password: z.string().min(1)
+});
+export const basicAuthLoginResponseSchema = basicAuthAccountSchema;
 export const leadSchema = z.object({
     id: z.string(),
     propertyId: z.string(),
