@@ -20,7 +20,10 @@ packages/
 
 ## Environment variables
 
-Copy `.env.example` to `.env` in the repo root and fill in any provider secrets.
+Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The
+frontend's basic-auth flow will accept either the configured credentials or any accounts that users
+create through the new `/register` page backed by the Nest API. Make sure `NEXT_PUBLIC_API_BASE_URL`
+and `DATABASE_URL` are configured so the frontend can reach the backend when creating accounts.
 
 ## Local development
 
@@ -61,7 +64,7 @@ Set `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend) to acti
 
 1. Connect the repository to Vercel.
 2. Set the project root to `apps/frontend`.
-3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_MOCK_MODE`).
+3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_EMAIL`, `BASIC_AUTH_PASSWORD`, optional `BASIC_AUTH_NAME`, `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_MOCK_MODE`).
 4. Trigger a build—Vercel will install dependencies with pnpm automatically.
 
 ### Backend (Render)
