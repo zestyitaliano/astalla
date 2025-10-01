@@ -27,10 +27,15 @@ const configuredUsername = envUsername?.toLowerCase();
 const configuredPassword = process.env.BASIC_AUTH_PASSWORD ?? "password";
 const configuredDisplayName = process.env.BASIC_AUTH_NAME;
 
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+ main
 function resolveEnvironmentAccount(
   normalizedIdentifier: string,
   password: string
 ): EnvironmentAccount | null {
+ codex/fix-deployment-issue-on-vercel-k6bm9d
   const configuredIdentifiers: Array<{
     normalized: string;
     source: "email" | "username";
@@ -49,6 +54,14 @@ function resolveEnvironmentAccount(
   );
 
   if (!matchedIdentifier) {
+
+  const matchesEmail = configuredEmail ? normalizedIdentifier === configuredEmail : false;
+  const matchesUsername = configuredUsername
+    ? normalizedIdentifier === configuredUsername
+    : false;
+
+  if (!matchesEmail && !matchesUsername) {
+ main
     return null;
   }
 
@@ -56,6 +69,7 @@ function resolveEnvironmentAccount(
     return null;
   }
 
+ codex/fix-deployment-issue-on-vercel-k6bm9d
   const email = matchedIdentifier.source === "email"
     ? envEmail ?? configuredEmail ?? fallbackUser.email
     : envEmail ?? fallbackUser.email;
@@ -74,6 +88,21 @@ function resolveEnvironmentAccount(
     id,
     name,
     email
+
+  const resolvedEmail = matchesEmail && envEmail ? envEmail : envEmail ?? fallbackUser.email;
+  const resolvedName =
+    configuredDisplayName || (matchesUsername && envUsername ? envUsername : fallbackUser.name);
+  const resolvedId = matchesUsername && envUsername
+    ? envUsername
+    : matchesEmail && envEmail
+      ? envEmail
+      : fallbackUser.id;
+
+  return {
+    id: resolvedId,
+    name: resolvedName,
+    email: resolvedEmail
+ main
   };
 }
 
@@ -104,6 +133,14 @@ async function attemptBackendLogin(identifier: string, password: string) {
   }
 }
 
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+
+const acceptedIdentifiers = [configuredEmail, configuredUsername].filter(
+  (value): value is string => Boolean(value)
+);
+ main
+
+ main
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -133,6 +170,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         const normalizedIdentifier = identifier.toLowerCase();
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+ main
         const environmentAccount = resolveEnvironmentAccount(normalizedIdentifier, password);
         if (environmentAccount) {
           return environmentAccount;
@@ -147,12 +188,19 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+ codex/fix-deployment-issue-on-vercel-k6bm9d
         const fallbackIdentifiers = [
           fallbackUser.email.toLowerCase(),
           fallbackUser.username.toLowerCase()
         ];
 
         if (!fallbackIdentifiers.includes(normalizedIdentifier)) {
+
+        const matchesFallbackEmail = normalizedIdentifier === fallbackUser.email.toLowerCase();
+        const matchesFallbackUsername = normalizedIdentifier === fallbackUser.username.toLowerCase();
+
+        if (!matchesFallbackEmail && !matchesFallbackUsername) {
+ main
           return null;
         }
 
@@ -164,6 +212,41 @@ export const authOptions: NextAuthOptions = {
           id: fallbackUser.id,
           name: fallbackUser.name,
           email: fallbackUser.email
+ codex/fix-deployment-issue-on-vercel-k6bm9d
+
+
+        const identifiersToMatch =
+          acceptedIdentifiers.length > 0
+            ? acceptedIdentifiers
+            : [fallbackUser.email.toLowerCase(), fallbackUser.username.toLowerCase()];
+
+        const isIdentifierValid = identifiersToMatch.includes(normalizedIdentifier);
+        const isPasswordValid = password === configuredPassword;
+
+        if (!isIdentifierValid || !isPasswordValid) {
+          return null;
+        }
+
+        const matchesEmail = configuredEmail ? normalizedIdentifier === configuredEmail : false;
+        const matchesUsername = configuredUsername
+          ? normalizedIdentifier === configuredUsername
+          : false;
+
+        const resolvedEmail = matchesEmail && envEmail ? envEmail : envEmail ?? fallbackUser.email;
+        const resolvedName =
+          configuredDisplayName || (matchesUsername && envUsername ? envUsername : fallbackUser.name);
+        const resolvedId = matchesUsername && envUsername
+          ? envUsername
+          : matchesEmail && envEmail
+            ? envEmail
+            : fallbackUser.id;
+
+        return {
+          id: resolvedId,
+          name: resolvedName,
+          email: resolvedEmail
+ main
+ main
         };
       }
     })
