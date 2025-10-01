@@ -20,7 +20,7 @@ packages/
 
 ## Environment variables
 
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. Ensure `NEXT_PUBLIC_API_BASE_URL` and `DATABASE_URL` are set so the frontend can reach the backend during account creation.
+Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and must always be set in hosted environments. During local development the browser can fall back to `window.location.origin`, but only when the app is loaded from a localhost hostname; the Next.js server process still requires an explicit value. Hosted builds automatically refuse localhost targets and fall back to `NEXTAUTH_URL`/`VERCEL_URL` so requests remain reachable, but you should still configure a deployable backend URL. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
 
 ## Local development
 
@@ -61,7 +61,7 @@ Set `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend) to acti
 
 1. Connect the repository to Vercel.
 2. Set the project root to `apps/frontend`.
-3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_EMAIL`, `BASIC_AUTH_PASSWORD`, optional `BASIC_AUTH_NAME`, `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_MOCK_MODE`).
+3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_EMAIL`, `BASIC_AUTH_PASSWORD`, optional `BASIC_AUTH_NAME`, **required** `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_MOCK_MODE`).
 4. Trigger a build—Vercel will install dependencies with pnpm automatically.
 
 ### Backend (Render)
@@ -71,7 +71,7 @@ Set `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend) to acti
 3. Set the start command to `pnpm --filter apps/backend start`.
 4. Provision a Postgres instance and Redis (or supply external connection strings) and expose them via `DATABASE_URL` and `REDIS_URL` env vars. Include `FRONTEND_ORIGIN` so CORS is configured correctly.
 
-> For preview environments, be sure to share the backend URL with the frontend via `NEXT_PUBLIC_API_BASE_URL` and `NEXTAUTH_URL`.
+> For preview environments, be sure to share the backend URL with the frontend via `NEXT_PUBLIC_API_BASE_URL` and `NEXTAUTH_URL`. Without `NEXT_PUBLIC_API_BASE_URL`, server-side code in the frontend cannot contact the API.
 
 ## CI
 
