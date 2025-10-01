@@ -20,10 +20,14 @@ packages/
 
 ## Environment variables
 
+ codex/update-apibaseurl-for-production-tp1cuq
+Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and must always be set in hosted environments. During local development the browser can fall back to `window.location.origin`, but only when the app is loaded from a localhost hostname; the Next.js server process still requires an explicit value. Deployed builds refuse localhost targets and instead fall back to the deployed origin so requests remain reachable. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+
  codex/update-apibaseurl-for-production-xixhcs
 Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. When a deployed build runs in the browser with a `NEXT_PUBLIC_API_BASE_URL` that targets `localhost`, the helper falls back to the deployed origin to avoid unreachable requests. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
 
 Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+ main
  main
 
 ## Local development
