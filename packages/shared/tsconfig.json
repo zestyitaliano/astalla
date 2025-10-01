@@ -1,13 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2020",
-codex/build-shared-package-for-esm-compatibility
-    "module": "Node16",
-    "moduleResolution": "Node16",
-
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-main
     "declaration": true,
     "emitDeclarationOnly": false,
     "outDir": "dist",
