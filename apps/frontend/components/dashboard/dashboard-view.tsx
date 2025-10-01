@@ -42,6 +42,25 @@ export function DashboardView() {
     );
   }
 
+  if (
+    occupancyQuery.error ||
+    pipelineQuery.error ||
+    costQuery.error ||
+    reviewsQuery.error ||
+    reportQuery.error ||
+    !occupancyQuery.data ||
+    !pipelineQuery.data ||
+    !costQuery.data ||
+    !reviewsQuery.data ||
+    !reportQuery.data
+  ) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-red-500">Unable to load dashboard data.</p>
+      </div>
+    );
+  }
+
   const occupancy = occupancyQuery.data;
   const pipeline = pipelineQuery.data;
   const cost = costQuery.data;
