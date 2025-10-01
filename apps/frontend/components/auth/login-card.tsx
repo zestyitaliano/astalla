@@ -2,18 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
- codex/fix-deployment-issue-on-vercel-6wxxpp
 import Link from "next/link";
-
- codex/fix-deployment-issue-on-vercel-k6bm9d
-import Link from "next/link";
-
- codex/fix-deployment-issue-on-vercel-rnbuxy
-import Link from "next/link";
-
- main
- main
- main
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
@@ -52,24 +41,15 @@ export function LoginCard() {
     }
   };
 
+  const inputClasses =
+    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+
   return (
     <div className="mx-auto w-full max-w-md rounded-2xl border bg-card p-10 text-left shadow-sm">
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold text-foreground">Sign in to continue</h1>
         <p className="text-sm text-muted-foreground">
- codex/fix-deployment-issue-on-vercel-6wxxpp
-          Use your Astalla email or username with your password to access the dashboard.
-
- codex/fix-deployment-issue-on-vercel-k6bm9d
-          Use your Astalla email or username with your password to access the dashboard.
-
- codex/fix-deployment-issue-on-vercel-rnbuxy
-          Use your Astalla email or username with your password to access the dashboard.
-
           Use your Astalla email or username with the shared password to access the dashboard.
- main
- main
- main
         </p>
       </div>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -85,7 +65,7 @@ export function LoginCard() {
             required
             value={identifier}
             onChange={(event) => setIdentifier(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className={inputClasses}
           />
         </div>
         <div className="space-y-2">
@@ -100,7 +80,7 @@ export function LoginCard() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className={inputClasses}
           />
         </div>
         {error ? (
@@ -116,27 +96,12 @@ export function LoginCard() {
           {isSubmitting ? "Signing in..." : "Sign in"}
         </Button>
       </form>
- codex/fix-deployment-issue-on-vercel-6wxxpp
-
- codex/fix-deployment-issue-on-vercel-k6bm9d
-
- codex/fix-deployment-issue-on-vercel-rnbuxy
- main
- main
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Need an account?{" "}
         <Link className="font-medium text-primary hover:underline" href="/register">
           Create one
         </Link>
       </p>
- codex/fix-deployment-issue-on-vercel-6wxxpp
-
- codex/fix-deployment-issue-on-vercel-k6bm9d
-
-
- main
- main
- main
     </div>
   );
 }
