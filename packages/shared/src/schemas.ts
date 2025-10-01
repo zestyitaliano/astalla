@@ -28,6 +28,40 @@ export const userSchema = z.object({
   updatedAt: z.string().datetime({ offset: true }).optional()
 });
 
+const usernameSchema = z
+  .string()
+  .min(3)
+  .max(32)
+  .regex(/^[a-zA-Z0-9._-]+$/, {
+    message: "Username may only include letters, numbers, dots, underscores, or hyphens"
+  })
+  .transform((value) => value.toLowerCase());
+
+export const basicAuthAccountSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().nullable().optional(),
+  username: usernameSchema.nullable().optional(),
+  orgId: z.string().optional()
+});
+
+export const registerBasicAuthRequestSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  name: z.string().optional(),
+  username: usernameSchema.optional(),
+  orgName: z.string().optional()
+});
+
+export const registerBasicAuthResponseSchema = basicAuthAccountSchema;
+
+export const basicAuthLoginRequestSchema = z.object({
+  identifier: z.string().min(1),
+  password: z.string().min(1)
+});
+
+export const basicAuthLoginResponseSchema = basicAuthAccountSchema;
+
 export const leadSchema = z.object({
   id: z.string(),
   propertyId: z.string(),
@@ -133,6 +167,11 @@ export const weeklyReportSchema = reportSnapshotSchema.pick({
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
+export type BasicAuthAccount = z.infer<typeof basicAuthAccountSchema>;
+export type RegisterBasicAuthRequest = z.infer<typeof registerBasicAuthRequestSchema>;
+export type RegisterBasicAuthResponse = z.infer<typeof registerBasicAuthResponseSchema>;
+export type BasicAuthLoginRequest = z.infer<typeof basicAuthLoginRequestSchema>;
+export type BasicAuthLoginResponse = z.infer<typeof basicAuthLoginResponseSchema>;
 export type Lead = z.infer<typeof leadSchema>;
 export type LeadEvent = z.infer<typeof leadEventSchema>;
 export type Application = z.infer<typeof applicationSchema>;

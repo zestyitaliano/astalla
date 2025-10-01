@@ -1,6 +1,15 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
 
+import { apiBaseUrl } from "@/lib/utils";
+import { basicAuthLoginResponseSchema } from "@shared/api";
+
+type EnvironmentAccount = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 const isMockMode =
   process.env.NEXT_PUBLIC_MOCK_MODE === "true" || process.env.MOCK_MODE === "true";
 
@@ -18,9 +27,71 @@ const configuredUsername = envUsername?.toLowerCase();
 const configuredPassword = process.env.BASIC_AUTH_PASSWORD ?? "password";
 const configuredDisplayName = process.env.BASIC_AUTH_NAME;
 
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+function resolveEnvironmentAccount(
+  normalizedIdentifier: string,
+  password: string
+): EnvironmentAccount | null {
+  const matchesEmail = configuredEmail ? normalizedIdentifier === configuredEmail : false;
+  const matchesUsername = configuredUsername
+    ? normalizedIdentifier === configuredUsername
+    : false;
+
+  if (!matchesEmail && !matchesUsername) {
+    return null;
+  }
+
+  if (password !== configuredPassword) {
+    return null;
+  }
+
+  const resolvedEmail = matchesEmail && envEmail ? envEmail : envEmail ?? fallbackUser.email;
+  const resolvedName =
+    configuredDisplayName || (matchesUsername && envUsername ? envUsername : fallbackUser.name);
+  const resolvedId = matchesUsername && envUsername
+    ? envUsername
+    : matchesEmail && envEmail
+      ? envEmail
+      : fallbackUser.id;
+
+  return {
+    id: resolvedId,
+    name: resolvedName,
+    email: resolvedEmail
+  };
+}
+
+async function attemptBackendLogin(identifier: string, password: string) {
+  try {
+    const response = await fetch(`${apiBaseUrl}/auth/basic-login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ identifier, password })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = basicAuthLoginResponseSchema.parse(await response.json());
+
+    return {
+      id: payload.id,
+      name: payload.name ?? fallbackUser.name,
+      email: payload.email
+    } satisfies EnvironmentAccount;
+  } catch (error) {
+    console.error("Failed to verify credentials with backend", error);
+    return null;
+  }
+}
+
 const acceptedIdentifiers = [configuredEmail, configuredUsername].filter(
   (value): value is string => Boolean(value)
 );
+ main
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -51,6 +122,37 @@ export const authOptions: NextAuthOptions = {
         }
 
         const normalizedIdentifier = identifier.toLowerCase();
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+        const environmentAccount = resolveEnvironmentAccount(normalizedIdentifier, password);
+        if (environmentAccount) {
+          return environmentAccount;
+        }
+
+        const backendAccount = await attemptBackendLogin(identifier, password);
+        if (backendAccount) {
+          return backendAccount;
+        }
+
+        if (configuredEmail || configuredUsername) {
+          return null;
+        }
+
+        const matchesFallbackEmail = normalizedIdentifier === fallbackUser.email.toLowerCase();
+        const matchesFallbackUsername = normalizedIdentifier === fallbackUser.username.toLowerCase();
+
+        if (!matchesFallbackEmail && !matchesFallbackUsername) {
+          return null;
+        }
+
+        if (password !== configuredPassword) {
+          return null;
+        }
+
+        return {
+          id: fallbackUser.id,
+          name: fallbackUser.name,
+          email: fallbackUser.email
+
         const identifiersToMatch =
           acceptedIdentifiers.length > 0
             ? acceptedIdentifiers
@@ -81,6 +183,7 @@ export const authOptions: NextAuthOptions = {
           id: resolvedId,
           name: resolvedName,
           email: resolvedEmail
+ main
         };
       }
     })

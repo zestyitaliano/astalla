@@ -20,7 +20,14 @@ packages/
 
 ## Environment variables
 
+ codex/fix-deployment-issue-on-vercel-rnbuxy
+Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The
+frontend's basic-auth flow will accept either the configured credentials or any accounts that users
+create through the new `/register` page backed by the Nest API. Make sure `NEXT_PUBLIC_API_BASE_URL`
+and `DATABASE_URL` are configured so the frontend can reach the backend when creating accounts.
+
 Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed.
+ main
 
 ## Local development
 
