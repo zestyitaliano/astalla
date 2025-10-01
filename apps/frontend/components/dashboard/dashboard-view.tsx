@@ -42,17 +42,23 @@ export function DashboardView() {
     );
   }
 
+  const occupancy = occupancyQuery.data;
+  const pipeline = pipelineQuery.data;
+  const cost = costQuery.data;
+  const reviews = reviewsQuery.data;
+  const report = reportQuery.data;
+
   if (
     occupancyQuery.error ||
     pipelineQuery.error ||
     costQuery.error ||
     reviewsQuery.error ||
     reportQuery.error ||
-    !occupancyQuery.data ||
-    !pipelineQuery.data ||
-    !costQuery.data ||
-    !reviewsQuery.data ||
-    !reportQuery.data
+    !occupancy ||
+    !pipeline ||
+    !cost ||
+    !reviews ||
+    !report
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -60,12 +66,6 @@ export function DashboardView() {
       </div>
     );
   }
-
-  const occupancy = occupancyQuery.data;
-  const pipeline = pipelineQuery.data;
-  const cost = costQuery.data;
-  const reviews = reviewsQuery.data;
-  const report = reportQuery.data;
 
   return (
     <DashboardShell user={meQuery.data}>

@@ -68,6 +68,92 @@ export declare const userSchema: z.ZodObject<{
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
 }>;
+export declare const basicAuthAccountSchema: z.ZodObject<{
+    id: z.ZodString;
+    email: z.ZodString;
+    name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    username: z.ZodOptional<z.ZodNullable<z.ZodEffects<z.ZodString, string, string>>>;
+    orgId: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    email: string;
+    name?: string | null | undefined;
+    orgId?: string | undefined;
+    username?: string | null | undefined;
+}, {
+    id: string;
+    email: string;
+    name?: string | null | undefined;
+    orgId?: string | undefined;
+    username?: string | null | undefined;
+}>;
+export declare const registerBasicAuthRequestSchema: z.ZodObject<{
+    email: z.ZodString;
+    password: z.ZodString;
+    name: z.ZodOptional<z.ZodString>;
+    username: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
+    orgName: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    email: string;
+    password: string;
+    name?: string | undefined;
+    username?: string | undefined;
+    orgName?: string | undefined;
+}, {
+    email: string;
+    password: string;
+    name?: string | undefined;
+    username?: string | undefined;
+    orgName?: string | undefined;
+}>;
+export declare const registerBasicAuthResponseSchema: z.ZodObject<{
+    id: z.ZodString;
+    email: z.ZodString;
+    name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    username: z.ZodOptional<z.ZodNullable<z.ZodEffects<z.ZodString, string, string>>>;
+    orgId: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    email: string;
+    name?: string | null | undefined;
+    orgId?: string | undefined;
+    username?: string | null | undefined;
+}, {
+    id: string;
+    email: string;
+    name?: string | null | undefined;
+    orgId?: string | undefined;
+    username?: string | null | undefined;
+}>;
+export declare const basicAuthLoginRequestSchema: z.ZodObject<{
+    identifier: z.ZodString;
+    password: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    password: string;
+    identifier: string;
+}, {
+    password: string;
+    identifier: string;
+}>;
+export declare const basicAuthLoginResponseSchema: z.ZodObject<{
+    id: z.ZodString;
+    email: z.ZodString;
+    name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    username: z.ZodOptional<z.ZodNullable<z.ZodEffects<z.ZodString, string, string>>>;
+    orgId: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    email: string;
+    name?: string | null | undefined;
+    orgId?: string | undefined;
+    username?: string | null | undefined;
+}, {
+    id: string;
+    email: string;
+    name?: string | null | undefined;
+    orgId?: string | undefined;
+    username?: string | null | undefined;
+}>;
 export declare const leadSchema: z.ZodObject<{
     id: z.ZodString;
     propertyId: z.ZodString;
@@ -379,6 +465,11 @@ export declare const weeklyReportSchema: z.ZodObject<Pick<{
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
+export type BasicAuthAccount = z.infer<typeof basicAuthAccountSchema>;
+export type RegisterBasicAuthRequest = z.infer<typeof registerBasicAuthRequestSchema>;
+export type RegisterBasicAuthResponse = z.infer<typeof registerBasicAuthResponseSchema>;
+export type BasicAuthLoginRequest = z.infer<typeof basicAuthLoginRequestSchema>;
+export type BasicAuthLoginResponse = z.infer<typeof basicAuthLoginResponseSchema>;
 export type Lead = z.infer<typeof leadSchema>;
 export type LeadEvent = z.infer<typeof leadEventSchema>;
 export type Application = z.infer<typeof applicationSchema>;
