@@ -102,22 +102,29 @@ export const reportSnapshotSchema = z.object({
 export const meResponseSchema = userSchema.extend({
     orgId: z.string()
 });
+const metricPointSchema = z.object({
+    timestamp: z.string().datetime({ offset: true }),
+    value: z.number()
+});
 export const occupancyMetricsSchema = z.object({
     occupancyRate: z.number(),
     change: z.number(),
     unitsOccupied: z.number(),
-    totalUnits: z.number()
+    totalUnits: z.number(),
+    trend: z.array(metricPointSchema)
 });
 export const pipelineMetricsSchema = z.object({
     newLeads: z.number(),
     toursScheduled: z.number(),
     applicationsStarted: z.number(),
-    applicationsApproved: z.number()
+    applicationsApproved: z.number(),
+    trend: z.array(metricPointSchema)
 });
 export const costMetricsSchema = z.object({
     costPerLead: z.number(),
     marketingSpend: z.number(),
-    spendChange: z.number()
+    spendChange: z.number(),
+    trend: z.array(metricPointSchema)
 });
 export const latestReviewsSchema = z.object({
     summary: z.object({
@@ -137,4 +144,22 @@ export const weeklyReportSchema = reportSnapshotSchema.pick({
     generatedAt: true,
     highlights: true,
     watchlist: true
+});
+export const alertSchema = z.object({
+    id: z.string(),
+    label: z.string(),
+    detail: z.string(),
+    severity: z.enum(["high", "medium", "low"]),
+    occurredAt: z.string().datetime({ offset: true })
+});
+export const alertsResponseSchema = z.object({
+    alerts: z.array(alertSchema)
+});
+export const propertiesResponseSchema = z.object({
+    properties: z.array(propertySchema.pick({
+        id: true,
+        name: true,
+        city: true,
+        state: true
+    }))
 });
