@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { isMockMode } from "@/lib/utils";
+import { ThemeProvider } from "../theme-provider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() =>
@@ -28,11 +29,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SessionProvider>
-      <QueryClientProvider client={queryClient}>
-        {children}
-        {process.env.NODE_ENV === "development" ? <ReactQueryDevtools /> : null}
-      </QueryClientProvider>
-    </SessionProvider>
+    <ThemeProvider>
+      <SessionProvider>
+        <QueryClientProvider client={queryClient}>
+          {children}
+          {process.env.NODE_ENV === "development" ? <ReactQueryDevtools /> : null}
+        </QueryClientProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }
