@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardState } from "@/lib/dashboard-state";
 import { cn } from "@/lib/utils";
 
-import { DashboardShell } from "./dashboard-shell";
+import DashboardShell from "./dashboard-shell";
+
+const fieldClassName =
+  "w-full rounded-xl border border-white/60 bg-white/80 px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-1 focus:ring-offset-white placeholder:text-muted-foreground/70";
 
 const fieldClassName =
   "w-full rounded-xl border border-white/60 bg-white/80 px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-1 focus:ring-offset-white placeholder:text-muted-foreground/70";
