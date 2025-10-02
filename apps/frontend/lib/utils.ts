@@ -58,3 +58,6 @@ export const apiBaseUrl = (() => {
 
 export const isMockMode = () =>
   process.env.NEXT_PUBLIC_MOCK_MODE === "true" || process.env.MOCK_MODE === "true";
+
+export const isPersistenceEnabled = () =>
+  process.env.NEXT_PUBLIC_DATA_PERSISTENCE !== "false";

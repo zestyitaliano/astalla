@@ -71,6 +71,17 @@ Copy `.env.example` to `.env` in the repo root and adjust the basic auth credent
 
 Set `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend) to activate MSW-powered mocks in the UI and sample data providers in the API. This lets you explore the dashboard without configuring external integrations.
 
+## Theming & contrast
+
+The frontend now exposes design tokens backed by CSS variables and Tailwind theme entries to keep light and dark palettes in sync with Radix color scales. You can tune the appearance by editing `apps/frontend/app/globals.css`:
+
+- `--bg`, `--panel`, `--card`, and `--card-contrast` control surface layers.
+- `--border` and `--ring` set border and focus accents.
+- `--muted`/`--muted-foreground` target subtle backgrounds and text.
+- `--accent`/`--accent-contrast` define the primary action hue.
+
+Tailwind aliases (for example `bg-card`, `text-muted-foreground`, and `ring-ring`) resolve to these tokens, so updating the CSS variables automatically lifts every component. To change the default theme, override `NEXT_PUBLIC_THEME_DEFAULT` in `.env`; to disable persisted table layout, set `NEXT_PUBLIC_DATA_PERSISTENCE=false`.
+
 ## Deployment
 
 ### Frontend (Vercel)
