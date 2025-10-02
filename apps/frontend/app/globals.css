@@ -3,52 +3,102 @@
 @tailwind utilities;
 
 :root {
-  --background: 30 48% 98%;
-  --foreground: 24 35% 16%;
-  --card: 0 0% 100%;
-  --card-foreground: 24 35% 16%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 24 35% 16%;
-  --primary: 25 94% 52%;
-  --primary-foreground: 33 100% 96%;
-  --secondary: 28 60% 94%;
-  --secondary-foreground: 24 35% 16%;
-  --muted: 27 52% 95%;
-  --muted-foreground: 24 22% 45%;
-  --accent: 27 52% 95%;
-  --accent-foreground: 24 35% 16%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 27 36% 90%;
-  --input: 27 36% 90%;
-  --ring: 25 94% 52%;
-  --radius: 0.75rem;
+  color-scheme: light;
+  --slate-1: 210 33% 99%;
+  --slate-2: 210 23% 97%;
+  --slate-3: 209 21% 94%;
+  --slate-4: 209 19% 92%;
+  --slate-5: 208 17% 89%;
+  --slate-6: 208 15% 86%;
+  --slate-7: 207 14% 82%;
+  --slate-8: 206 13% 75%;
+  --slate-9: 205 10% 56%;
+  --slate-10: 205 10% 52%;
+  --slate-11: 210 11% 43%;
+  --slate-12: 210 24% 14%;
+
+  --violet-6: 253 94% 82%;
+  --violet-7: 255 92% 78%;
+  --violet-8: 255 90% 74%;
+  --violet-9: 252 95% 68%;
+  --violet-11: 255 88% 62%;
+  --violet-12: 255 98% 95%;
+
+  --tomato-9: 358 75% 59%;
+  --tomato-12: 350 100% 95%;
+
+  --bg: var(--slate-1);
+  --panel: var(--slate-2);
+  --card: var(--slate-1);
+  --card-contrast: var(--slate-3);
+  --card-foreground: var(--foreground);
+  --border: var(--slate-6);
+  --muted: var(--slate-3);
+  --muted-foreground: var(--slate-11);
+  --foreground: var(--slate-12);
+  --accent: var(--violet-9);
+  --accent-contrast: var(--violet-12);
+  --ring: var(--violet-8);
+  --destructive: var(--tomato-9);
+  --destructive-foreground: var(--tomato-12);
+  --radius: 1.25rem;
+
+  /* Legacy tokens mapped to new system */
+  --background: var(--bg);
+  --card-foreground: var(--card-foreground);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-contrast);
+  --secondary: var(--panel);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--accent-contrast);
+  --muted-foreground: var(--muted-foreground);
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
+  color-scheme: dark;
+  --slate-1: 210 25% 10%;
+  --slate-2: 215 27% 12%;
+  --slate-3: 210 23% 16%;
+  --slate-4: 211 21% 19%;
+  --slate-5: 210 20% 22%;
+  --slate-6: 209 18% 25%;
+  --slate-7: 206 18% 30%;
+  --slate-8: 206 17% 36%;
+  --slate-9: 205 18% 44%;
+  --slate-10: 205 20% 48%;
+  --slate-11: 210 25% 70%;
+  --slate-12: 210 40% 96%;
+
+  --violet-6: 258 58% 52%;
+  --violet-7: 259 62% 59%;
+  --violet-8: 258 65% 66%;
+  --violet-9: 252 92% 76%;
+  --violet-11: 252 100% 87%;
+  --violet-12: 255 100% 96%;
+
+  --tomato-9: 5 78% 62%;
+  --tomato-12: 5 100% 95%;
+
+  --bg: var(--slate-1);
+  --panel: var(--slate-2);
+  --card: var(--slate-3);
+  --card-contrast: var(--slate-4);
+  --card-foreground: var(--foreground);
+  --border: var(--slate-6);
+  --muted: var(--slate-4);
+  --muted-foreground: var(--slate-11);
+  --foreground: var(--slate-12);
+  --accent: var(--violet-8);
+  --accent-contrast: var(--violet-12);
+  --ring: var(--violet-7);
+  --destructive: var(--tomato-9);
+  --destructive-foreground: var(--tomato-12);
 }
 
 body {
-  background-color: hsl(var(--background));
+  background: radial-gradient(120% 120% at 10% 0%, hsl(var(--accent) / 0.15) 0%, transparent 45%),
+    radial-gradient(100% 100% at 100% 0%, hsl(var(--muted) / 0.12) 0%, transparent 50%),
+    hsl(var(--bg));
   color: hsl(var(--foreground));
 }
 
@@ -56,7 +106,18 @@ body {
   * {
     @apply border-border;
   }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.2);
+    color: hsl(var(--foreground));
   }
 }
