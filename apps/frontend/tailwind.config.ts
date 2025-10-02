@@ -15,17 +15,23 @@ const config: Config = {
       },
       colors: {
         border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
+        input: "hsl(var(--border))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
+        background: "hsl(var(--bg))",
         foreground: "hsl(var(--foreground))",
+        panel: "hsl(var(--panel))",
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          contrast: "hsl(var(--card-contrast))",
+          foreground: "hsl(var(--card-foreground))"
+        },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))"
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-contrast))"
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))"
+          DEFAULT: "hsl(var(--panel))",
+          foreground: "hsl(var(--foreground))"
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -33,15 +39,11 @@ const config: Config = {
         },
         accent: {
           DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))"
+          foreground: "hsl(var(--accent-contrast))"
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))"
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))"
         }
       },
       borderRadius: {
