@@ -31,9 +31,9 @@ export function DashboardView() {
   const [welcomeDraft, setWelcomeDraft] = useState(state.welcome);
 
   const [profileDraft, setProfileDraft] = useState({
-    name: state.user.name,
-    email: state.user.email,
-    orgId: state.user.orgId
+    name: state.user.name ?? "",
+    email: state.user.email ?? "",
+    orgId: state.user.orgId ?? ""
   });
 
   const [showQuickStatForm, setShowQuickStatForm] = useState(false);
@@ -53,9 +53,9 @@ export function DashboardView() {
 
   useEffect(() => {
     setProfileDraft({
-      name: state.user.name,
-      email: state.user.email,
-      orgId: state.user.orgId
+      name: state.user.name ?? "",
+      email: state.user.email ?? "",
+      orgId: state.user.orgId ?? ""
     });
   }, [state.user.email, state.user.name, state.user.orgId]);
 

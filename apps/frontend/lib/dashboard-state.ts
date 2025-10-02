@@ -96,28 +96,30 @@ function sanitizeQuickStats(value: unknown): QuickStat[] {
     return [];
   }
 
-  return value
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return null;
-      }
+  const result: QuickStat[] = [];
 
-      const source = entry as Partial<QuickStat>;
-      const label = typeof source.label === "string" ? source.label : "";
-      const statValue = typeof source.value === "string" ? source.value : "";
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return;
+    }
 
-      if (!label && !statValue) {
-        return null;
-      }
+    const source = entry as Partial<QuickStat>;
+    const label = typeof source.label === "string" ? source.label : "";
+    const statValue = typeof source.value === "string" ? source.value : "";
 
-      return {
-        id: typeof source.id === "string" ? source.id : createId(),
-        label,
-        value: statValue,
-        helper: typeof source.helper === "string" ? source.helper : undefined
-      } satisfies QuickStat;
-    })
-    .filter((entry): entry is QuickStat => Boolean(entry));
+    if (!label && !statValue) {
+      return;
+    }
+
+    result.push({
+      id: typeof source.id === "string" ? source.id : createId(),
+      label,
+      value: statValue,
+      helper: typeof source.helper === "string" ? source.helper : undefined
+    });
+  });
+
+  return result;
 }
 
 function sanitizeTableRows(columns: string[], rows: unknown): TableRow[] {
@@ -144,36 +146,38 @@ function sanitizeTables(value: unknown): Table[] {
     return [];
   }
 
-  return value
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") {
-        return null;
-      }
+  const result: Table[] = [];
 
-      const source = entry as Partial<Table>;
-      const name = typeof source.name === "string" ? source.name : "";
-      const columns = Array.isArray(source.columns)
-        ? source.columns.filter((column): column is string => typeof column === "string")
-        : [];
+  value.forEach((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return;
+    }
 
-      if (!name) {
-        return null;
-      }
+    const source = entry as Partial<Table>;
+    const name = typeof source.name === "string" ? source.name : "";
+    const columns = Array.isArray(source.columns)
+      ? source.columns.filter((column): column is string => typeof column === "string")
+      : [];
 
-      const created = typeof source.createdAt === "string" ? source.createdAt : new Date().toISOString();
-      const updated = typeof source.updatedAt === "string" ? source.updatedAt : created;
+    if (!name) {
+      return;
+    }
 
-      return {
-        id: typeof source.id === "string" ? source.id : createId(),
-        name,
-        description: typeof source.description === "string" ? source.description : undefined,
-        columns,
-        rows: sanitizeTableRows(columns, source.rows),
-        createdAt: created,
-        updatedAt: updated
-      } satisfies Table;
-    })
-    .filter((entry): entry is Table => Boolean(entry));
+    const created = typeof source.createdAt === "string" ? source.createdAt : new Date().toISOString();
+    const updated = typeof source.updatedAt === "string" ? source.updatedAt : created;
+
+    result.push({
+      id: typeof source.id === "string" ? source.id : createId(),
+      name,
+      description: typeof source.description === "string" ? source.description : undefined,
+      columns,
+      rows: sanitizeTableRows(columns, source.rows),
+      createdAt: created,
+      updatedAt: updated
+    });
+  });
+
+  return result;
 }
 
 function hydrateStoredState(value: unknown): DashboardState {
