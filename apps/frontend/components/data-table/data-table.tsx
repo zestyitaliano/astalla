@@ -23,7 +23,6 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  type Column,
   type ColumnDef,
   type ColumnOrderState,
   type ColumnPinningState,
@@ -69,17 +68,6 @@ function defaultColumnId<TData>(column: ColumnDef<TData, unknown>, index: number
     return column.accessorKey.toString();
   }
   return `col_${index}`;
-}
-
-type ColumnWithResizeHandler<TData> = Column<TData, unknown> & {
-  getResizeHandler: () => (event: unknown) => void;
-};
-
-function columnResizeHandler<TData>(column: Column<TData, unknown>) {
-  if (typeof (column as ColumnWithResizeHandler<TData>).getResizeHandler === "function") {
-    return (column as ColumnWithResizeHandler<TData>).getResizeHandler();
-  }
-  return undefined;
 }
 
 const densityToRowClass: Record<TableDensity, string> = {
@@ -343,7 +331,6 @@ function SortableColumnHeader<TData>({ header }: SortableColumnHeaderProps<TData
     id: column.id,
     disabled: meta.disableDrag
   });
-  const resizeHandler = columnResizeHandler(column);
 
   return (
     <th
@@ -375,8 +362,8 @@ function SortableColumnHeader<TData>({ header }: SortableColumnHeaderProps<TData
           {!meta.disableDrag ? <DragHandle {...attributes} {...listeners} /> : null}
           {column.getCanResize() ? (
             <div
-              onMouseDown={resizeHandler}
-              onTouchStart={resizeHandler}
+              onMouseDown={column.getResizeHandler()}
+              onTouchStart={column.getResizeHandler()}
               className="absolute inset-y-0 right-0 w-1 cursor-col-resize bg-transparent"
             />
           ) : null}
