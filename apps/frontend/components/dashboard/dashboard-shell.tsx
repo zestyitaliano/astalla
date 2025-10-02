@@ -40,6 +40,7 @@ export function DashboardShell({
                 <Avatar className="h-9 w-9 bg-primary/10">
                   <AvatarFallback className="bg-transparent text-sm font-semibold text-primary">
                     {initials}
+
                   </AvatarFallback>
                 </Avatar>
               </div>
