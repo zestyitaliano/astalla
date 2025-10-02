@@ -22,8 +22,16 @@ export function EditableCell<TData>({
 }: CellContext<TData, unknown>) {
   const meta = (column.columnDef.meta ?? {}) as EditableCellMeta<TData>;
   const isEditable = Boolean(meta.editable);
-  const formatValue = meta.formatValue ?? ((value: unknown) => (value ?? "") as string);
-  const parseValue = meta.parseValue ?? ((value: string) => value);
+  const formatValue = useMemo<NonNullable<EditableCellMeta<TData>["formatValue"]>>(() => {
+    return (
+      meta.formatValue ?? ((value: unknown) => (value ?? "") as string)
+    ) as NonNullable<EditableCellMeta<TData>["formatValue"]>;
+  }, [meta.formatValue]);
+  const parseValue = useMemo<NonNullable<EditableCellMeta<TData>["parseValue"]>>(() => {
+    return (
+      meta.parseValue ?? ((value: string) => value)
+    ) as NonNullable<EditableCellMeta<TData>["parseValue"]>;
+  }, [meta.parseValue]);
   const validate = meta.validate;
   const accessibleLabel =
     (typeof column.columnDef.header === "string" && column.columnDef.header) ||

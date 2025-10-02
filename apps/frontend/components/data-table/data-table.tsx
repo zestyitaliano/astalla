@@ -64,7 +64,7 @@ function defaultColumnId<TData>(column: ColumnDef<TData, unknown>, index: number
   if (column.id) {
     return column.id.toString();
   }
-  if (column.accessorKey) {
+  if ("accessorKey" in column && column.accessorKey) {
     return column.accessorKey.toString();
   }
   return `col_${index}`;
