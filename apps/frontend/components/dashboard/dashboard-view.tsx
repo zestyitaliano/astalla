@@ -1,6 +1,5 @@
 "use client";
 
-
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
@@ -688,7 +687,6 @@ export function DashboardView() {
                     </div>
                   );
                 })}
-
               </div>
             )}
           </CardContent>
