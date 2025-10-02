@@ -82,6 +82,20 @@ The frontend now exposes design tokens backed by CSS variables and Tailwind them
 
 Tailwind aliases (for example `bg-card`, `text-muted-foreground`, and `ring-ring`) resolve to these tokens, so updating the CSS variables automatically lifts every component. To change the default theme, override `NEXT_PUBLIC_THEME_DEFAULT` in `.env`; to disable persisted table layout, set `NEXT_PUBLIC_DATA_PERSISTENCE=false`.
 
+## Tables (preview)
+
+The backend schema now includes the foundation for a spreadsheet-inspired "Tables" workspace. New Prisma models capture tables, typed columns, row data, cells, and user-specific saved views. The feature is under active construction; upcoming commits will add REST endpoints, formula evaluation, CSV workflows, and the editable grid UI powered by TanStack Table.
+
+| Model         | Purpose                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| `Table`       | Owns table metadata (name, owning org, timestamps).                     |
+| `TableColumn` | Tracks typed columns, including lookup and formula expressions.         |
+| `TableRow`    | Stores row ordering and creation metadata for each table.               |
+| `TableCell`   | Persists typed JSON values per row/column intersection.                 |
+| `TableView`   | Saves per-user layout state (visible columns, filters, sorts, etc.).    |
+
+Once the API layer and frontend are wired up, you'll be able to create tables, mix column types, link records across tables, and persist personalised views. Formula support will be backed by HyperFormula so expressions like `=IF([Status]="At risk",1,0)` and `=LOOKUP("Properties","Name",[Property],"Monthly cost")` compute consistently on the server.
+
 ## Deployment
 
 ### Frontend (Vercel)
