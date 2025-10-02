@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { MeResponse } from "@shared/api";
 
+import { ThemeToggle } from "./theme-toggle";
+
 export default function DashboardShell({
   user,
   children
@@ -19,22 +21,23 @@ export default function DashboardShell({
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#f8f7ff] via-[#fefefe] to-[#fff7f0]">
+    <div className="flex min-h-screen flex-col">
       <header className="px-6 pt-10">
         <div className="mx-auto w-full max-w-7xl">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/60 bg-white/70 px-6 py-4 shadow-sm backdrop-blur">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border/70 bg-panel/90 px-6 py-5 shadow-sm supports-[backdrop-filter]:backdrop-blur">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground/80">
                 {user.orgId ? user.orgId : "Astalla internal"}
               </p>
               <h1 className="text-2xl font-semibold text-foreground">Operations control center</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-full border border-white/60 bg-white/60 px-4 py-2 text-xs text-muted-foreground sm:flex">
-                <Search className="h-4 w-4" />
+              <ThemeToggle />
+              <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 text-xs text-muted-foreground sm:flex">
+                <Search className="h-4 w-4" aria-hidden="true" />
                 <span>Search workspaces</span>
               </div>
-              <div className="flex items-center gap-3 rounded-full border border-white/60 bg-white/80 px-3 py-2 shadow-sm">
+              <div className="flex items-center gap-3 rounded-full border border-border/70 bg-card px-3 py-2 shadow-sm">
                 <div className="text-right">
                   <p className="text-sm font-semibold text-foreground">{displayName}</p>
                   <p className="text-xs text-muted-foreground">{displayEmail}</p>
