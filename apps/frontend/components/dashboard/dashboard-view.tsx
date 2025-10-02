@@ -443,6 +443,7 @@ export function DashboardView() {
             ) : null}
           </CardContent>
         </Card>
+      </section>
 
         <Card className="rounded-3xl border border-white/60 bg-white/80 shadow-sm">
           <CardHeader>
