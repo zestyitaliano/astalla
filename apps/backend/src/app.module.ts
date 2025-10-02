@@ -1,11 +1,13 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 
+import { AlertsModule } from "./alerts/alerts.module";
 import { AuthModule } from "./auth/auth.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProvidersModule } from "./providers/providers.module";
+import { PropertiesModule } from "./properties/properties.module";
 import { ReportsModule } from "./reports/reports.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 
@@ -36,10 +38,12 @@ import { ReviewsModule } from "./reviews/reviews.module";
     }),
     PrismaModule,
     ProvidersModule,
+    PropertiesModule,
     AuthModule,
     MetricsModule,
     ReviewsModule,
     ReportsModule,
+    AlertsModule,
     JobsModule
   ]
 })

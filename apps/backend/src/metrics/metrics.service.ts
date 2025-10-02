@@ -6,15 +6,15 @@ import { MockIntegrationsService } from "../providers/mock-integrations.service"
 export class MetricsService {
   constructor(private readonly integrations: MockIntegrationsService) {}
 
-  getOccupancy() {
-    return this.integrations.getOccupancyMetrics();
+  getOccupancy(propertyId?: string, windowParam?: string) {
+    return this.integrations.getOccupancyMetrics(propertyId, windowParam);
   }
 
-  getPipeline() {
-    return this.integrations.getPipelineMetrics();
+  getPipeline(propertyId?: string, windowParam?: string) {
+    return this.integrations.getPipelineMetrics(propertyId, windowParam);
   }
 
-  getCost() {
-    return this.integrations.getCostMetrics();
+  getCost(propertyId?: string, windowParam?: string) {
+    return this.integrations.getCostMetrics(propertyId, windowParam);
   }
 }

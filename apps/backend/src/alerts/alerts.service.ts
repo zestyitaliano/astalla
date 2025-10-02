@@ -3,10 +3,10 @@ import { Injectable } from "@nestjs/common";
 import { MockIntegrationsService } from "../providers/mock-integrations.service";
 
 @Injectable()
-export class ReviewsService {
+export class AlertsService {
   constructor(private readonly integrations: MockIntegrationsService) {}
 
-  getLatest(propertyId?: string) {
-    return this.integrations.getLatestReviews(propertyId);
+  getAlerts(propertyId?: string) {
+    return this.integrations.getAlerts(propertyId);
   }
 }
