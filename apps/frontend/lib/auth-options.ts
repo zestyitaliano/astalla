@@ -197,6 +197,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.name = session.user.name ?? fallbackUser.name;
         session.user.email = session.user.email ?? fallbackUser.email;
+        const identifier = session.user.email?.toLowerCase() ?? "";
+        session.user.role = identifier.includes("viewer") ? "viewer" : "admin";
       }
       return session;
     }

@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 
 import { ReviewsService } from "./reviews.service";
 
@@ -7,7 +7,7 @@ export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
   @Get("latest")
-  getLatest() {
-    return this.reviewsService.getLatest();
+  getLatest(@Query("propertyId") propertyId?: string) {
+    return this.reviewsService.getLatest(propertyId);
   }
 }

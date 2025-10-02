@@ -11,9 +11,11 @@ import { ThemeToggle } from "./theme-toggle";
 
 export default function DashboardShell({
   user,
+  role,
   children
 }: {
   user: MeResponse;
+  role?: "admin" | "viewer";
   children: ReactNode;
 }) {
   const displayName = user.name?.trim() || "Set your name";
@@ -48,6 +50,11 @@ export default function DashboardShell({
                   </AvatarFallback>
                 </Avatar>
               </div>
+              {role ? (
+                <span className="inline-flex items-center rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {role}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>

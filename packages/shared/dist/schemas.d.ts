@@ -321,28 +321,64 @@ export declare const occupancyMetricsSchema: z.ZodObject<{
     change: z.ZodNumber;
     unitsOccupied: z.ZodNumber;
     totalUnits: z.ZodNumber;
+    trend: z.ZodArray<z.ZodObject<{
+        timestamp: z.ZodString;
+        value: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        value: number;
+        timestamp: string;
+    }, {
+        value: number;
+        timestamp: string;
+    }>, "many">;
 }, "strip", z.ZodTypeAny, {
     occupancyRate: number;
     change: number;
     unitsOccupied: number;
     totalUnits: number;
+    trend: {
+        value: number;
+        timestamp: string;
+    }[];
 }, {
     occupancyRate: number;
     change: number;
     unitsOccupied: number;
     totalUnits: number;
+    trend: {
+        value: number;
+        timestamp: string;
+    }[];
 }>;
 export declare const pipelineMetricsSchema: z.ZodObject<{
     newLeads: z.ZodNumber;
     toursScheduled: z.ZodNumber;
     applicationsStarted: z.ZodNumber;
     applicationsApproved: z.ZodNumber;
+    trend: z.ZodArray<z.ZodObject<{
+        timestamp: z.ZodString;
+        value: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        value: number;
+        timestamp: string;
+    }, {
+        value: number;
+        timestamp: string;
+    }>, "many">;
 }, "strip", z.ZodTypeAny, {
+    trend: {
+        value: number;
+        timestamp: string;
+    }[];
     newLeads: number;
     toursScheduled: number;
     applicationsStarted: number;
     applicationsApproved: number;
 }, {
+    trend: {
+        value: number;
+        timestamp: string;
+    }[];
     newLeads: number;
     toursScheduled: number;
     applicationsStarted: number;
@@ -352,11 +388,29 @@ export declare const costMetricsSchema: z.ZodObject<{
     costPerLead: z.ZodNumber;
     marketingSpend: z.ZodNumber;
     spendChange: z.ZodNumber;
+    trend: z.ZodArray<z.ZodObject<{
+        timestamp: z.ZodString;
+        value: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        value: number;
+        timestamp: string;
+    }, {
+        value: number;
+        timestamp: string;
+    }>, "many">;
 }, "strip", z.ZodTypeAny, {
+    trend: {
+        value: number;
+        timestamp: string;
+    }[];
     costPerLead: number;
     marketingSpend: number;
     spendChange: number;
 }, {
+    trend: {
+        value: number;
+        timestamp: string;
+    }[];
     costPerLead: number;
     marketingSpend: number;
     spendChange: number;
@@ -462,9 +516,105 @@ export declare const weeklyReportSchema: z.ZodObject<Pick<{
         issue: string;
     }[];
 }>;
+export declare const alertSchema: z.ZodObject<{
+    id: z.ZodString;
+    label: z.ZodString;
+    detail: z.ZodString;
+    severity: z.ZodEnum<["high", "medium", "low"]>;
+    occurredAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    occurredAt: string;
+    label: string;
+    detail: string;
+    severity: "high" | "medium" | "low";
+}, {
+    id: string;
+    occurredAt: string;
+    label: string;
+    detail: string;
+    severity: "high" | "medium" | "low";
+}>;
+export declare const alertsResponseSchema: z.ZodObject<{
+    alerts: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        label: z.ZodString;
+        detail: z.ZodString;
+        severity: z.ZodEnum<["high", "medium", "low"]>;
+        occurredAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        occurredAt: string;
+        label: string;
+        detail: string;
+        severity: "high" | "medium" | "low";
+    }, {
+        id: string;
+        occurredAt: string;
+        label: string;
+        detail: string;
+        severity: "high" | "medium" | "low";
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    alerts: {
+        id: string;
+        occurredAt: string;
+        label: string;
+        detail: string;
+        severity: "high" | "medium" | "low";
+    }[];
+}, {
+    alerts: {
+        id: string;
+        occurredAt: string;
+        label: string;
+        detail: string;
+        severity: "high" | "medium" | "low";
+    }[];
+}>;
+export declare const propertiesResponseSchema: z.ZodObject<{
+    properties: z.ZodArray<z.ZodObject<Pick<{
+        id: z.ZodString;
+        name: z.ZodString;
+        address: z.ZodString;
+        city: z.ZodString;
+        state: z.ZodString;
+        zip: z.ZodString;
+        orgId: z.ZodString;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "id" | "name" | "city" | "state">, "strip", z.ZodTypeAny, {
+        id: string;
+        name: string;
+        city: string;
+        state: string;
+    }, {
+        id: string;
+        name: string;
+        city: string;
+        state: string;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    properties: {
+        id: string;
+        name: string;
+        city: string;
+        state: string;
+    }[];
+}, {
+    properties: {
+        id: string;
+        name: string;
+        city: string;
+        state: string;
+    }[];
+}>;
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
+export type Alert = z.infer<typeof alertSchema>;
+export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
+export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
 export type BasicAuthAccount = z.infer<typeof basicAuthAccountSchema>;
 export type RegisterBasicAuthRequest = z.infer<typeof registerBasicAuthRequestSchema>;
 export type RegisterBasicAuthResponse = z.infer<typeof registerBasicAuthResponseSchema>;

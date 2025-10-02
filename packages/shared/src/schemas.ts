@@ -121,24 +121,32 @@ export const meResponseSchema = userSchema.extend({
   orgId: z.string()
 });
 
+const metricPointSchema = z.object({
+  timestamp: z.string().datetime({ offset: true }),
+  value: z.number()
+});
+
 export const occupancyMetricsSchema = z.object({
   occupancyRate: z.number(),
   change: z.number(),
   unitsOccupied: z.number(),
-  totalUnits: z.number()
+  totalUnits: z.number(),
+  trend: z.array(metricPointSchema)
 });
 
 export const pipelineMetricsSchema = z.object({
   newLeads: z.number(),
   toursScheduled: z.number(),
   applicationsStarted: z.number(),
-  applicationsApproved: z.number()
+  applicationsApproved: z.number(),
+  trend: z.array(metricPointSchema)
 });
 
 export const costMetricsSchema = z.object({
   costPerLead: z.number(),
   marketingSpend: z.number(),
-  spendChange: z.number()
+  spendChange: z.number(),
+  trend: z.array(metricPointSchema)
 });
 
 export const latestReviewsSchema = z.object({
@@ -164,9 +172,35 @@ export const weeklyReportSchema = reportSnapshotSchema.pick({
   watchlist: true
 });
 
+export const alertSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  detail: z.string(),
+  severity: z.enum(["high", "medium", "low"]),
+  occurredAt: z.string().datetime({ offset: true })
+});
+
+export const alertsResponseSchema = z.object({
+  alerts: z.array(alertSchema)
+});
+
+export const propertiesResponseSchema = z.object({
+  properties: z.array(
+    propertySchema.pick({
+      id: true,
+      name: true,
+      city: true,
+      state: true
+    })
+  )
+});
+
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
+export type Alert = z.infer<typeof alertSchema>;
+export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
+export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
 export type BasicAuthAccount = z.infer<typeof basicAuthAccountSchema>;
 export type RegisterBasicAuthRequest = z.infer<typeof registerBasicAuthRequestSchema>;
 export type RegisterBasicAuthResponse = z.infer<typeof registerBasicAuthResponseSchema>;

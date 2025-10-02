@@ -1,94 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DataTable } from "@/components/data-table/data-table";
 import type { EditableCellMeta } from "@/components/data-table/editable-cell";
-import { DashboardCard } from "@/components/dashboard/dashboard-card";
-import { isPersistenceEnabled } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { cn, isPersistenceEnabled } from "@/lib/utils";
 
-export type PortfolioRow = {
-  id: string;
-  name: string;
-  status: "Green" | "At risk" | "Delayed" | "Planning";
-  owner: string;
-  updatedAt: string;
-  slaHours: number;
-  monthlyCost: number;
-  occupancy: number;
-  incidents: number;
-};
+import type { PortfolioRecord } from "@/lib/portfolio-store";
 
-const initialRows: PortfolioRow[] = [
-  {
-    id: "prop-1",
-    name: "Atrium Center",
-    status: "Green",
-    owner: "Casey Wynn",
-    updatedAt: "2024-11-04T15:05:00.000Z",
-    slaHours: 12,
-    monthlyCost: 48000,
-    occupancy: 92,
-    incidents: 1
-  },
-  {
-    id: "prop-2",
-    name: "Harbor Tower",
-    status: "At risk",
-    owner: "Jules Moreno",
-    updatedAt: "2024-11-03T09:20:00.000Z",
-    slaHours: 4,
-    monthlyCost: 72000,
-    occupancy: 87,
-    incidents: 4
-  },
-  {
-    id: "prop-3",
-    name: "North Loop Campus",
-    status: "Delayed",
-    owner: "Sydney Patel",
-    updatedAt: "2024-11-01T12:10:00.000Z",
-    slaHours: 30,
-    monthlyCost: 56000,
-    occupancy: 81,
-    incidents: 3
-  },
-  {
-    id: "prop-4",
-    name: "Quartz Labs",
-    status: "Planning",
-    owner: "Amelia Chen",
-    updatedAt: "2024-10-28T08:12:00.000Z",
-    slaHours: 48,
-    monthlyCost: 39500,
-    occupancy: 68,
-    incidents: 6
-  },
-  {
-    id: "prop-5",
-    name: "Riverside Commons",
-    status: "Green",
-    owner: "Jonah Walker",
-    updatedAt: "2024-11-05T18:30:00.000Z",
-    slaHours: 16,
-    monthlyCost: 61000,
-    occupancy: 95,
-    incidents: 0
-  },
-  {
-    id: "prop-6",
-    name: "Summit Hub",
-    status: "At risk",
-    owner: "Bryn Lee",
-    updatedAt: "2024-11-02T16:02:00.000Z",
-    slaHours: 10,
-    monthlyCost: 45200,
-    occupancy: 78,
-    incidents: 5
-  }
-];
+export type PortfolioRow = PortfolioRecord;
 
 const statusOptions: PortfolioRow["status"][] = ["Green", "At risk", "Delayed", "Planning"];
 
@@ -104,8 +29,98 @@ function validateDate(value: string) {
   return Number.isNaN(Date.parse(value)) ? "Invalid date" : null;
 }
 
-export function OperationsTable() {
-  const [rows, setRows] = useState(initialRows);
+async function fetchPortfolio() {
+  const response = await fetch("/api/portfolio", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("Failed to load portfolio rows");
+  }
+  const payload: { rows: PortfolioRow[] } = await response.json();
+  return payload.rows;
+}
+
+export function OperationsTable({ canEdit }: { canEdit: boolean }) {
+  const queryClient = useQueryClient();
+  const rowsQuery = useQuery({ queryKey: ["portfolio"], queryFn: fetchPortfolio });
+  const [rows, setRows] = useState<PortfolioRow[]>([]);
+
+  useEffect(() => {
+    if (rowsQuery.data) {
+      setRows(rowsQuery.data);
+    }
+  }, [rowsQuery.data]);
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/portfolio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create row");
+      }
+      return (await response.json()) as PortfolioRow;
+    },
+    onSuccess: (record) => {
+      setRows((previous) => [...previous, record]);
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<PortfolioRow> }) => {
+      const response = await fetch(`/api/portfolio/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch)
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update row");
+      }
+      return (await response.json()) as PortfolioRow;
+    },
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio"] });
+      const previousRows = rows;
+      setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+      return { previousRows };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousRows) {
+        setRows(context.previousRows);
+      }
+    },
+    onSuccess: (updated) => {
+      setRows((previous) => previous.map((row) => (row.id === updated.id ? updated : row)));
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/portfolio/${id}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete row");
+      }
+      return id;
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio"] });
+      const previousRows = rows;
+      setRows((current) => current.filter((row) => row.id !== id));
+      return { previousRows };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousRows) {
+        setRows(context.previousRows);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    }
+  });
 
   const columns = useMemo<ColumnDef<PortfolioRow, unknown>[]>(() => {
     return [
@@ -114,7 +129,7 @@ export function OperationsTable() {
         id: "name",
         header: "Property",
         meta: {
-          editable: true,
+          editable: canEdit,
           validate: validateNonEmpty,
           placeholder: "Property name"
         } satisfies EditableCellMeta<PortfolioRow>
@@ -124,7 +139,7 @@ export function OperationsTable() {
         id: "status",
         header: "Status",
         meta: {
-          editable: true,
+          editable: canEdit,
           validate: (value: string) =>
             statusOptions.includes(value as PortfolioRow["status"]) ? null : "Use a listed status",
           placeholder: "Green"
@@ -135,7 +150,7 @@ export function OperationsTable() {
         id: "owner",
         header: "Owner",
         meta: {
-          editable: true,
+          editable: canEdit,
           validate: validateNonEmpty,
           placeholder: "Owner"
         } satisfies EditableCellMeta<PortfolioRow>
@@ -145,7 +160,7 @@ export function OperationsTable() {
         id: "updatedAt",
         header: "Last updated",
         meta: {
-          editable: true,
+          editable: canEdit,
           formatValue: (value: unknown) => {
             const parsed = value ? new Date(value as string) : null;
             return parsed ? format(parsed, "MMM d, yyyy HH:mm") : "";
@@ -160,7 +175,7 @@ export function OperationsTable() {
         id: "slaHours",
         header: "SLA (hrs)",
         meta: {
-          editable: true,
+          editable: canEdit,
           inputType: "number",
           formatValue: (value) => String(value ?? ""),
           parseValue: (value: string) => Number(value),
@@ -172,7 +187,7 @@ export function OperationsTable() {
         id: "monthlyCost",
         header: "Monthly cost",
         meta: {
-          editable: true,
+          editable: canEdit,
           inputType: "number",
           formatValue: (value) =>
             typeof value === "number" ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "",
@@ -185,10 +200,9 @@ export function OperationsTable() {
         id: "occupancy",
         header: "Occupancy %",
         meta: {
-          editable: true,
+          editable: canEdit,
           inputType: "number",
-          formatValue: (value) =>
-            typeof value === "number" ? `${value.toFixed(0)}%` : "",
+          formatValue: (value) => (typeof value === "number" ? `${value.toFixed(0)}%` : ""),
           parseValue: (value: string) => Number(value.replace(/%/g, "")),
           validate: (value: string) => {
             const numeric = Number(value.replace(/%/g, ""));
@@ -207,29 +221,77 @@ export function OperationsTable() {
         id: "incidents",
         header: "Open incidents",
         meta: {
-          editable: true,
+          editable: canEdit,
           inputType: "number",
           parseValue: (value: string) => Number(value),
           validate: validatePositiveNumber,
           formatValue: (value) => String(value ?? "")
         } satisfies EditableCellMeta<PortfolioRow>
+      },
+      {
+        id: "actions",
+        header: "",
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+              onClick={() => deleteMutation.mutate(row.original.id)}
+              disabled={!canEdit || deleteMutation.isPending}
+              aria-label={`Delete ${row.original.name}`}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        )
       }
     ];
-  }, []);
+  }, [canEdit, deleteMutation.isPending]);
 
   return (
-    <DashboardCard
-      title="Portfolio performance"
-      description="Track contracts, SLAs and incident load for high-value properties."
-      action={<p className="text-xs text-muted-foreground">Drag columns or rows to personalize the view.</p>}
-    >
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          type="button"
+          size="sm"
+          className="gap-2"
+          onClick={() => createMutation.mutate()}
+          disabled={!canEdit || createMutation.isPending}
+        >
+          {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Add row
+        </Button>
+        {rowsQuery.isFetching ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Syncing
+          </div>
+        ) : null}
+      </div>
+      {rowsQuery.isError ? (
+        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Unable to load saved portfolio rows. Working with the latest cached data.
+        </div>
+      ) : null}
       <DataTable
         columns={columns}
         data={rows}
-        storageKey="astalla:portfolio-table:v2"
+        storageKey="astalla:portfolio-table:v3"
         persistenceEnabled={isPersistenceEnabled()}
-        onDataChange={setRows}
+        onDataChange={(nextRows) => setRows(nextRows)}
+        className={cn(!canEdit && "opacity-90")}
+        meta={{
+          onUpdate: (rowId: string, columnId: string, value: unknown) => {
+            updateMutation.mutate({ id: rowId, patch: { [columnId]: value } as Partial<PortfolioRow> });
+          }
+        }}
       />
-    </DashboardCard>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 
 import { MetricsService } from "./metrics.service";
 
@@ -7,17 +7,26 @@ export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
 
   @Get("occupancy")
-  getOccupancy() {
-    return this.metricsService.getOccupancy();
+  getOccupancy(
+    @Query("propertyId") propertyId?: string,
+    @Query("window") windowParam?: string
+  ) {
+    return this.metricsService.getOccupancy(propertyId, windowParam);
   }
 
   @Get("pipeline")
-  getPipeline() {
-    return this.metricsService.getPipeline();
+  getPipeline(
+    @Query("propertyId") propertyId?: string,
+    @Query("window") windowParam?: string
+  ) {
+    return this.metricsService.getPipeline(propertyId, windowParam);
   }
 
   @Get("cost")
-  getCost() {
-    return this.metricsService.getCost();
+  getCost(
+    @Query("propertyId") propertyId?: string,
+    @Query("window") windowParam?: string
+  ) {
+    return this.metricsService.getCost(propertyId, windowParam);
   }
 }
