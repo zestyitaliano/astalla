@@ -29,7 +29,8 @@ import {
   type ColumnPinningState,
   type ColumnSizingState,
   type SortingState,
-  type Table
+  type Table,
+  type TableMeta
 } from "@tanstack/react-table";
 import {
   type RowSelectionState,
@@ -59,6 +60,7 @@ interface DataTableProps<TData extends { id: string }> {
   className?: string;
   persistenceEnabled?: boolean;
   onDataChange?: (rows: TData[]) => void;
+  meta?: TableMeta<TData>;
 }
 
 function defaultColumnId<TData>(column: ColumnDef<TData, unknown>, index: number) {
@@ -97,7 +99,8 @@ export function DataTable<TData extends { id: string }>({
   storageKey,
   className,
   persistenceEnabled = true,
-  onDataChange
+  onDataChange,
+  meta
 }: DataTableProps<TData>) {
   const selectionColumn = useMemo<ColumnDef<TData, unknown>>(
     () => ({
@@ -251,7 +254,8 @@ export function DataTable<TData extends { id: string }>({
           onDataChange?.(nextRows);
           return nextRows;
         });
-      }
+      },
+      ...meta
     }
   });
 

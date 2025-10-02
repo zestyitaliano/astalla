@@ -2,10 +2,12 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import {
-  sampleCost,
-  sampleOccupancy,
-  samplePipeline,
-  sampleReviews,
+  getAlerts,
+  getCost,
+  getOccupancy,
+  getPipeline,
+  getProperties,
+  getReviews,
   sampleUser,
   sampleWeeklyReport
 } from "./sample-data";
@@ -27,28 +29,38 @@ export class MockIntegrationsService {
     return sampleUser;
   }
 
-  getOccupancyMetrics() {
+  getProperties() {
     this.ensureMockMode();
-    return sampleOccupancy;
+    return getProperties();
   }
 
-  getPipelineMetrics() {
+  getOccupancyMetrics(propertyId?: string, windowParam?: string) {
     this.ensureMockMode();
-    return samplePipeline;
+    return getOccupancy(propertyId, windowParam);
   }
 
-  getCostMetrics() {
+  getPipelineMetrics(propertyId?: string, windowParam?: string) {
     this.ensureMockMode();
-    return sampleCost;
+    return getPipeline(propertyId, windowParam);
   }
 
-  getLatestReviews() {
+  getCostMetrics(propertyId?: string, windowParam?: string) {
     this.ensureMockMode();
-    return sampleReviews;
+    return getCost(propertyId, windowParam);
+  }
+
+  getLatestReviews(propertyId?: string) {
+    this.ensureMockMode();
+    return getReviews(propertyId);
   }
 
   getWeeklyReport() {
     this.ensureMockMode();
     return sampleWeeklyReport;
+  }
+
+  getAlerts(propertyId?: string) {
+    this.ensureMockMode();
+    return getAlerts(propertyId);
   }
 }

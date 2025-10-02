@@ -1,335 +1,278 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2, ShieldOff, Sparkles } from "lucide-react";
 
+import { AlertsPanel } from "@/components/dashboard/alerts-panel";
+import DashboardShell from "@/components/dashboard/dashboard-shell";
+import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { PropertySelector, type PropertyOption, type TimeRangeValue } from "@/components/dashboard/property-selector";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { api } from "@/lib/api-client";
+import { formatCurrency, formatPercent } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { useDashboardState } from "@/lib/dashboard-state";
 
-import DashboardShell from "./dashboard-shell";
-import { DashboardCard } from "./dashboard-card";
 import { OperationsTable } from "./operations-table";
 
-const inputClassName =
-  "w-full rounded-xl border border-border/70 bg-card px-4 py-2 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+function resolveTrend(change?: number) {
+  if (typeof change !== "number") {
+    return "flat";
+  }
+  if (change > 0.001) {
+    return "up";
+  }
+  if (change < -0.001) {
+    return "down";
+  }
+  return "flat";
+}
 
-const textareaClassName = cn(inputClassName, "min-h-[120px] resize-none align-top");
+interface DashboardViewProps {
+  role: "admin" | "viewer";
+}
 
-const dashedPlaceholderClass =
-  "rounded-2xl border border-dashed border-border/70 bg-card/60 p-6 text-sm text-muted-foreground";
+export function DashboardView({ role }: DashboardViewProps) {
+  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRangeValue>(30);
 
-export function DashboardView() {
-  const { state, updateUser, updateWelcome, addQuickStat, removeQuickStat, clearAll } = useDashboardState();
-
-  const [isEditingWelcome, setIsEditingWelcome] = useState(false);
-  const [welcomeDraft, setWelcomeDraft] = useState(state.welcome);
-
-  const [profileDraft, setProfileDraft] = useState({
-    name: state.user.name ?? "",
-    email: state.user.email ?? "",
-    orgId: state.user.orgId ?? ""
-  });
-
-  const [showQuickStatForm, setShowQuickStatForm] = useState(false);
-  const [quickStatDraft, setQuickStatDraft] = useState({ label: "", value: "", helper: "" });
-  const [quickStatError, setQuickStatError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setWelcomeDraft(state.welcome);
-  }, [state.welcome]);
+  const meQuery = useQuery({ queryKey: ["me"], queryFn: api.me });
+  const propertiesQuery = useQuery({ queryKey: ["properties"], queryFn: api.properties });
 
   useEffect(() => {
-    setProfileDraft({
-      name: state.user.name ?? "",
-      email: state.user.email ?? "",
-      orgId: state.user.orgId ?? ""
-    });
-  }, [state.user.email, state.user.name, state.user.orgId]);
+    if (!selectedProperty && propertiesQuery.data?.properties?.length) {
+      setSelectedProperty(propertiesQuery.data.properties[0].id);
+    }
+  }, [propertiesQuery.data?.properties, selectedProperty]);
 
-  const overviewIsEmpty = useMemo(
-    () => !state.welcome.headline && !state.welcome.message && !state.welcome.note,
-    [state.welcome.headline, state.welcome.message, state.welcome.note]
+  const propertyOptions: PropertyOption[] = useMemo(() => {
+    return propertiesQuery.data?.properties ?? [];
+  }, [propertiesQuery.data?.properties]);
+
+  const metricsParams = useMemo(
+    () => ({ propertyId: selectedProperty ?? undefined, window: timeRange }),
+    [selectedProperty, timeRange]
   );
 
-  const handleWelcomeSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    updateWelcome({
-      headline: welcomeDraft.headline.trim(),
-      message: welcomeDraft.message.trim(),
-      note: welcomeDraft.note.trim()
-    });
-    setIsEditingWelcome(false);
-  };
+  const occupancyQuery = useQuery({
+    queryKey: ["occupancy", metricsParams.propertyId, metricsParams.window],
+    queryFn: () => api.occupancy(metricsParams),
+    enabled: Boolean(metricsParams.propertyId)
+  });
 
-  const handleProfileSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    updateUser({
-      name: profileDraft.name.trim(),
-      email: profileDraft.email.trim(),
-      orgId: profileDraft.orgId.trim() || "internal"
-    });
-  };
+  const pipelineQuery = useQuery({
+    queryKey: ["pipeline", metricsParams.propertyId, metricsParams.window],
+    queryFn: () => api.pipeline(metricsParams),
+    enabled: Boolean(metricsParams.propertyId)
+  });
 
-  const handleAddQuickStat = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const costQuery = useQuery({
+    queryKey: ["cost", metricsParams.propertyId, metricsParams.window],
+    queryFn: () => api.cost(metricsParams),
+    enabled: Boolean(metricsParams.propertyId)
+  });
 
-    const label = quickStatDraft.label.trim();
-    const value = quickStatDraft.value.trim();
+  const reviewsQuery = useQuery({
+    queryKey: ["reviews", selectedProperty],
+    queryFn: () => api.reviews(selectedProperty ?? undefined),
+    enabled: Boolean(selectedProperty)
+  });
 
-    if (!label || !value) {
-      setQuickStatError("Provide both a label and a value to save this metric.");
-      return;
-    }
+  const alertsQuery = useQuery({
+    queryKey: ["alerts", selectedProperty],
+    queryFn: () => api.alerts(selectedProperty ?? undefined),
+    enabled: Boolean(selectedProperty)
+  });
 
-    addQuickStat({
-      label,
-      value,
-      helper: quickStatDraft.helper.trim()
-    });
+  const isAnyLoading =
+    propertiesQuery.isLoading ||
+    occupancyQuery.isLoading ||
+    pipelineQuery.isLoading ||
+    costQuery.isLoading ||
+    reviewsQuery.isLoading;
 
-    setQuickStatDraft({ label: "", value: "", helper: "" });
-    setQuickStatError(null);
-    setShowQuickStatForm(false);
-  };
+  const fallbackUser = {
+    id: "dashboard-user",
+    name: "",
+    email: "",
+    orgId: "internal"
+  } as const;
 
-  const handleClearAll = () => {
-    clearAll();
-    setIsEditingWelcome(false);
-    setQuickStatDraft({ label: "", value: "", helper: "" });
-    setWelcomeDraft({ headline: "", message: "", note: "" });
-    setQuickStatError(null);
-  };
+  const selectedPropertyName = propertyOptions.find((option) => option.id === selectedProperty)?.name;
 
   return (
-    <DashboardShell user={state.user}>
-      <section className="grid gap-6 xl:grid-cols-[2fr,1.1fr]">
-        <DashboardCard
-          title="Overview"
-          description="Craft the copy that anchors your workspace."
-          action={
-            <Button type="button" variant="ghost" size="sm" className="gap-2" onClick={() => setIsEditingWelcome((value) => !value)}>
-              <Pencil className="h-3.5 w-3.5" />
-              {isEditingWelcome ? "Close editor" : "Edit overview"}
-            </Button>
-          }
-        >
-          {overviewIsEmpty ? (
-            <div className={cn(dashedPlaceholderClass, "text-center")}>Use this space to greet collaborators and share context.</div>
-          ) : (
-            <div className="space-y-3">
-              {state.welcome.headline ? (
-                <h2 className="text-3xl font-semibold tracking-tight text-foreground lg:text-[2rem]">
-                  {state.welcome.headline}
-                </h2>
-              ) : null}
-              {state.welcome.message ? (
-                <p className="text-base leading-7 text-muted-foreground">{state.welcome.message}</p>
-              ) : null}
-              {state.welcome.note ? (
-                <div className="rounded-2xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
-                  {state.welcome.note}
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          {isEditingWelcome ? (
-            <form className="space-y-4" onSubmit={handleWelcomeSubmit}>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Headline</label>
-                <Input
-                  value={welcomeDraft.headline}
-                  onChange={(event) => setWelcomeDraft((previous) => ({ ...previous, headline: event.target.value }))}
-                  placeholder="Give your workspace a title"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Message</label>
-                <textarea
-                  className={textareaClassName}
-                  value={welcomeDraft.message}
-                  onChange={(event) => setWelcomeDraft((previous) => ({ ...previous, message: event.target.value }))}
-                  placeholder="Share the context for this dashboard"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Note</label>
-                <textarea
-                  className={cn(textareaClassName, "min-h-[80px] text-sm")}
-                  value={welcomeDraft.note}
-                  onChange={(event) => setWelcomeDraft((previous) => ({ ...previous, note: event.target.value }))}
-                  placeholder="Optional: add a callout or reminder"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" size="sm" className="gap-2">
-                  Save overview
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  onClick={() => {
-                    setIsEditingWelcome(false);
-                    setWelcomeDraft(state.welcome);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          ) : null}
-        </DashboardCard>
-
-        <DashboardCard
-          title="Workspace identity"
-          description="This information powers the shell header for collaborators."
-          dense
-        >
-          <form className="space-y-4" onSubmit={handleProfileSubmit}>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</label>
-              <Input
-                value={profileDraft.name}
-                onChange={(event) => setProfileDraft((previous) => ({ ...previous, name: event.target.value }))}
-                placeholder="Who is signed in?"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</label>
-              <Input
-                type="email"
-                value={profileDraft.email}
-                onChange={(event) => setProfileDraft((previous) => ({ ...previous, email: event.target.value }))}
-                placeholder="user@company.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Org ID</label>
-              <Input
-                value={profileDraft.orgId}
-                onChange={(event) => setProfileDraft((previous) => ({ ...previous, orgId: event.target.value }))}
-                placeholder="internal"
-              />
-            </div>
-            <Button type="submit" size="sm" className="gap-2">
-              Update identity
-            </Button>
-          </form>
-        </DashboardCard>
+    <DashboardShell user={meQuery.data ?? fallbackUser} role={role}>
+      <section>
+        <PropertySelector
+          properties={propertyOptions}
+          selectedPropertyId={selectedProperty}
+          onPropertyChange={setSelectedProperty}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          disabled={propertiesQuery.isLoading}
+        />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.8fr,1fr]">
+      <section className="grid gap-6 lg:grid-cols-3">
+        <MetricCard
+          title="Average occupancy"
+          value={occupancyQuery.data ? formatPercent(occupancyQuery.data.occupancyRate) : "--"}
+          helperText={
+            occupancyQuery.data
+              ? `${occupancyQuery.data.unitsOccupied} of ${occupancyQuery.data.totalUnits} units`
+              : undefined
+          }
+          change={occupancyQuery.data?.change}
+          trend={resolveTrend(occupancyQuery.data?.change)}
+          trendPoints={occupancyQuery.data?.trend}
+          trendFormatter={(value) => `${formatPercent(value)} occupancy`}
+          testId="metric-occupancy"
+          isLoading={occupancyQuery.isPending && !occupancyQuery.data}
+          isError={occupancyQuery.isError}
+          onRetry={() => occupancyQuery.refetch()}
+        />
+        <MetricCard
+          title="Pipeline conversions"
+          value={pipelineQuery.data ? `${pipelineQuery.data.applicationsApproved}` : "--"}
+          helperText={
+            pipelineQuery.data
+              ? `${pipelineQuery.data.newLeads} leads • ${pipelineQuery.data.toursScheduled} tours`
+              : undefined
+          }
+          change={pipelineQuery.data ? pipelineQuery.data.applicationsApproved / Math.max(1, pipelineQuery.data.newLeads) - 0.3 : undefined}
+          trend={resolveTrend(
+            pipelineQuery.data
+              ? pipelineQuery.data.applicationsApproved / Math.max(1, pipelineQuery.data.newLeads) - 0.3
+              : undefined
+          )}
+          trendPoints={pipelineQuery.data?.trend}
+          trendFormatter={(value) => `${value} conversions/day`}
+          testId="metric-pipeline"
+          isLoading={pipelineQuery.isPending && !pipelineQuery.data}
+          isError={pipelineQuery.isError}
+          onRetry={() => pipelineQuery.refetch()}
+        />
+        <MetricCard
+          title="Cost per lead"
+          value={costQuery.data ? formatCurrency(costQuery.data.costPerLead) : "--"}
+          helperText={costQuery.data ? `Spend ${formatCurrency(costQuery.data.marketingSpend)}` : ""}
+          change={costQuery.data?.spendChange}
+          trend={resolveTrend(costQuery.data?.spendChange)}
+          trendPoints={costQuery.data?.trend}
+          trendFormatter={(value) => `${formatCurrency(value)} CPL`}
+          testId="metric-cost"
+          isLoading={costQuery.isPending && !costQuery.data}
+          isError={costQuery.isError}
+          onRetry={() => costQuery.refetch()}
+        />
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[1.6fr,1fr]">
         <DashboardCard
-          title="Quick metrics"
-          description="Create callouts for the numbers you reference often."
+          title={selectedPropertyName ? `${selectedPropertyName} reviews` : "Resident feedback"}
+          description="Latest resident sentiment and response coverage"
           action={
-            <Button type="button" variant="ghost" size="sm" className="gap-2" onClick={() => setShowQuickStatForm((value) => !value)}>
-              <Plus className="h-3.5 w-3.5" />
-              {showQuickStatForm ? "Close" : "Add metric"}
+            <Button type="button" size="sm" variant="ghost" className="gap-2" onClick={() => reviewsQuery.refetch()}>
+              <Loader2 className={cn("h-4 w-4", reviewsQuery.isFetching && "animate-spin")}
+              />
+              Refresh
             </Button>
           }
         >
-          {state.quickStats.length === 0 ? (
-            <div className={dashedPlaceholderClass}>No quick metrics yet. Add your first one to see it here.</div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {state.quickStats.map((stat) => (
-                <div
-                  key={stat.id}
-                  className="rounded-2xl border border-border/70 bg-card px-5 py-4 shadow-sm transition hover:border-border"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
-                      {stat.helper ? (
-                        <p className="text-xs text-muted-foreground">{stat.helper}</p>
-                      ) : null}
+          {reviewsQuery.isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : null}
+          {reviewsQuery.isError ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <ShieldOff className="h-10 w-10 text-destructive" />
+              <p className="text-sm text-muted-foreground">Unable to load reviews. Please retry in a moment.</p>
+              <Button type="button" size="sm" onClick={() => reviewsQuery.refetch()}>
+                Retry
+              </Button>
+            </div>
+          ) : null}
+          {!reviewsQuery.isLoading && !reviewsQuery.isError && reviewsQuery.data ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-card-contrast/40 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Average rating</p>
+                  <p className="text-3xl font-semibold text-foreground">
+                    {reviewsQuery.data.summary.averageRating.toFixed(1)}
+                  </p>
+                </div>
+                <Separator orientation="vertical" className="h-12" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Response rate</p>
+                  <p className="text-xl font-semibold text-foreground">{formatPercent(reviewsQuery.data.summary.responseRate)}</p>
+                </div>
+                <Separator orientation="vertical" className="h-12" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Reviews</p>
+                  <p className="text-xl font-semibold text-foreground">{reviewsQuery.data.summary.reviewCount}</p>
+                </div>
+              </div>
+              <div className="grid gap-3">
+                {reviewsQuery.data.recent.map((review) => (
+                  <article
+                    key={review.id}
+                    className="rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm transition hover:border-border"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">{review.author}</p>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(review.submittedAt).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit"
+                        })}
+                      </span>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground"
-                      onClick={() => removeQuickStat(stat.id)}
-                      aria-label={`Remove ${stat.label}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                    <p className="mt-2 text-sm text-muted-foreground">{review.body}</p>
+                  </article>
+                ))}
+              </div>
             </div>
-          )}
-
-          {showQuickStatForm ? (
-            <form className="space-y-4" onSubmit={handleAddQuickStat}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Label</label>
-                  <Input
-                    value={quickStatDraft.label}
-                    onChange={(event) => setQuickStatDraft((previous) => ({ ...previous, label: event.target.value }))}
-                    placeholder="Metric label"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Value</label>
-                  <Input
-                    value={quickStatDraft.value}
-                    onChange={(event) => setQuickStatDraft((previous) => ({ ...previous, value: event.target.value }))}
-                    placeholder="42, 93%, etc."
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Helper text</label>
-                <Input
-                  value={quickStatDraft.helper}
-                  onChange={(event) => setQuickStatDraft((previous) => ({ ...previous, helper: event.target.value }))}
-                  placeholder="Optional context"
-                />
-              </div>
-              {quickStatError ? <p className="text-xs text-destructive">{quickStatError}</p> : null}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="submit" size="sm" className="gap-2">
-                  Save metric
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  onClick={() => {
-                    setShowQuickStatForm(false);
-                    setQuickStatDraft({ label: "", value: "", helper: "" });
-                    setQuickStatError(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
           ) : null}
         </DashboardCard>
 
+        <AlertsPanel
+          alerts={alertsQuery.data?.alerts}
+          isLoading={alertsQuery.isLoading}
+          isError={alertsQuery.isError}
+          onRetry={() => alertsQuery.refetch()}
+        />
+      </section>
+
+      <section>
         <DashboardCard
-          title="Reset dashboard"
-          description="Clear all saved content and start from a blank canvas. This removes locally stored data only."
-          dense
+          title="Portfolio performance"
+          description="Track contracts, SLAs and incident load across properties"
+          action={
+            role === "admin" ? (
+              <p className="text-xs text-muted-foreground">Admins can add, edit or delete records directly in this table.</p>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Sparkles className="h-4 w-4" />
+                Viewer mode: editing disabled
+              </div>
+            )
+          }
+          contentClassName="-mt-2"
         >
-          <Button type="button" variant="ghost" className="gap-2" onClick={handleClearAll}>
-            <RefreshCw className="h-3.5 w-3.5" />
-            Clear saved data
-          </Button>
+          <OperationsTable canEdit={role === "admin"} />
         </DashboardCard>
       </section>
 
-      <OperationsTable />
+      {isAnyLoading && !selectedProperty ? (
+        <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" /> Preparing your dashboard...
+        </div>
+      ) : null}
     </DashboardShell>
   );
 }
