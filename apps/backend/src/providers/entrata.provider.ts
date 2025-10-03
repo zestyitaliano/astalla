@@ -177,6 +177,36 @@ export class EntrataProvider {
     }
     return Array.isArray(value) ? value : [value];
   }
+
+  async validate(rawCredential: Record<string, unknown>) {
+    try {
+      const apiKey = this.getString(rawCredential.apiKey, "apiKey");
+      const orgSlug = this.getString(rawCredential.orgSlug, "orgSlug");
+      const propertyIdValue = rawCredential.propertyId ?? rawCredential.propertyExternalId;
+      const propertyId = Number(propertyIdValue);
+
+      if (!Number.isFinite(propertyId)) {
+        throw new Error("Entrata credential missing propertyId");
+      }
+
+      const now = new Date();
+      const start = new Date(now.getTime() - 60 * 60 * 1000);
+
+      await this.fetchLeads({ apiKey, orgSlug }, { propertyId, from: start, to: now, perPage: 1 });
+      return { ok: true } as const;
+    } catch (error) {
+      const message = (error as Error).message ?? "Unable to validate Entrata credential";
+      this.logger.warn(`Entrata validation failed: ${message}`);
+      return { ok: false, message } as const;
+    }
+  }
+
+  private getString(value: unknown, field: string) {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new Error(`Missing credential field ${field}`);
+    }
+    return value.trim();
+  }
 }
 
 export type { EntrataCredential, EntrataLead, EntrataLeadEvent };

@@ -176,6 +176,40 @@ export const alertSchema = z.object({
 export const alertsResponseSchema = z.object({
     alerts: z.array(alertSchema)
 });
+export const sourceTypeSchema = z.enum(["ENTRATA", "GA4", "ADS", "GBP"]);
+export const sourceStatusSchema = z.enum(["CONNECTED", "ERROR", "UNVERIFIED"]);
+export const sourceAccountSchema = z.object({
+    id: z.string(),
+    name: z.string().nullable().optional(),
+    propertyId: z.string().optional(),
+    type: sourceTypeSchema,
+    status: sourceStatusSchema.nullable().optional(),
+    lastSuccessAt: z.string().datetime({ offset: true }).nullable().optional(),
+    lastErrorAt: z.string().datetime({ offset: true }).nullable().optional(),
+    enabled: z.boolean(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const listSourcesResponseSchema = z.object({
+    sources: z.array(sourceAccountSchema)
+});
+export const createSourceRequestSchema = z.object({
+    propertyId: z.string(),
+    type: sourceTypeSchema,
+    name: z.string().optional(),
+    credential: z.record(z.unknown()),
+    enabled: z.boolean().optional()
+});
+export const updateSourceRequestSchema = z.object({
+    propertyId: z.string().optional(),
+    name: z.string().optional(),
+    credential: z.record(z.unknown()).optional(),
+    enabled: z.boolean().optional()
+});
+export const sourceMutationResponseSchema = z.object({
+    source: sourceAccountSchema,
+    validationMessage: z.string().optional()
+});
 export const propertiesResponseSchema = z.object({
     properties: z.array(propertySchema.pick({
         id: true,

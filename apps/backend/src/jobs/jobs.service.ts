@@ -1,7 +1,9 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Queue } from "bullmq";
+import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
+
+import { processEtlJob } from "./etl.processor";
 
 @Injectable()
 export class JobsService implements OnModuleInit, OnModuleDestroy {
@@ -9,6 +11,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
   private connection?: IORedis;
   private etlQueue?: Queue;
   private alertsQueue?: Queue;
+  private etlWorker?: Worker;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -25,11 +28,23 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       enableReadyCheck: false
     });
 
-    this.etlQueue = new Queue("etl-jobs", {
+    this.etlQueue = new Queue("etl", {
       connection: this.connection
     });
     this.alertsQueue = new Queue("alert-jobs", {
       connection: this.connection
+    });
+
+    this.etlWorker = new Worker(
+      "etl",
+      async (job) => {
+        await processEtlJob(job.data as { sourceId: string; job: string });
+      },
+      { connection: this.connection }
+    );
+
+    this.etlWorker.on("error", (error) => {
+      this.logger.error("ETL worker error", error as Error);
     });
 
     this.logger.log("BullMQ queues initialized");
@@ -38,6 +53,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     await this.etlQueue?.close();
     await this.alertsQueue?.close();
+    await this.etlWorker?.close();
     await this.connection?.quit();
   }
 
@@ -57,5 +73,15 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.alertsQueue.add("dispatchAlerts", {}, { removeOnComplete: true });
+  }
+
+  async enqueueEtlRun(sourceId: string, job: string) {
+    if (!this.etlQueue) {
+      this.logger.warn("ETL queue is not configured; running job synchronously");
+      return false;
+    }
+
+    await this.etlQueue.add(job || "run", { sourceId, job }, { removeOnComplete: true, attempts: 1 });
+    return true;
   }
 }
