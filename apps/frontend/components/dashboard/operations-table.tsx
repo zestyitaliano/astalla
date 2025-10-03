@@ -122,6 +122,34 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
     }
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (order: Array<{ id: string; order: number }>) => {
+      const response = await fetch("/api/portfolio/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order })
+      });
+      if (!response.ok) {
+        throw new Error("Failed to reorder rows");
+      }
+      const payload = (await response.json()) as { rows: PortfolioRow[] };
+      return payload.rows;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["portfolio"] });
+      return { previousRows: rows };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousRows) {
+        setRows(context.previousRows);
+      }
+    },
+    onSuccess: (nextRows) => {
+      setRows(nextRows);
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    }
+  });
+
   const { mutate: deleteRow, isPending: isDeleting } = deleteMutation;
 
   const columns = useMemo<ColumnDef<PortfolioRow, unknown>[]>(() => {
@@ -169,7 +197,9 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
           },
           parseValue: (value: string) => new Date(value).toISOString(),
           validate: (value: string) => validateDate(value) ?? validateNonEmpty(value),
-          placeholder: "2024-11-05 18:30"
+          placeholder: "2024-11-05 18:30",
+          headerClassName: "hidden md:table-cell",
+          cellClassName: "hidden md:table-cell"
         } satisfies EditableCellMeta<PortfolioRow>
       },
       {
@@ -258,7 +288,7 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
   }, [canEdit, deleteRow, isDeleting]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <Button
           type="button"
@@ -286,14 +316,26 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
         data={rows}
         storageKey="astalla:portfolio-table:v3"
         persistenceEnabled={isPersistenceEnabled()}
-        onDataChange={(nextRows) => setRows(nextRows)}
-        className={cn(!canEdit && "opacity-90")}
+        onDataChange={(nextRows) => {
+          const previousOrder = rows.map((row) => row.id).join("|");
+          const nextOrder = nextRows.map((row) => row.id).join("|");
+
+          setRows(nextRows);
+
+          if (previousOrder !== nextOrder) {
+            reorderMutation.mutate(nextRows.map((row, index) => ({ id: row.id, order: index })));
+          }
+        }}
+        className={cn("pb-2", !canEdit && "opacity-90")}
         meta={{
           onUpdate: (rowId: string, columnId: string, value: unknown) => {
             updateMutation.mutate({ id: rowId, patch: { [columnId]: value } as Partial<PortfolioRow> });
           }
         }}
       />
+      {reorderMutation.isPending ? (
+        <p className="text-xs text-muted-foreground">Saving new order…</p>
+      ) : null}
     </div>
   );
 }

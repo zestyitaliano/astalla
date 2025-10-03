@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
 
 import { ColumnVisibilityMenu } from "./column-visibility-menu";
 import { DragHandle } from "./drag-handle";
-import { EditableCell } from "./editable-cell";
+import { EditableCell, type EditableCellMeta } from "./editable-cell";
 import {
   type TableDensity,
   type TableLayoutState,
@@ -137,7 +137,13 @@ export function DataTable<TData extends { id: string }>({
   );
 
   const tableColumns = useMemo<ColumnDef<TData, unknown>[]>(() => {
-    return [selectionColumn, ...columns.map((column) => ({ ...column, cell: column.cell ?? EditableCell }))];
+    return [
+      selectionColumn,
+      ...columns.map((column) => ({
+        ...column,
+        cell: column.cell ?? EditableCell
+      }))
+    ];
   }, [columns, selectionColumn]);
 
   const columnIds = useMemo(
@@ -280,7 +286,7 @@ export function DataTable<TData extends { id: string }>({
     enabled: shouldVirtualize
   });
   const tableClassName = useMemo(
-    () => cn("min-w-full text-left", densityToRowClass[density]),
+    () => cn("min-w-[720px] text-left", densityToRowClass[density]),
     [density]
   );
   const noDataRow = (
@@ -336,16 +342,16 @@ export function DataTable<TData extends { id: string }>({
           </Button>
         </div>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         <div
           ref={tableScrollRef}
-          className="w-full overflow-auto"
+          className="w-full overflow-x-auto"
           style={shouldVirtualize ? { maxHeight: virtualizedContainerHeight } : undefined}
         >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
             <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
               <table className={tableClassName}>
-                <thead className="bg-card-contrast/60 text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-card-contrast/70 text-xs uppercase tracking-wide text-muted-foreground">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <tr key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
@@ -399,7 +405,7 @@ interface SortableColumnHeaderProps<TData> {
 
 function SortableColumnHeader<TData>({ header }: SortableColumnHeaderProps<TData>) {
   const column = header.column;
-  const meta = (column.columnDef.meta ?? {}) as { disableDrag?: boolean };
+  const meta = (column.columnDef.meta ?? {}) as EditableCellMeta<TData>;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: column.id,
     disabled: meta.disableDrag
@@ -411,7 +417,8 @@ function SortableColumnHeader<TData>({ header }: SortableColumnHeaderProps<TData
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "relative select-none border-b border-border/60 bg-card-contrast/40 px-4 py-3 text-xs font-semibold uppercase text-muted-foreground",
+        "relative select-none border-b border-border bg-card-contrast/60 px-4 py-3 text-xs font-semibold uppercase text-muted-foreground",
+        meta.headerClassName,
         isDragging && "z-10 bg-card shadow-lg"
       )}
     >
@@ -461,16 +468,17 @@ function SortableRow<TData>({ row }: SortableRowProps<TData>) {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "border-b border-border/40 text-sm text-foreground transition",
-        isDragging ? "bg-card-contrast/60 shadow" : "hover:bg-card-contrast/40"
+        "border-b border-border/60 text-sm text-foreground transition",
+        isDragging ? "bg-card-contrast/60 shadow" : "hover:bg-card-contrast/50"
       )}
     >
       {row.getVisibleCells().map((cell) => {
         const isSelectionCell = cell.column.id === "__select";
+        const meta = (cell.column.columnDef.meta ?? {}) as EditableCellMeta<TData>;
         return (
           <td
             key={cell.id}
-            className={cn("px-4", isSelectionCell ? "w-[52px]" : "py-3")}
+            className={cn("px-4", isSelectionCell ? "w-[52px]" : "py-3", meta.cellClassName)}
           >
             {isSelectionCell ? (
               <div className="flex items-center gap-2">
@@ -507,12 +515,13 @@ function VirtualizedRow<TData>({ row, virtualRow, measureElement }: VirtualizedR
         width: "100%",
         transform: `translateY(${virtualRow.start}px)`
       }}
-      className="border-b border-border/40 text-sm text-foreground transition hover:bg-card-contrast/40"
+      className="border-b border-border/60 text-sm text-foreground transition hover:bg-card-contrast/50"
     >
       {row.getVisibleCells().map((cell) => {
         const isSelectionCell = cell.column.id === "__select";
+        const meta = (cell.column.columnDef.meta ?? {}) as EditableCellMeta<TData>;
         return (
-          <td key={cell.id} className={cn("px-4", isSelectionCell ? "w-[52px]" : "py-3")}>
+          <td key={cell.id} className={cn("px-4", isSelectionCell ? "w-[52px]" : "py-3", meta.cellClassName)}>
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
         );

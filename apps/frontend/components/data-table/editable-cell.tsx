@@ -12,6 +12,9 @@ export type EditableCellMeta<TData> = {
   formatValue?: (value: unknown, row: TData) => string;
   parseValue?: (value: string, row: TData) => unknown;
   validate?: (value: string, row: TData) => string | null;
+  headerClassName?: string;
+  cellClassName?: string;
+  disableDrag?: boolean;
 };
 
 export function EditableCell<TData>({

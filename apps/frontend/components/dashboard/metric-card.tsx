@@ -44,17 +44,17 @@ export function MetricCard({
   const trendColor = trend === "down" ? "text-red-500" : trend === "up" ? "text-emerald-500" : "text-muted-foreground";
 
   return (
-    <Card className={cn("h-full", className)} data-testid={testId}>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+    <Card className={cn("h-full rounded-3xl border border-border bg-card/95 shadow-sm", className)} data-testid={testId}>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 p-7 pb-4">
         <div className="flex flex-col">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          <span className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+          <CardTitle className="text-base font-semibold text-foreground/95">{title}</CardTitle>
+          <span className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
             {isLoading || isError ? "--" : value}
           </span>
         </div>
         {!isLoading && !isError && TrendIcon ? <TrendIcon className={cn("h-5 w-5", trendColor)} /> : null}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4 p-7 pt-0">
         {isLoading ? (
           <div className="flex h-24 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -73,15 +73,15 @@ export function MetricCard({
         ) : null}
         {!isLoading && !isError ? (
           <div className="space-y-3">
-            {helperText ? <p className="text-sm text-muted-foreground">{helperText}</p> : null}
+            {helperText ? <p className="text-sm text-foreground/75">{helperText}</p> : null}
             {typeof change === "number" ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/70">
                 {change > 0 ? "+" : ""}
                 {(change * 100).toFixed(1)}% vs. last period
               </p>
             ) : null}
             {trendPoints && trendPoints.length > 1 ? (
-              <div className="rounded-2xl border border-border/70 bg-card-contrast/60 p-3">
+              <div className="rounded-2xl border border-border bg-card-contrast/60 p-3 shadow-sm">
                 <Sparkline points={trendPoints} formatter={trendFormatter} />
               </div>
             ) : null}
