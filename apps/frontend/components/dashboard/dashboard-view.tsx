@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldOff, Sparkles } from "lucide-react";
@@ -254,7 +255,17 @@ export function DashboardView({ role }: DashboardViewProps) {
           description="Track contracts, SLAs and incident load across properties"
           action={
             role === "admin" ? (
-              <p className="text-xs text-muted-foreground">Admins can add, edit or delete records directly in this table.</p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>Admins can add, edit or delete records directly in this table.</span>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full border-border/70 px-3"
+                >
+                  <Link href="/tables">Open as table</Link>
+                </Button>
+              </div>
             ) : (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Sparkles className="h-4 w-4" />

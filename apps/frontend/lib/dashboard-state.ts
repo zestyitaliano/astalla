@@ -328,6 +328,115 @@ export function useDashboardState() {
     }));
   }, []);
 
+  const updateTableDetails = useCallback((tableId: string, patch: { name?: string; description?: string }) => {
+    setState((previous) => ({
+      ...previous,
+      tables: previous.tables.map((table) => {
+        if (table.id !== tableId) {
+          return table;
+        }
+
+        const timestamp = new Date().toISOString();
+        const nextName = patch.name?.trim() ? patch.name : table.name;
+        const nextDescription =
+          patch.description !== undefined
+            ? patch.description?.trim()
+              ? patch.description
+              : undefined
+            : table.description;
+
+        return {
+          ...table,
+          name: nextName,
+          description: nextDescription,
+          updatedAt: timestamp
+        };
+      })
+    }));
+  }, []);
+
+  const addTableColumn = useCallback(
+    (tableId: string, column: { name: string; index?: number }) => {
+      setState((previous) => ({
+        ...previous,
+        tables: previous.tables.map((table) => {
+          if (table.id !== tableId) {
+            return table;
+          }
+
+          const timestamp = new Date().toISOString();
+          const insertIndex = Math.min(
+            Math.max(column.index ?? table.columns.length, 0),
+            table.columns.length
+          );
+          const nextColumns = [...table.columns];
+          nextColumns.splice(insertIndex, 0, column.name);
+          const nextRows = table.rows.map((row) => {
+            const copy = [...row];
+            copy.splice(insertIndex, 0, "");
+            return copy;
+          });
+
+          return {
+            ...table,
+            columns: nextColumns,
+            rows: nextRows,
+            updatedAt: timestamp
+          };
+        })
+      }));
+    },
+    []
+  );
+
+  const removeTableColumn = useCallback((tableId: string, columnIndex: number) => {
+    setState((previous) => ({
+      ...previous,
+      tables: previous.tables.map((table) => {
+        if (table.id !== tableId) {
+          return table;
+        }
+
+        if (columnIndex < 0 || columnIndex >= table.columns.length) {
+          return table;
+        }
+
+        const timestamp = new Date().toISOString();
+        const nextColumns = table.columns.filter((_, index) => index !== columnIndex);
+        const nextRows = table.rows.map((row) => row.filter((_, index) => index !== columnIndex));
+
+        return {
+          ...table,
+          columns: nextColumns,
+          rows: nextRows,
+          updatedAt: timestamp
+        };
+      })
+    }));
+  }, []);
+
+  const replaceTableRows = useCallback((tableId: string, rows: string[][]) => {
+    setState((previous) => ({
+      ...previous,
+      tables: previous.tables.map((table) => {
+        if (table.id !== tableId) {
+          return table;
+        }
+
+        const timestamp = new Date().toISOString();
+        const normalized = rows.map((row) =>
+          table.columns.map((_, index) => (typeof row[index] === "string" ? row[index] : ""))
+        );
+
+        return {
+          ...table,
+          rows: normalized,
+          updatedAt: timestamp
+        };
+      })
+    }));
+  }, []);
+
   const clearAll = useCallback(() => {
     setState(createDefaultState());
 
@@ -351,6 +460,10 @@ export function useDashboardState() {
       deleteTable,
       addTableRow,
       removeTableRow,
+      updateTableDetails,
+      addTableColumn,
+      removeTableColumn,
+      replaceTableRows,
       clearAll
     }),
     [
@@ -363,6 +476,10 @@ export function useDashboardState() {
       deleteTable,
       addTableRow,
       removeTableRow,
+      updateTableDetails,
+      addTableColumn,
+      removeTableColumn,
+      replaceTableRows,
       clearAll
     ]
   );

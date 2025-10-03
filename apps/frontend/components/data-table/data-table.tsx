@@ -37,7 +37,8 @@ import {
   type VisibilityState,
   useReactTable
 } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -61,6 +62,10 @@ interface DataTableProps<TData extends { id: string }> {
   persistenceEnabled?: boolean;
   onDataChange?: (rows: TData[]) => void;
   meta?: TableMeta<TData>;
+  enableVirtualizedRows?: boolean;
+  virtualizationThreshold?: number;
+  virtualizedContainerHeight?: number;
+  virtualizationOverscan?: number;
 }
 
 function defaultColumnId<TData>(column: ColumnDef<TData, unknown>, index: number) {
@@ -100,7 +105,11 @@ export function DataTable<TData extends { id: string }>({
   className,
   persistenceEnabled = true,
   onDataChange,
-  meta
+  meta,
+  enableVirtualizedRows = false,
+  virtualizationThreshold = 200,
+  virtualizedContainerHeight = 560,
+  virtualizationOverscan = 12
 }: DataTableProps<TData>) {
   const selectionColumn = useMemo<ColumnDef<TData, unknown>>(
     () => ({
@@ -154,6 +163,7 @@ export function DataTable<TData extends { id: string }>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({});
   const [tableData, setTableData] = useState<TData[]>(data);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setColumnOrder(layout.columnOrder);
@@ -259,6 +269,31 @@ export function DataTable<TData extends { id: string }>({
     }
   });
 
+  const tableRows = table.getRowModel().rows;
+  const shouldVirtualize =
+    enableVirtualizedRows && tableRows.length > 0 && tableRows.length >= virtualizationThreshold;
+  const rowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => (density === "compact" ? 40 : 56),
+    overscan: virtualizationOverscan,
+    enabled: shouldVirtualize
+  });
+  const tableClassName = useMemo(
+    () => cn("min-w-full text-left", densityToRowClass[density]),
+    [density]
+  );
+  const noDataRow = (
+    <tr>
+      <td
+        colSpan={table.getAllLeafColumns().length}
+        className="px-6 py-12 text-center text-sm text-muted-foreground"
+      >
+        No data found. Adjust your filters or add new records.
+      </td>
+    </tr>
+  );
+
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -301,40 +336,58 @@ export function DataTable<TData extends { id: string }>({
           </Button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
-          <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-            <table className={cn("min-w-full text-left", densityToRowClass[density])}>
-              <thead className="bg-card-contrast/60 text-xs uppercase tracking-wide text-muted-foreground">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <SortableColumnHeader key={header.id} header={header} />
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
-                <tbody>
-                  <SortableContext items={table.getRowModel().rows.map((row) => row.id)} strategy={verticalListSortingStrategy}>
-                    {table.getRowModel().rows.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={table.getAllLeafColumns().length}
-                          className="px-6 py-12 text-center text-sm text-muted-foreground"
-                        >
-                          No data found. Adjust your filters or add new records.
-                        </td>
-                      </tr>
-                    ) : (
-                      table.getRowModel().rows.map((row) => <SortableRow key={row.id} row={row} />)
-                    )}
-                  </SortableContext>
-                </tbody>
-              </DndContext>
-            </table>
-          </SortableContext>
-        </DndContext>
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        <div
+          ref={tableScrollRef}
+          className="w-full overflow-auto"
+          style={shouldVirtualize ? { maxHeight: virtualizedContainerHeight } : undefined}
+        >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
+            <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
+              <table className={tableClassName}>
+                <thead className="bg-card-contrast/60 text-xs uppercase tracking-wide text-muted-foreground">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <SortableColumnHeader key={header.id} header={header} />
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                {shouldVirtualize ? (
+                  <tbody
+                    style={{
+                      height: rowVirtualizer.getTotalSize(),
+                      position: "relative"
+                    }}
+                  >
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const row = tableRows[virtualRow.index];
+                      return (
+                        <VirtualizedRow
+                          key={row.id}
+                          row={row}
+                          virtualRow={virtualRow}
+                          measureElement={rowVirtualizer.measureElement}
+                        />
+                      );
+                    })}
+                  </tbody>
+                ) : (
+                  <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
+                    <tbody>
+                      <SortableContext items={tableRows.map((row) => row.id)} strategy={verticalListSortingStrategy}>
+                        {tableRows.length === 0
+                          ? noDataRow
+                          : tableRows.map((row) => <SortableRow key={row.id} row={row} />)}
+                      </SortableContext>
+                    </tbody>
+                  </DndContext>
+                )}
+              </table>
+            </SortableContext>
+          </DndContext>
+        </div>
       </div>
     </div>
   );
@@ -427,6 +480,40 @@ function SortableRow<TData>({ row }: SortableRowProps<TData>) {
             ) : (
               flexRender(cell.column.columnDef.cell, cell.getContext())
             )}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
+interface VirtualizedRowProps<TData> {
+  row: ReturnType<Table<TData>["getRowModel"]>["rows"][number];
+  virtualRow: VirtualItem;
+  measureElement: (node: HTMLElement | null) => void;
+}
+
+function VirtualizedRow<TData>({ row, virtualRow, measureElement }: VirtualizedRowProps<TData>) {
+  return (
+    <tr
+      data-index={virtualRow.index}
+      ref={(node) => {
+        measureElement(node);
+      }}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        transform: `translateY(${virtualRow.start}px)`
+      }}
+      className="border-b border-border/40 text-sm text-foreground transition hover:bg-card-contrast/40"
+    >
+      {row.getVisibleCells().map((cell) => {
+        const isSelectionCell = cell.column.id === "__select";
+        return (
+          <td key={cell.id} className={cn("px-4", isSelectionCell ? "w-[52px]" : "py-3")}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
         );
       })}
