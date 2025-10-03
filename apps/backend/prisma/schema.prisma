@@ -43,6 +43,8 @@ model User {
   org       Org      @relation(fields: [orgId], references: [id])
   orgId     String
   tableViews TableView[]
+  audits    TableAudit[]
+  role      TableRole @default(viewer)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -136,13 +138,17 @@ model Table {
   columns     TableColumn[]
   rows        TableRow[]
   views       TableView[]
+  audits      TableAudit[]
+  forms       Form[]
+  permissions TablePermission[]
+  snapshots   TableCrdtSnapshot?
   refColumns  TableColumn[] @relation("RefTable")
   createdAt   DateTime     @default(now())
 }
 
 model TableColumn {
   id          String        @id @default(cuid())
-  table       Table         @relation(fields: [tableId], references: [id])
+  table       Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId     String
   name        String
   type        TableColumnType
@@ -151,34 +157,38 @@ model TableColumn {
   formulaExpr String?
   order       Int
   cells       TableCell[]
+  permissions TablePermission[]
 }
 
 model TableRow {
   id        String      @id @default(cuid())
-  table     Table       @relation(fields: [tableId], references: [id])
+  table     Table       @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId   String
   createdAt DateTime    @default(now())
   order     Int
   cells     TableCell[]
+  permissions TablePermission[]
 }
 
 model TableCell {
   id        String     @id @default(cuid())
-  row       TableRow   @relation(fields: [rowId], references: [id])
+  row       TableRow   @relation(fields: [rowId], references: [id], onDelete: Cascade)
   rowId     String
-  column    TableColumn @relation(fields: [columnId], references: [id])
+  column    TableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
   columnId  String
   valueJson Json
 }
 
 model TableView {
   id         String   @id @default(cuid())
-  table      Table    @relation(fields: [tableId], references: [id])
+  table      Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId    String
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
   name       String
   configJson Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum TableColumnType {
@@ -188,4 +198,72 @@ enum TableColumnType {
   bool
   ref
   formula
+}
+
+model TableAudit {
+  id        String            @id @default(cuid())
+  table     Table             @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String
+  row       TableRow?         @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  rowId     String?
+  column    TableColumn?      @relation(fields: [columnId], references: [id], onDelete: SetNull)
+  columnId  String?
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  action    TableAuditAction
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime          @default(now())
+}
+
+model Form {
+  id         String   @id @default(cuid())
+  table      Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId    String
+  name       String
+  configJson Json
+  isPublic   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model TablePermission {
+  id        String     @id @default(cuid())
+  table     Table      @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String
+  role      TableRole
+  row       TableRow?  @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  rowId     String?
+  column    TableColumn? @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  columnId  String?
+  canRead   Boolean   @default(true)
+  canWrite  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model TableCrdtSnapshot {
+  id        String   @id @default(cuid())
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String   @unique
+  state     Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TableAuditAction {
+  row_created
+  row_updated
+  row_deleted
+  column_created
+  column_updated
+  column_deleted
+  cell_updated
+  form_submitted
+  table_updated
+}
+
+enum TableRole {
+  admin
+  editor
+  viewer
 }
