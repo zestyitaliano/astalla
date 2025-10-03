@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import { BarChart3, FileChartLine, LayoutDashboard, PlugZap, Table2 } from "lucide-react";
 
-const items = [
+type SidebarItem = {
+  href: Route;
+  label: string;
+  icon: LucideIcon;
+};
+
+const items: SidebarItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/tables", label: "Tables", icon: Table2 },
