@@ -8,6 +8,8 @@ import { MetricsModule } from "./metrics/metrics.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { PropertiesModule } from "./properties/properties.module";
 import { ProvidersModule } from "./providers/providers.module";
+import { PublicModule } from "./public/public.module";
+import { PublicDashboardsModule } from "./public-dashboards/public-dashboards.module";
 import { ReportsModule } from "./reports/reports.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SourcesModule } from "./sources/sources.module";
@@ -43,6 +45,8 @@ import { SourcesModule } from "./sources/sources.module";
     AuthModule,
     MetricsModule,
     ReviewsModule,
+    PublicModule,
+    PublicDashboardsModule,
     ReportsModule,
     AlertsModule,
     JobsModule,

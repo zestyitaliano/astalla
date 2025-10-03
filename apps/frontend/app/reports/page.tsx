@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
-import { SourcesAdminView } from "./sources-view";
+import { ReportsView } from "@/components/reports/reports-view";
 import { authOptions } from "@/lib/auth-options";
 
-export default async function AdminSourcesPage() {
+export default async function ReportsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -15,11 +15,5 @@ export default async function AdminSourcesPage() {
     redirect("/dashboard");
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="card-surface rounded-2xl border bg-white/90 p-6 shadow-card">
-        <SourcesAdminView />
-      </div>
-    </div>
-  );
+  return <ReportsView />;
 }
