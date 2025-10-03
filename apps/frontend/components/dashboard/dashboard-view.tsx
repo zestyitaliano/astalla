@@ -196,6 +196,11 @@ export function DashboardView({ role }: DashboardViewProps) {
             >
               Add a property
             </Button>
+            {role === "admin" ? (
+              <Button asChild variant="outline" className="rounded-full px-6">
+                <Link href="/admin/sources">Connect a data source →</Link>
+              </Button>
+            ) : null}
           </div>
         </section>
       ) : null}

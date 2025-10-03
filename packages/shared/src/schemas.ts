@@ -207,6 +207,46 @@ export const alertsResponseSchema = z.object({
   alerts: z.array(alertSchema)
 });
 
+export const sourceTypeSchema = z.enum(["ENTRATA", "GA4", "ADS", "GBP"]);
+export const sourceStatusSchema = z.enum(["CONNECTED", "ERROR", "UNVERIFIED"]);
+
+export const sourceAccountSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable().optional(),
+  propertyId: z.string().optional(),
+  type: sourceTypeSchema,
+  status: sourceStatusSchema.nullable().optional(),
+  lastSuccessAt: z.string().datetime({ offset: true }).nullable().optional(),
+  lastErrorAt: z.string().datetime({ offset: true }).nullable().optional(),
+  enabled: z.boolean(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const listSourcesResponseSchema = z.object({
+  sources: z.array(sourceAccountSchema)
+});
+
+export const createSourceRequestSchema = z.object({
+  propertyId: z.string(),
+  type: sourceTypeSchema,
+  name: z.string().optional(),
+  credential: z.record(z.unknown()),
+  enabled: z.boolean().optional()
+});
+
+export const updateSourceRequestSchema = z.object({
+  propertyId: z.string().optional(),
+  name: z.string().optional(),
+  credential: z.record(z.unknown()).optional(),
+  enabled: z.boolean().optional()
+});
+
+export const sourceMutationResponseSchema = z.object({
+  source: sourceAccountSchema,
+  validationMessage: z.string().optional()
+});
+
 export const propertiesResponseSchema = z.object({
   properties: z.array(
     propertySchema.pick({
@@ -243,3 +283,10 @@ export type WeeklyReportResponse = z.infer<typeof weeklyReportSchema>;
 export type Alert = z.infer<typeof alertSchema>;
 export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
 export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
+export type SourceType = z.infer<typeof sourceTypeSchema>;
+export type SourceStatus = z.infer<typeof sourceStatusSchema>;
+export type SourceAccount = z.infer<typeof sourceAccountSchema>;
+export type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
+export type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
+export type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
+export type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;

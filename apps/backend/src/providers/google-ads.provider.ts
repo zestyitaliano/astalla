@@ -49,4 +49,34 @@ export class GoogleAdsProvider {
     this.logger.debug(`Google Ads query returned ${rows.length} rows for customer ${options.customerId}`);
     return rows;
   }
+
+  async validate(rawCredential: Record<string, unknown>) {
+    try {
+      const accessToken = this.getString(rawCredential.accessToken, "accessToken");
+      const customerId = this.getString(rawCredential.customerId ?? rawCredential.loginCustomerId, "customerId");
+      const developerToken = typeof rawCredential.developerToken === "string" ? rawCredential.developerToken : undefined;
+      const loginCustomerId = typeof rawCredential.loginCustomerId === "string" ? rawCredential.loginCustomerId : undefined;
+
+      await this.runQuery({
+        accessToken,
+        customerId,
+        developerToken,
+        loginCustomerId,
+        query: "SELECT customer.id FROM customer LIMIT 1"
+      });
+
+      return { ok: true } as const;
+    } catch (error) {
+      const message = (error as Error).message ?? "Unable to validate Google Ads credential";
+      this.logger.warn(`Google Ads validation failed: ${message}`);
+      return { ok: false, message } as const;
+    }
+  }
+
+  private getString(value: unknown, field: string) {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new Error(`Missing credential field ${field}`);
+    }
+    return value.trim();
+  }
 }

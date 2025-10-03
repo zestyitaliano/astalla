@@ -61,6 +61,28 @@ export class GoogleBusinessProvider {
       nextPageToken: response.data?.nextPageToken as string | undefined
     };
   }
+
+  async validate(rawCredential: Record<string, unknown>) {
+    try {
+      const accessToken = this.getString(rawCredential.accessToken, "accessToken");
+      const accountId = this.getString(rawCredential.accountId, "accountId");
+      const locationId = this.getString(rawCredential.locationId, "locationId");
+
+      await this.listReviews({ accessToken, accountId, locationId, pageToken: undefined });
+      return { ok: true } as const;
+    } catch (error) {
+      const message = (error as Error).message ?? "Unable to validate GBP credential";
+      this.logger.warn(`Google Business validation failed: ${message}`);
+      return { ok: false, message } as const;
+    }
+  }
+
+  private getString(value: unknown, field: string) {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new Error(`Missing credential field ${field}`);
+    }
+    return value.trim();
+  }
 }
 
 export type { GoogleBusinessReview, GoogleBusinessReviewOptions };
