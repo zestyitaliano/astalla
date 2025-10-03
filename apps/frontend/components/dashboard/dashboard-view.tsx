@@ -70,7 +70,9 @@ export function DashboardView({ role }: DashboardViewProps) {
       id: candidate,
       name: payload.name.trim(),
       city,
-      state
+      state,
+      propertyCode: normalizedCode,
+      region: state
     };
 
     queryClient.setQueryData<PropertiesResponse | undefined>(["properties"], (previous) => {

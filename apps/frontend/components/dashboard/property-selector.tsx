@@ -13,6 +13,15 @@ export type PropertyOption = {
   name: string;
   city: string;
   state: string;
+  propertyCode: string;
+  region: string;
+};
+
+export type CreatePropertyPayload = {
+  name: string;
+  code: string;
+  city?: string;
+  state?: string;
 };
 
 export type CreatePropertyPayload = {
