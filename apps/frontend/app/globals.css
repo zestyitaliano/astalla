@@ -32,7 +32,8 @@
   --card: var(--slate-1);
   --card-contrast: var(--slate-3);
   --card-foreground: var(--foreground);
-  --border: var(--slate-6);
+  --border: var(--slate-5);
+  --border-strong: 210 16% 78%;
   --muted: var(--slate-3);
   --muted-foreground: var(--slate-11);
   --foreground: var(--slate-12);
@@ -41,7 +42,17 @@
   --ring: var(--violet-8);
   --destructive: var(--tomato-9);
   --destructive-foreground: var(--tomato-12);
-  --radius: 1.25rem;
+  --brand-primary: var(--violet-9);
+  --brand-primary-foreground: var(--violet-12);
+  --brand-secondary: 151 81% 46%;
+  --brand-secondary-foreground: 152 40% 16%;
+  --success: 151 81% 46%;
+  --success-foreground: 152 40% 16%;
+  --warning: 34 100% 65%;
+  --warning-foreground: 28 80% 20%;
+  --danger: var(--tomato-9);
+  --danger-foreground: var(--tomato-12);
+  --radius: 14px;
 
   /* Legacy tokens mapped to new system */
   --background: var(--bg);
@@ -93,18 +104,32 @@
   --ring: var(--violet-7);
   --destructive: var(--tomato-9);
   --destructive-foreground: var(--tomato-12);
+  --brand-primary: var(--violet-8);
+  --brand-primary-foreground: var(--violet-12);
+  --brand-secondary: 151 70% 40%;
+  --brand-secondary-foreground: 149 60% 88%;
+  --success: 151 70% 40%;
+  --success-foreground: 149 60% 88%;
+  --warning: 34 100% 60%;
+  --warning-foreground: 48 100% 90%;
+  --danger: var(--tomato-9);
+  --danger-foreground: var(--tomato-12);
 }
 
 body {
-  background: radial-gradient(120% 120% at 10% 0%, hsl(var(--accent) / 0.15) 0%, transparent 45%),
-    radial-gradient(100% 100% at 100% 0%, hsl(var(--muted) / 0.12) 0%, transparent 50%),
-    hsl(var(--bg));
+  background: radial-gradient(120% 120% at 10% 0%, hsl(var(--brand-primary) / 0.12) 0%, transparent 45%),
+    radial-gradient(160% 140% at 90% 0%, hsl(var(--brand-secondary) / 0.08) 0%, transparent 52%),
+    linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(var(--bg)) 38%, #fff 100%);
   color: hsl(var(--foreground));
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+
+  .card-surface {
+    border-color: hsl(var(--border-strong));
   }
 
   *:focus-visible {

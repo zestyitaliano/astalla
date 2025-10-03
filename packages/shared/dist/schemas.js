@@ -220,3 +220,38 @@ export const propertiesResponseSchema = z.object({
         region: true
     }))
 });
+export const publicDashboardSchema = z.object({
+    id: z.string(),
+    orgId: z.string(),
+    propertyId: z.string().nullable().optional(),
+    title: z.string(),
+    subdomain: z.string(),
+    accessToken: z.string().nullable().optional(),
+    config: z.unknown(),
+    isActive: z.boolean(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const publicDashboardListResponseSchema = z.object({
+    dashboards: z.array(publicDashboardSchema)
+});
+export const createPublicDashboardRequestSchema = z.object({
+    title: z.string().min(1),
+    subdomain: z.string().min(1),
+    orgId: z.string().min(1),
+    propertyId: z.string().optional().nullable(),
+    config: z.unknown(),
+    isActive: z.boolean().optional()
+});
+export const updatePublicDashboardRequestSchema = z
+    .object({
+    title: z.string().optional(),
+    subdomain: z.string().optional(),
+    orgId: z.string().optional(),
+    propertyId: z.string().nullable().optional(),
+    config: z.unknown().optional(),
+    isActive: z.boolean().optional()
+})
+    .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+});

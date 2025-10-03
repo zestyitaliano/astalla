@@ -896,6 +896,160 @@ export declare const propertiesResponseSchema: z.ZodObject<{
         region?: string | undefined;
     }[];
 }>;
+export declare const publicDashboardSchema: z.ZodObject<{
+    id: z.ZodString;
+    orgId: z.ZodString;
+    propertyId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    title: z.ZodString;
+    subdomain: z.ZodString;
+    accessToken: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    config: z.ZodUnknown;
+    isActive: z.ZodBoolean;
+    createdAt: z.ZodString;
+    updatedAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    orgId: string;
+    title: string;
+    subdomain: string;
+    isActive: boolean;
+    propertyId?: string | null | undefined;
+    accessToken?: string | null | undefined;
+    config?: unknown;
+}, {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    orgId: string;
+    title: string;
+    subdomain: string;
+    isActive: boolean;
+    propertyId?: string | null | undefined;
+    accessToken?: string | null | undefined;
+    config?: unknown;
+}>;
+export declare const publicDashboardListResponseSchema: z.ZodObject<{
+    dashboards: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        orgId: z.ZodString;
+        propertyId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        title: z.ZodString;
+        subdomain: z.ZodString;
+        accessToken: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        config: z.ZodUnknown;
+        isActive: z.ZodBoolean;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        orgId: string;
+        title: string;
+        subdomain: string;
+        isActive: boolean;
+        propertyId?: string | null | undefined;
+        accessToken?: string | null | undefined;
+        config?: unknown;
+    }, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        orgId: string;
+        title: string;
+        subdomain: string;
+        isActive: boolean;
+        propertyId?: string | null | undefined;
+        accessToken?: string | null | undefined;
+        config?: unknown;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    dashboards: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        orgId: string;
+        title: string;
+        subdomain: string;
+        isActive: boolean;
+        propertyId?: string | null | undefined;
+        accessToken?: string | null | undefined;
+        config?: unknown;
+    }[];
+}, {
+    dashboards: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        orgId: string;
+        title: string;
+        subdomain: string;
+        isActive: boolean;
+        propertyId?: string | null | undefined;
+        accessToken?: string | null | undefined;
+        config?: unknown;
+    }[];
+}>;
+export declare const createPublicDashboardRequestSchema: z.ZodObject<{
+    title: z.ZodString;
+    subdomain: z.ZodString;
+    orgId: z.ZodString;
+    propertyId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    config: z.ZodUnknown;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    orgId: string;
+    title: string;
+    subdomain: string;
+    propertyId?: string | null | undefined;
+    config?: unknown;
+    isActive?: boolean | undefined;
+}, {
+    orgId: string;
+    title: string;
+    subdomain: string;
+    propertyId?: string | null | undefined;
+    config?: unknown;
+    isActive?: boolean | undefined;
+}>;
+export declare const updatePublicDashboardRequestSchema: z.ZodEffects<z.ZodObject<{
+    title: z.ZodOptional<z.ZodString>;
+    subdomain: z.ZodOptional<z.ZodString>;
+    orgId: z.ZodOptional<z.ZodString>;
+    propertyId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    config: z.ZodOptional<z.ZodUnknown>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    orgId?: string | undefined;
+    propertyId?: string | null | undefined;
+    title?: string | undefined;
+    subdomain?: string | undefined;
+    config?: unknown;
+    isActive?: boolean | undefined;
+}, {
+    orgId?: string | undefined;
+    propertyId?: string | null | undefined;
+    title?: string | undefined;
+    subdomain?: string | undefined;
+    config?: unknown;
+    isActive?: boolean | undefined;
+}>, {
+    orgId?: string | undefined;
+    propertyId?: string | null | undefined;
+    title?: string | undefined;
+    subdomain?: string | undefined;
+    config?: unknown;
+    isActive?: boolean | undefined;
+}, {
+    orgId?: string | undefined;
+    propertyId?: string | null | undefined;
+    title?: string | undefined;
+    subdomain?: string | undefined;
+    config?: unknown;
+    isActive?: boolean | undefined;
+}>;
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
@@ -926,3 +1080,7 @@ export type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
 export type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
 export type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
 export type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;
+export type PublicDashboard = z.infer<typeof publicDashboardSchema>;
+export type PublicDashboardListResponse = z.infer<typeof publicDashboardListResponseSchema>;
+export type CreatePublicDashboardRequest = z.infer<typeof createPublicDashboardRequestSchema>;
+export type UpdatePublicDashboardRequest = z.infer<typeof updatePublicDashboardRequestSchema>;
