@@ -651,6 +651,204 @@ export declare const alertsResponseSchema: z.ZodObject<{
         severity: "high" | "medium" | "low";
     }[];
 }>;
+export declare const sourceTypeSchema: z.ZodEnum<["ENTRATA", "GA4", "ADS", "GBP"]>;
+export declare const sourceStatusSchema: z.ZodEnum<["CONNECTED", "ERROR", "UNVERIFIED"]>;
+export declare const sourceAccountSchema: z.ZodObject<{
+    id: z.ZodString;
+    name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    propertyId: z.ZodOptional<z.ZodString>;
+    type: z.ZodEnum<["ENTRATA", "GA4", "ADS", "GBP"]>;
+    status: z.ZodOptional<z.ZodNullable<z.ZodEnum<["CONNECTED", "ERROR", "UNVERIFIED"]>>>;
+    lastSuccessAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    lastErrorAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    enabled: z.ZodBoolean;
+    createdAt: z.ZodString;
+    updatedAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+    enabled: boolean;
+    name?: string | null | undefined;
+    status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+    propertyId?: string | undefined;
+    lastSuccessAt?: string | null | undefined;
+    lastErrorAt?: string | null | undefined;
+}, {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+    enabled: boolean;
+    name?: string | null | undefined;
+    status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+    propertyId?: string | undefined;
+    lastSuccessAt?: string | null | undefined;
+    lastErrorAt?: string | null | undefined;
+}>;
+export declare const listSourcesResponseSchema: z.ZodObject<{
+    sources: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        propertyId: z.ZodOptional<z.ZodString>;
+        type: z.ZodEnum<["ENTRATA", "GA4", "ADS", "GBP"]>;
+        status: z.ZodOptional<z.ZodNullable<z.ZodEnum<["CONNECTED", "ERROR", "UNVERIFIED"]>>>;
+        lastSuccessAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        lastErrorAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        enabled: z.ZodBoolean;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    sources: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }[];
+}, {
+    sources: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }[];
+}>;
+export declare const createSourceRequestSchema: z.ZodObject<{
+    propertyId: z.ZodString;
+    type: z.ZodEnum<["ENTRATA", "GA4", "ADS", "GBP"]>;
+    name: z.ZodOptional<z.ZodString>;
+    credential: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    enabled: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+    propertyId: string;
+    credential: Record<string, unknown>;
+    name?: string | undefined;
+    enabled?: boolean | undefined;
+}, {
+    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+    propertyId: string;
+    credential: Record<string, unknown>;
+    name?: string | undefined;
+    enabled?: boolean | undefined;
+}>;
+export declare const updateSourceRequestSchema: z.ZodObject<{
+    propertyId: z.ZodOptional<z.ZodString>;
+    name: z.ZodOptional<z.ZodString>;
+    credential: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    enabled: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    name?: string | undefined;
+    propertyId?: string | undefined;
+    enabled?: boolean | undefined;
+    credential?: Record<string, unknown> | undefined;
+}, {
+    name?: string | undefined;
+    propertyId?: string | undefined;
+    enabled?: boolean | undefined;
+    credential?: Record<string, unknown> | undefined;
+}>;
+export declare const sourceMutationResponseSchema: z.ZodObject<{
+    source: z.ZodObject<{
+        id: z.ZodString;
+        name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        propertyId: z.ZodOptional<z.ZodString>;
+        type: z.ZodEnum<["ENTRATA", "GA4", "ADS", "GBP"]>;
+        status: z.ZodOptional<z.ZodNullable<z.ZodEnum<["CONNECTED", "ERROR", "UNVERIFIED"]>>>;
+        lastSuccessAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        lastErrorAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        enabled: z.ZodBoolean;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }>;
+    validationMessage: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    source: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    };
+    validationMessage?: string | undefined;
+}, {
+    source: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    };
+    validationMessage?: string | undefined;
+}>;
 export declare const propertiesResponseSchema: z.ZodObject<{
     properties: z.ZodArray<z.ZodObject<Pick<{
         id: z.ZodString;
@@ -721,3 +919,10 @@ export type WeeklyReportResponse = z.infer<typeof weeklyReportSchema>;
 export type Alert = z.infer<typeof alertSchema>;
 export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
 export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
+export type SourceType = z.infer<typeof sourceTypeSchema>;
+export type SourceStatus = z.infer<typeof sourceStatusSchema>;
+export type SourceAccount = z.infer<typeof sourceAccountSchema>;
+export type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
+export type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
+export type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
+export type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;
