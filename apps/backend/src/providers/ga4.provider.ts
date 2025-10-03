@@ -29,4 +29,40 @@ export class Ga4Provider {
     this.logger.debug(`GA4 runReport returned ${rows.length} rows for property ${options.propertyId}`);
     return rows;
   }
+
+  async validate(rawCredential: Record<string, unknown>) {
+    try {
+      const accessToken = this.getString(rawCredential.accessToken, "accessToken");
+      const propertyId = this.getString(rawCredential.propertyId ?? rawCredential.ga4PropertyId, "propertyId");
+      const today = new Date();
+      const start = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      const date = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}-${String(
+        start.getUTCDate()
+      ).padStart(2, "0")}`;
+
+      await this.runReport({
+        accessToken,
+        propertyId,
+        body: {
+          dimensions: [{ name: "date" }],
+          metrics: [{ name: "totalUsers" }],
+          dateRanges: [{ startDate: date, endDate: date }],
+          limit: 1
+        }
+      });
+
+      return { ok: true } as const;
+    } catch (error) {
+      const message = (error as Error).message ?? "Unable to validate GA4 credential";
+      this.logger.warn(`GA4 validation failed: ${message}`);
+      return { ok: false, message } as const;
+    }
+  }
+
+  private getString(value: unknown, field: string) {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new Error(`Missing credential field ${field}`);
+    }
+    return value.trim();
+  }
 }
