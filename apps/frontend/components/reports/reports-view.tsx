@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
@@ -308,7 +307,7 @@ export function ReportsView() {
                       <h3 className="text-base font-semibold text-foreground">{dashboard.title}</h3>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                      <Link
+                      <a
                         href={url}
                         target="_blank"
                         rel="noreferrer"
@@ -316,7 +315,7 @@ export function ReportsView() {
                       >
                         {url}
                         <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
+                      </a>
                       <span>Subdomain: {dashboard.subdomain}</span>
                       {dashboard.propertyId ? <span>Property scope: {dashboard.propertyId}</span> : <span>Org-wide</span>}
                     </div>
@@ -452,7 +451,7 @@ export function ReportsView() {
                   <span>Org scope</span>
                   <span className="font-medium text-foreground">{orgId || "Loading…"}</span>
                 </div>
-                <Link
+                <a
                   href={`https://${slugPreview}`}
                   target="_blank"
                   rel="noreferrer"
@@ -460,7 +459,7 @@ export function ReportsView() {
                 >
                   Preview URL
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
+                </a>
               </div>
               {formError ? <div className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{formError}</div> : null}
               <div className="flex items-center justify-end gap-3">
