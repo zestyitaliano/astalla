@@ -443,3 +443,94 @@ model EtlCursor {
 
   @@unique([source, scope], name: "uniq_etl_source_scope")
 }
+
+enum ColumnType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+  REFERENCE
+}
+
+model DataTable {
+  id          String       @id @default(cuid())
+  orgId       String
+  name        String
+  description String?
+  views       TableView[]
+  columns     TableColumn[]
+  rows        TableRow[]
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([orgId, name])
+}
+
+model TableColumn {
+  id        String      @id @default(cuid())
+  table     DataTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String
+  name      String
+  slug      String
+  type      ColumnType
+  position  Int
+  config    Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([tableId, slug])
+  @@index([tableId, position])
+}
+
+model TableRow {
+  id        String     @id @default(cuid())
+  table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String
+  position  Int
+  cells     TableCell[]
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([tableId, position])
+}
+
+model TableCell {
+  id        String      @id @default(cuid())
+  row       TableRow    @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  rowId     String
+  column    TableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  columnId  String
+  value     Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([rowId, columnId])
+}
+
+model TableView {
+  id        String     @id @default(cuid())
+  table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String
+  name      String
+  config    Json
+  createdBy String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([tableId, name])
+}
+
+model TableAudit {
+  id        String   @id @default(cuid())
+  tableId   String
+  actorId   String?
+  action    String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([tableId, createdAt])
+}
