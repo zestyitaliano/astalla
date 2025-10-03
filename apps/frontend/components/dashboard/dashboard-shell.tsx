@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import type { MeResponse } from "@shared/api";
 
 import { ThemeToggle } from "./theme-toggle";
@@ -21,6 +25,16 @@ export default function DashboardShell({
   const displayName = user.name?.trim() || "Set your name";
   const displayEmail = user.email?.trim() || "Add your email";
   const initials = displayName.charAt(0).toUpperCase();
+  const pathname = usePathname();
+
+  type NavLink = { href: Route; label: string };
+
+  const links: NavLink[] = [
+    { href: "/dashboard", label: "Dashboard" },
+    ...(role === "admin"
+      ? ([{ href: "/admin/sources", label: "Connections / Integrations" }] as NavLink[])
+      : [])
+  ];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -57,6 +71,23 @@ export default function DashboardShell({
               ) : null}
             </div>
           </div>
+          <nav className="mt-6 flex flex-wrap items-center gap-3 text-sm font-medium text-muted-foreground">
+            {links.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "rounded-full border border-transparent px-4 py-1.5 transition hover:text-foreground",
+                    isActive && "border-border bg-card text-foreground"
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </header>
       <ScrollArea className="flex-1">
