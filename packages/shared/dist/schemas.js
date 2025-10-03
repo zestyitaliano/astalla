@@ -14,7 +14,9 @@ export const propertySchema = z.object({
     zip: z.string(),
     orgId: z.string(),
     createdAt: z.string().datetime({ offset: true }),
-    updatedAt: z.string().datetime({ offset: true })
+    updatedAt: z.string().datetime({ offset: true }),
+    propertyCode: z.string().optional(),
+    region: z.string().optional()
 });
 export const userSchema = z.object({
     id: z.string(),
@@ -100,7 +102,15 @@ export const reportSnapshotSchema = z.object({
     }))
 });
 export const meResponseSchema = userSchema.extend({
-    orgId: z.string()
+    orgId: z.string(),
+    roles: z
+        .array(z.object({
+        role: z.string(),
+        orgId: z.string(),
+        propertyId: z.string().optional(),
+        propertyCode: z.string().optional()
+    }))
+        .optional()
 });
 const metricPointSchema = z.object({
     timestamp: z.string().datetime({ offset: true }),
@@ -111,7 +121,11 @@ export const occupancyMetricsSchema = z.object({
     change: z.number(),
     unitsOccupied: z.number(),
     totalUnits: z.number(),
-    trend: z.array(metricPointSchema)
+    trend: z.array(metricPointSchema),
+    anticipatedOccupancy: z.number().optional(),
+    upcomingMoveIns: z.number().optional(),
+    upcomingMoveOuts: z.number().optional(),
+    approvedApplications: z.number().optional()
 });
 export const pipelineMetricsSchema = z.object({
     newLeads: z.number(),
@@ -130,7 +144,14 @@ export const latestReviewsSchema = z.object({
     summary: z.object({
         averageRating: z.number(),
         reviewCount: z.number(),
-        responseRate: z.number()
+        responseRate: z.number(),
+        sentiment: z
+            .object({
+            positive: z.number(),
+            negative: z.number(),
+            topics: z.unknown()
+        })
+            .optional()
     }),
     recent: z.array(reviewSchema.pick({
         id: true,
@@ -160,6 +181,8 @@ export const propertiesResponseSchema = z.object({
         id: true,
         name: true,
         city: true,
-        state: true
+        state: true,
+        propertyCode: true,
+        region: true
     }))
 });

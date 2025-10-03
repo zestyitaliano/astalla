@@ -25,6 +25,8 @@ export declare const propertySchema: z.ZodObject<{
     orgId: z.ZodString;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
+    propertyCode: z.ZodOptional<z.ZodString>;
+    region: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     name: string;
@@ -35,6 +37,8 @@ export declare const propertySchema: z.ZodObject<{
     state: string;
     zip: string;
     orgId: string;
+    propertyCode?: string | undefined;
+    region?: string | undefined;
 }, {
     id: string;
     name: string;
@@ -45,6 +49,8 @@ export declare const propertySchema: z.ZodObject<{
     state: string;
     zip: string;
     orgId: string;
+    propertyCode?: string | undefined;
+    region?: string | undefined;
 }>;
 export declare const userSchema: z.ZodObject<{
     id: z.ZodString;
@@ -301,6 +307,22 @@ export declare const meResponseSchema: z.ZodObject<{
     updatedAt: z.ZodOptional<z.ZodString>;
 } & {
     orgId: z.ZodString;
+    roles: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        role: z.ZodString;
+        orgId: z.ZodString;
+        propertyId: z.ZodOptional<z.ZodString>;
+        propertyCode: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        orgId: string;
+        role: string;
+        propertyCode?: string | undefined;
+        propertyId?: string | undefined;
+    }, {
+        orgId: string;
+        role: string;
+        propertyCode?: string | undefined;
+        propertyId?: string | undefined;
+    }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     orgId: string;
@@ -308,6 +330,12 @@ export declare const meResponseSchema: z.ZodObject<{
     name?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
+    roles?: {
+        orgId: string;
+        role: string;
+        propertyCode?: string | undefined;
+        propertyId?: string | undefined;
+    }[] | undefined;
 }, {
     id: string;
     orgId: string;
@@ -315,6 +343,12 @@ export declare const meResponseSchema: z.ZodObject<{
     name?: string | undefined;
     createdAt?: string | undefined;
     updatedAt?: string | undefined;
+    roles?: {
+        orgId: string;
+        role: string;
+        propertyCode?: string | undefined;
+        propertyId?: string | undefined;
+    }[] | undefined;
 }>;
 export declare const occupancyMetricsSchema: z.ZodObject<{
     occupancyRate: z.ZodNumber;
@@ -331,6 +365,10 @@ export declare const occupancyMetricsSchema: z.ZodObject<{
         value: number;
         timestamp: string;
     }>, "many">;
+    anticipatedOccupancy: z.ZodOptional<z.ZodNumber>;
+    upcomingMoveIns: z.ZodOptional<z.ZodNumber>;
+    upcomingMoveOuts: z.ZodOptional<z.ZodNumber>;
+    approvedApplications: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     occupancyRate: number;
     change: number;
@@ -340,6 +378,10 @@ export declare const occupancyMetricsSchema: z.ZodObject<{
         value: number;
         timestamp: string;
     }[];
+    anticipatedOccupancy?: number | undefined;
+    upcomingMoveIns?: number | undefined;
+    upcomingMoveOuts?: number | undefined;
+    approvedApplications?: number | undefined;
 }, {
     occupancyRate: number;
     change: number;
@@ -349,6 +391,10 @@ export declare const occupancyMetricsSchema: z.ZodObject<{
         value: number;
         timestamp: string;
     }[];
+    anticipatedOccupancy?: number | undefined;
+    upcomingMoveIns?: number | undefined;
+    upcomingMoveOuts?: number | undefined;
+    approvedApplications?: number | undefined;
 }>;
 export declare const pipelineMetricsSchema: z.ZodObject<{
     newLeads: z.ZodNumber;
@@ -420,14 +466,37 @@ export declare const latestReviewsSchema: z.ZodObject<{
         averageRating: z.ZodNumber;
         reviewCount: z.ZodNumber;
         responseRate: z.ZodNumber;
+        sentiment: z.ZodOptional<z.ZodObject<{
+            positive: z.ZodNumber;
+            negative: z.ZodNumber;
+            topics: z.ZodUnknown;
+        }, "strip", z.ZodTypeAny, {
+            positive: number;
+            negative: number;
+            topics?: unknown;
+        }, {
+            positive: number;
+            negative: number;
+            topics?: unknown;
+        }>>;
     }, "strip", z.ZodTypeAny, {
         averageRating: number;
         reviewCount: number;
         responseRate: number;
+        sentiment?: {
+            positive: number;
+            negative: number;
+            topics?: unknown;
+        } | undefined;
     }, {
         averageRating: number;
         reviewCount: number;
         responseRate: number;
+        sentiment?: {
+            positive: number;
+            negative: number;
+            topics?: unknown;
+        } | undefined;
     }>;
     recent: z.ZodArray<z.ZodObject<Pick<{
         id: z.ZodString;
@@ -454,6 +523,11 @@ export declare const latestReviewsSchema: z.ZodObject<{
         averageRating: number;
         reviewCount: number;
         responseRate: number;
+        sentiment?: {
+            positive: number;
+            negative: number;
+            topics?: unknown;
+        } | undefined;
     };
     recent: {
         id: string;
@@ -467,6 +541,11 @@ export declare const latestReviewsSchema: z.ZodObject<{
         averageRating: number;
         reviewCount: number;
         responseRate: number;
+        sentiment?: {
+            positive: number;
+            negative: number;
+            topics?: unknown;
+        } | undefined;
     };
     recent: {
         id: string;
@@ -583,16 +662,22 @@ export declare const propertiesResponseSchema: z.ZodObject<{
         orgId: z.ZodString;
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
-    }, "id" | "name" | "city" | "state">, "strip", z.ZodTypeAny, {
+        propertyCode: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+    }, "id" | "name" | "city" | "state" | "propertyCode" | "region">, "strip", z.ZodTypeAny, {
         id: string;
         name: string;
         city: string;
         state: string;
+        propertyCode?: string | undefined;
+        region?: string | undefined;
     }, {
         id: string;
         name: string;
         city: string;
         state: string;
+        propertyCode?: string | undefined;
+        region?: string | undefined;
     }>, "many">;
 }, "strip", z.ZodTypeAny, {
     properties: {
@@ -600,6 +685,8 @@ export declare const propertiesResponseSchema: z.ZodObject<{
         name: string;
         city: string;
         state: string;
+        propertyCode?: string | undefined;
+        region?: string | undefined;
     }[];
 }, {
     properties: {
@@ -607,14 +694,13 @@ export declare const propertiesResponseSchema: z.ZodObject<{
         name: string;
         city: string;
         state: string;
+        propertyCode?: string | undefined;
+        region?: string | undefined;
     }[];
 }>;
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
-export type Alert = z.infer<typeof alertSchema>;
-export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
-export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
 export type BasicAuthAccount = z.infer<typeof basicAuthAccountSchema>;
 export type RegisterBasicAuthRequest = z.infer<typeof registerBasicAuthRequestSchema>;
 export type RegisterBasicAuthResponse = z.infer<typeof registerBasicAuthResponseSchema>;
@@ -632,3 +718,6 @@ export type PipelineMetricsResponse = z.infer<typeof pipelineMetricsSchema>;
 export type CostMetricsResponse = z.infer<typeof costMetricsSchema>;
 export type LatestReviewsResponse = z.infer<typeof latestReviewsSchema>;
 export type WeeklyReportResponse = z.infer<typeof weeklyReportSchema>;
+export type Alert = z.infer<typeof alertSchema>;
+export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
+export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
