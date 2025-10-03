@@ -16,7 +16,9 @@ export const propertySchema = z.object({
   zip: z.string(),
   orgId: z.string(),
   createdAt: z.string().datetime({ offset: true }),
-  updatedAt: z.string().datetime({ offset: true })
+  updatedAt: z.string().datetime({ offset: true }),
+  propertyCode: z.string().optional(),
+  region: z.string().optional()
 });
 
 export const userSchema = z.object({
@@ -118,7 +120,17 @@ export const reportSnapshotSchema = z.object({
 });
 
 export const meResponseSchema = userSchema.extend({
-  orgId: z.string()
+  orgId: z.string(),
+  roles: z
+    .array(
+      z.object({
+        role: z.string(),
+        orgId: z.string(),
+        propertyId: z.string().optional(),
+        propertyCode: z.string().optional()
+      })
+    )
+    .optional()
 });
 
 const metricPointSchema = z.object({
@@ -131,7 +143,11 @@ export const occupancyMetricsSchema = z.object({
   change: z.number(),
   unitsOccupied: z.number(),
   totalUnits: z.number(),
-  trend: z.array(metricPointSchema)
+  trend: z.array(metricPointSchema),
+  anticipatedOccupancy: z.number().optional(),
+  upcomingMoveIns: z.number().optional(),
+  upcomingMoveOuts: z.number().optional(),
+  approvedApplications: z.number().optional()
 });
 
 export const pipelineMetricsSchema = z.object({
@@ -153,7 +169,14 @@ export const latestReviewsSchema = z.object({
   summary: z.object({
     averageRating: z.number(),
     reviewCount: z.number(),
-    responseRate: z.number()
+    responseRate: z.number(),
+    sentiment: z
+      .object({
+        positive: z.number(),
+        negative: z.number(),
+        topics: z.unknown()
+      })
+      .optional()
   }),
   recent: z.array(
     reviewSchema.pick({
@@ -190,7 +213,9 @@ export const propertiesResponseSchema = z.object({
       id: true,
       name: true,
       city: true,
-      state: true
+      state: true,
+      propertyCode: true,
+      region: true
     })
   )
 });
@@ -198,9 +223,6 @@ export const propertiesResponseSchema = z.object({
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
-export type Alert = z.infer<typeof alertSchema>;
-export type AlertsResponse = z.infer<typeof alertsResponseSchema>;
-export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
 export type BasicAuthAccount = z.infer<typeof basicAuthAccountSchema>;
 export type RegisterBasicAuthRequest = z.infer<typeof registerBasicAuthRequestSchema>;
 export type RegisterBasicAuthResponse = z.infer<typeof registerBasicAuthResponseSchema>;

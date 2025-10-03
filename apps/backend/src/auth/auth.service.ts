@@ -8,8 +8,8 @@ import { ConfigService } from "@nestjs/config";
 import type { User } from "@prisma/client";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 
-import { MockIntegrationsService } from "../providers/mock-integrations.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { MockIntegrationsService } from "../providers/mock-integrations.service";
 import { BasicLoginDto } from "./dto/basic-login.dto";
 import { RegisterDto } from "./dto/register.dto";
 
@@ -25,8 +25,38 @@ export class AuthService {
     this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
   }
 
-  getCurrentUser() {
-    return this.integrations.getCurrentUser();
+  async getCurrentUser(useMock = false) {
+    if (useMock || !this.hasDatabase) {
+      return this.integrations.getCurrentUser();
+    }
+
+    const user = await this.prisma.user.findFirst({
+      include: {
+        roles: {
+          include: {
+            org: { select: { id: true } },
+            property: { select: { id: true, propertyCode: true } }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return this.integrations.getCurrentUser();
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name ?? undefined,
+      orgId: user.roles[0]?.org?.id,
+      roles: user.roles.map((role) => ({
+        role: role.role,
+        orgId: role.orgId,
+        propertyId: role.propertyId ?? undefined,
+        propertyCode: role.property?.propertyCode
+      }))
+    };
   }
 
   async register(dto: RegisterDto) {

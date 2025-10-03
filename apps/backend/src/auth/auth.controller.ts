@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Post } from "@nestjs/common";
 
 import { AuthService } from "./auth.service";
 import { BasicLoginDto } from "./dto/basic-login.dto";
@@ -9,8 +9,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get("me")
-  getCurrentUser() {
-    return this.authService.getCurrentUser();
+  getCurrentUser(@Headers("x-mock-mode") mockHeader?: string) {
+    return this.authService.getCurrentUser(this.shouldUseMock(mockHeader));
   }
 
   @Post("register")
@@ -22,5 +22,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   basicLogin(@Body() dto: BasicLoginDto) {
     return this.authService.basicLogin(dto);
+  }
+
+  private shouldUseMock(header?: string) {
+    return header?.toLowerCase() === "true";
   }
 }

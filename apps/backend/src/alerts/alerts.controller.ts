@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Get, Headers, Query } from "@nestjs/common";
 
 import { AlertsService } from "./alerts.service";
 
@@ -7,7 +7,11 @@ export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
 
   @Get()
-  getAlerts(@Query("propertyId") propertyId?: string) {
-    return this.alertsService.getAlerts(propertyId);
+  getAlerts(@Query("propertyId") propertyId?: string, @Headers("x-mock-mode") mockHeader?: string) {
+    return this.alertsService.getAlerts(propertyId, this.shouldUseMock(mockHeader));
+  }
+
+  private shouldUseMock(header?: string) {
+    return header?.toLowerCase() === "true";
   }
 }

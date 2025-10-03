@@ -1,12 +1,54 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import type { PropertiesResponse } from "@shared/api";
 
+import { PrismaService } from "../prisma/prisma.service";
 import { MockIntegrationsService } from "../providers/mock-integrations.service";
 
 @Injectable()
 export class PropertiesService {
-  constructor(private readonly integrations: MockIntegrationsService) {}
+  private readonly logger = new Logger(PropertiesService.name);
+  private readonly hasDatabase: boolean;
 
-  list() {
-    return this.integrations.getProperties();
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+    private readonly integrations: MockIntegrationsService
+  ) {
+    this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
+  }
+
+  async list(useMock = false): Promise<PropertiesResponse> {
+    if (useMock || !this.hasDatabase) {
+      return this.integrations.getProperties();
+    }
+
+    try {
+      const properties = await this.prisma.property.findMany({
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          city: true,
+          state: true,
+          propertyCode: true,
+          region: true
+        }
+      });
+
+      return {
+        properties: properties.map((property) => ({
+          id: property.id,
+          name: property.name,
+          city: property.city ?? "",
+          state: property.state ?? "",
+          propertyCode: property.propertyCode,
+          region: property.region ?? undefined
+        }))
+      };
+    } catch (error) {
+      this.logger.warn(`Falling back to mock property catalog: ${(error as Error).message}`);
+      return this.integrations.getProperties();
+    }
   }
 }
