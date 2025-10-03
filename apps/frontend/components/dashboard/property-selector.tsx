@@ -24,6 +24,13 @@ export type CreatePropertyPayload = {
   state?: string;
 };
 
+export type CreatePropertyPayload = {
+  name: string;
+  code: string;
+  city?: string;
+  state?: string;
+};
+
 const TIME_RANGES = [
   { label: "Last 7 days", value: 7 },
   { label: "Last 30 days", value: 30 },
