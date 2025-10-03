@@ -29,6 +29,28 @@ const config: Config = {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-contrast))"
         },
+        brand: {
+          primary: {
+            DEFAULT: "hsl(var(--brand-primary))",
+            foreground: "hsl(var(--brand-primary-foreground))"
+          },
+          secondary: {
+            DEFAULT: "hsl(var(--brand-secondary))",
+            foreground: "hsl(var(--brand-secondary-foreground))"
+          }
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))"
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))"
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger))",
+          foreground: "hsl(var(--danger-foreground))"
+        },
         secondary: {
           DEFAULT: "hsl(var(--panel))",
           foreground: "hsl(var(--foreground))"
@@ -47,9 +69,14 @@ const config: Config = {
         }
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        xl: "18px",
+        lg: "14px",
+        md: "12px",
+        sm: "10px"
+      },
+      boxShadow: {
+        card: "0 10px 30px -18px rgba(15, 23, 42, 0.35), 0 12px 24px -20px rgba(15, 23, 42, 0.28)",
+        cardHover: "0 20px 40px -20px rgba(15, 23, 42, 0.4), 0 18px 32px -24px rgba(15, 23, 42, 0.35)"
       },
       keyframes: {
         "accordion-down": {
