@@ -26,7 +26,7 @@ export default function DashboardShell({
     <div className="flex min-h-screen flex-col">
       <header className="px-6 pt-10">
         <div className="mx-auto w-full max-w-7xl">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border/70 bg-panel/90 px-6 py-5 shadow-sm supports-[backdrop-filter]:backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-panel/95 px-6 py-5 shadow-sm supports-[backdrop-filter]:backdrop-blur">
             <div className="space-y-1">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground/80">
                 {user.orgId ? user.orgId : "Astalla internal"}
@@ -60,8 +60,8 @@ export default function DashboardShell({
         </div>
       </header>
       <ScrollArea className="flex-1">
-        <main className="mx-auto w-full max-w-7xl px-6 pb-12 pt-10">
-          <div className="grid gap-6 pb-12">{children}</div>
+        <main className="mx-auto w-full max-w-7xl px-6 pb-16 pt-10">
+          <div className="flex flex-col gap-8 pb-12 sm:gap-9 lg:gap-10">{children}</div>
         </main>
       </ScrollArea>
     </div>
