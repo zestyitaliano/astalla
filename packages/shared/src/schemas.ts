@@ -260,6 +260,45 @@ export const propertiesResponseSchema = z.object({
   )
 });
 
+export const publicDashboardSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  propertyId: z.string().nullable().optional(),
+  title: z.string(),
+  subdomain: z.string(),
+  accessToken: z.string().nullable().optional(),
+  config: z.unknown(),
+  isActive: z.boolean(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const publicDashboardListResponseSchema = z.object({
+  dashboards: z.array(publicDashboardSchema)
+});
+
+export const createPublicDashboardRequestSchema = z.object({
+  title: z.string().min(1),
+  subdomain: z.string().min(1),
+  orgId: z.string().min(1),
+  propertyId: z.string().optional().nullable(),
+  config: z.unknown(),
+  isActive: z.boolean().optional()
+});
+
+export const updatePublicDashboardRequestSchema = z
+  .object({
+    title: z.string().optional(),
+    subdomain: z.string().optional(),
+    orgId: z.string().optional(),
+    propertyId: z.string().nullable().optional(),
+    config: z.unknown().optional(),
+    isActive: z.boolean().optional()
+  })
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+  });
+
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
@@ -290,3 +329,7 @@ export type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
 export type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
 export type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
 export type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;
+export type PublicDashboard = z.infer<typeof publicDashboardSchema>;
+export type PublicDashboardListResponse = z.infer<typeof publicDashboardListResponseSchema>;
+export type CreatePublicDashboardRequest = z.infer<typeof createPublicDashboardRequestSchema>;
+export type UpdatePublicDashboardRequest = z.infer<typeof updatePublicDashboardRequestSchema>;
