@@ -137,6 +137,19 @@ model SourceAccount {
   @@index([propertyId, type], name: "idx_source_account_property_type")
 }
 
+model PublicDashboard {
+  id          String   @id @default(cuid())
+  orgId       String
+  propertyId  String?
+  title       String
+  subdomain   String   @unique
+  accessToken String?  @unique
+  config      Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Lead {
   id           String        @id @default(cuid())
   property     Property      @relation(fields: [propertyId], references: [id])
