@@ -50,7 +50,11 @@ export function DashboardView({ role }: DashboardViewProps) {
   const propertiesQuery = useQuery({ queryKey: ["properties"], queryFn: api.properties });
 
   const propertyOptions: PropertyOption[] = useMemo(() => {
-    return propertiesQuery.data?.properties ?? [];
+    return (propertiesQuery.data?.properties ?? []).map((property) => ({
+      ...property,
+      propertyCode: property.propertyCode ?? property.id,
+      region: property.region ?? property.state ?? ""
+    }));
   }, [propertiesQuery.data?.properties]);
 
   const handleCreateProperty = async (payload: CreatePropertyPayload): Promise<PropertyOption> => {
