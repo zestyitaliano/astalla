@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
@@ -26,10 +27,12 @@ export default function DashboardShell({
   const initials = displayName.charAt(0).toUpperCase();
   const pathname = usePathname();
 
-  const links = [
+  type NavLink = { href: Route; label: string };
+
+  const links: NavLink[] = [
     { href: "/dashboard", label: "Dashboard" },
     ...(role === "admin"
-      ? ([{ href: "/admin/sources", label: "Connections / Integrations" }] as const)
+      ? ([{ href: "/admin/sources", label: "Connections / Integrations" }] as NavLink[])
       : [])
   ];
 
