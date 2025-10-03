@@ -78,9 +78,9 @@ export async function updateSource(id: string, payload: UpdateSourceRequest): Pr
 }
 
 export async function deleteSource(id: string): Promise<void> {
-  await request<void>(`/admin/sources/${id}`, { method: "DELETE" });
+  await request(`/admin/sources/${id}`, { method: "DELETE" });
 }
 
 export async function runSource(id: string): Promise<void> {
-  await request<void>(`/admin/sources/${id}/run`, { method: "POST" });
+  await request(`/admin/sources/${id}/run`, { method: "POST" });
 }
