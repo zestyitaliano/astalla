@@ -8,6 +8,7 @@ export type PortfolioRecord = {
   monthlyCost: number;
   occupancy: number;
   incidents: number;
+  order: number;
 };
 
 const initialRecords: PortfolioRecord[] = [
@@ -20,7 +21,8 @@ const initialRecords: PortfolioRecord[] = [
     slaHours: 12,
     monthlyCost: 48000,
     occupancy: 92,
-    incidents: 1
+    incidents: 1,
+    order: 0
   },
   {
     id: "prop-2",
@@ -31,7 +33,8 @@ const initialRecords: PortfolioRecord[] = [
     slaHours: 4,
     monthlyCost: 72000,
     occupancy: 87,
-    incidents: 4
+    incidents: 4,
+    order: 1
   },
   {
     id: "prop-3",
@@ -42,7 +45,8 @@ const initialRecords: PortfolioRecord[] = [
     slaHours: 30,
     monthlyCost: 56000,
     occupancy: 81,
-    incidents: 3
+    incidents: 3,
+    order: 2
   },
   {
     id: "prop-4",
@@ -53,7 +57,8 @@ const initialRecords: PortfolioRecord[] = [
     slaHours: 48,
     monthlyCost: 39500,
     occupancy: 68,
-    incidents: 6
+    incidents: 6,
+    order: 3
   },
   {
     id: "prop-5",
@@ -64,7 +69,8 @@ const initialRecords: PortfolioRecord[] = [
     slaHours: 16,
     monthlyCost: 61000,
     occupancy: 95,
-    incidents: 0
+    incidents: 0,
+    order: 4
   },
   {
     id: "prop-6",
@@ -75,7 +81,8 @@ const initialRecords: PortfolioRecord[] = [
     slaHours: 10,
     monthlyCost: 45200,
     occupancy: 78,
-    incidents: 5
+    incidents: 5,
+    order: 5
   }
 ];
 
@@ -100,13 +107,14 @@ function createId() {
 
 export function listPortfolioRecords(): PortfolioRecord[] {
   ensureSeeded();
-  return Array.from(store.values());
+  return Array.from(store.values()).sort((a, b) => a.order - b.order);
 }
 
 export function createPortfolioRecord(partial?: Partial<PortfolioRecord>): PortfolioRecord {
   ensureSeeded();
   const id = createId();
   const now = new Date().toISOString();
+  const highestOrder = Math.max(0, ...Array.from(store.values()).map((record) => record.order));
   const record: PortfolioRecord = {
     id,
     name: partial?.name ?? "New property",
@@ -116,7 +124,8 @@ export function createPortfolioRecord(partial?: Partial<PortfolioRecord>): Portf
     slaHours: partial?.slaHours ?? 12,
     monthlyCost: partial?.monthlyCost ?? 25000,
     occupancy: partial?.occupancy ?? 80,
-    incidents: partial?.incidents ?? 0
+    incidents: partial?.incidents ?? 0,
+    order: partial?.order ?? highestOrder + 1
   };
   store.set(id, record);
   return record;
@@ -140,4 +149,22 @@ export function updatePortfolioRecord(id: string, patch: Partial<PortfolioRecord
 export function deletePortfolioRecord(id: string) {
   ensureSeeded();
   store.delete(id);
+}
+
+export function reorderPortfolioRecords(order: Array<{ id: string; order: number }>): PortfolioRecord[] {
+  ensureSeeded();
+  const existingIds = new Set(store.keys());
+
+  order.forEach(({ id, order: nextOrder }) => {
+    if (!existingIds.has(id)) {
+      return;
+    }
+    const current = store.get(id);
+    if (!current) {
+      return;
+    }
+    store.set(id, { ...current, order: nextOrder });
+  });
+
+  return listPortfolioRecords();
 }
