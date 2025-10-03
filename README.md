@@ -69,7 +69,7 @@ Copy `.env.example` to `.env` in the repo root and adjust the basic auth credent
 
 ## Mock mode
 
-Set `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend) to activate MSW-powered mocks in the UI and sample data providers in the API. This lets you explore the dashboard without configuring external integrations.
+Mock integrations are disabled by default so preview and production environments always talk to real providers. For local development you can still flip the switch by setting `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend), which activates MSW-powered mocks in the UI and sample data providers in the API.
 
 ## Theming & contrast
 
@@ -102,7 +102,7 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 
 1. Connect the repository to Vercel.
 2. Set the project root to `apps/frontend`.
-3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_EMAIL`, `BASIC_AUTH_PASSWORD`, optional `BASIC_AUTH_NAME`, **required** `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_MOCK_MODE`).
+3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_EMAIL`, `BASIC_AUTH_PASSWORD`, optional `BASIC_AUTH_NAME`, **required** `NEXT_PUBLIC_API_BASE_URL`). Leave `MOCK_MODE`/`NEXT_PUBLIC_MOCK_MODE` unset (or `false`) outside of local development so real integrations stay active.
 4. Trigger a build—Vercel will install dependencies with pnpm automatically.
 
 ### Backend (Render)
