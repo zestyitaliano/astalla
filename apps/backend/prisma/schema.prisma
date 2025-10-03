@@ -7,263 +7,421 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Org {
-  id        String    @id @default(cuid())
-  name      String
-  properties Property[]
-  users     User[]
-  reports   ReportSnapshot[]
-  tables    Table[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+enum UserRole {
+  ORG_ADMIN
+  REGIONAL
+  PROPERTY
+  MARKETING
 }
 
-model Property {
-  id          String   @id @default(cuid())
-  name        String
-  address     String
-  city        String
-  state       String
-  zip         String
-  org         Org      @relation(fields: [orgId], references: [id])
-  orgId       String
-  leads       Lead[]
-  leases      Lease[]
-  reviews     Review[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  username  String?  @unique
-  passwordHash String
-  org       Org      @relation(fields: [orgId], references: [id])
-  orgId     String
-  tableViews TableView[]
-  audits    TableAudit[]
-  role      TableRole @default(viewer)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Lead {
-  id          String   @id @default(cuid())
-  property    Property @relation(fields: [propertyId], references: [id])
-  propertyId  String
-  source      String
-  cost        Float?
-  events      LeadEvent[]
-  application Application?
-  createdAt   DateTime @default(now())
-}
-
-model LeadEvent {
-  id        String   @id @default(cuid())
-  lead      Lead     @relation(fields: [leadId], references: [id])
-  leadId    String
-  type      LeadEventType
-  occurredAt DateTime @default(now())
-}
-
-enum LeadEventType {
-  created
-  contacted
-  toured
-  applied
-  approved
-  denied
-  leased
-}
-
-model Application {
-  id        String   @id @default(cuid())
-  lead      Lead     @relation(fields: [leadId], references: [id])
-  leadId    String   @unique
-  status    ApplicationStatus
-  submittedAt DateTime @default(now())
+enum SourceAccountType {
+  ENTRATA
+  GOOGLE_ADS
+  GA4
+  GBP
+  WORDPRESS
 }
 
 enum ApplicationStatus {
-  pending
-  approved
-  denied
-  cancelled
-}
-
-model Lease {
-  id        String   @id @default(cuid())
-  property  Property @relation(fields: [propertyId], references: [id])
-  propertyId String
-  lead      Lead     @relation(fields: [leadId], references: [id])
-  leadId    String
-  startDate DateTime
-  endDate   DateTime
-  status    LeaseStatus
+  STARTED
+  SUBMITTED
+  APPROVED
+  DENIED
+  CANCELLED
 }
 
 enum LeaseStatus {
-  draft
-  active
-  terminated
-  expired
+  PENDING
+  ACTIVE
+  NOTICE
+  TERMINATED
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReviewProvider {
+  GBP
+}
+
+model Org {
+  id             String           @id @default(cuid())
+  name           String
+  properties     Property[]
+  roles          UserOrgRole[]
+  sops           SOP[]
+  billingItems   BillingItem[]
+  reports        ReportSnapshot[]
+  thresholds     KPIThreshold[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model User {
+  id        String        @id @default(cuid())
+  email     String        @unique
+  name      String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  roles     UserOrgRole[]
+}
+
+model UserOrgRole {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  org        Org       @relation(fields: [orgId], references: [id])
+  orgId      String
+  role       UserRole
+  property   Property? @relation(fields: [propertyId], references: [id])
+  propertyId String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, orgId, role, propertyId])
+}
+
+model Property {
+  id                   String                @id @default(cuid())
+  org                  Org                   @relation(fields: [orgId], references: [id])
+  orgId                String
+  propertyCode         String                @unique
+  name                 String
+  region               String?
+  addressLine1         String?
+  addressLine2         String?
+  city                 String?
+  state                String?
+  postalCode           String?
+  unitCount            Int?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  units                Unit[]
+  leads                Lead[]
+  leadEvents           LeadEvent[]
+  applications         Application[]
+  leases               Lease[]
+  availabilitySnapshots AvailabilitySnapshot[]
+  channelSpend         ChannelSpend[]
+  conversionEvents     ConversionEvent[]
+  reviews              Review[]
+  sentimentSummaries   SentimentSummary[]
+  thresholds           KPIThreshold[]
+  reportSnapshots      ReportSnapshot[]
+  alerts               Alert[]
+  sourceAccounts       SourceAccount[]
+  tickets              Ticket[]
+  tasks                Task[]
+  billingItems         BillingItem[]
+  scrapeJobs           ScrapeJob[]
+}
+
+model SourceAccount {
+  id          String            @id @default(cuid())
+  property    Property          @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  type        SourceAccountType
+  credential  Json
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([propertyId, type], name: "idx_source_account_property_type")
+}
+
+model Lead {
+  id           String        @id @default(cuid())
+  property     Property      @relation(fields: [propertyId], references: [id])
+  propertyId   String
+  externalId   String
+  source       String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  gclid        String?
+  gbraid       String?
+  wbraid       String?
+  application  Application?
+  lease        Lease?
+  events       LeadEvent[]
+  conversions  ConversionEvent[]
+
+  @@unique([propertyId, externalId], name: "uniq_lead_property_external")
+  @@index([propertyId, createdAt], name: "idx_lead_property_created")
+}
+
+model LeadEvent {
+  id          String    @id @default(cuid())
+  lead        Lead      @relation(fields: [leadId], references: [id])
+  leadId      String
+  property    Property  @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  type        String
+  occurredAt  DateTime
+  meta        Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([propertyId, occurredAt], name: "idx_lead_event_property_time")
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  lead        Lead              @relation(fields: [leadId], references: [id])
+  leadId      String            @unique
+  property    Property          @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  status      ApplicationStatus
+  submittedAt DateTime
+  approvedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  leases      Lease[]
+
+  @@index([propertyId, submittedAt], name: "idx_application_property_submitted")
+}
+
+model Lease {
+  id          String      @id @default(cuid())
+  lead        Lead        @relation(fields: [leadId], references: [id])
+  leadId      String      @unique
+  property    Property    @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  unit        Unit?       @relation(fields: [unitId], references: [id])
+  unitId      String?
+  startDate   DateTime
+  endDate     DateTime?
+  status      LeaseStatus
+  moveOutAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([propertyId, startDate], name: "idx_lease_property_start")
+  @@index([propertyId, endDate], name: "idx_lease_property_end")
+}
+
+model Unit {
+  id         String     @id @default(cuid())
+  property   Property   @relation(fields: [propertyId], references: [id])
+  propertyId String
+  unitCode   String
+  bedrooms   Int?
+  bathrooms  Float?
+  rentable   Boolean    @default(true)
+  rent       Decimal?   @db.Decimal(12, 2)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  leases     Lease[]
+
+  @@unique([propertyId, unitCode], name: "uniq_unit_property_code")
+}
+
+model AvailabilitySnapshot {
+  id             String    @id @default(cuid())
+  property       Property  @relation(fields: [propertyId], references: [id])
+  propertyId     String
+  at             DateTime
+  availableUnits Int
+  occupiedUnits  Int?
+  totalUnits     Int?
+  createdAt      DateTime  @default(now())
+
+  @@index([propertyId, at], name: "idx_availability_property_at")
+}
+
+model ChannelSpend {
+  id         String    @id @default(cuid())
+  property   Property  @relation(fields: [propertyId], references: [id])
+  propertyId String
+  day        DateTime
+  channel    String
+  campaignId String?
+  cost       Decimal   @db.Decimal(14, 4)
+  currency   String?   @default("USD")
+  createdAt  DateTime  @default(now())
+
+  @@index([propertyId, day], name: "idx_channel_spend_property_day")
+}
+
+model ConversionEvent {
+  id         String    @id @default(cuid())
+  property   Property  @relation(fields: [propertyId], references: [id])
+  propertyId String
+  lead       Lead?     @relation(fields: [leadId], references: [id])
+  leadId     String?
+  day        DateTime
+  type       String
+  count      Int       @default(0)
+  gclid      String?
+  gbraid     String?
+  wbraid     String?
+  createdAt  DateTime  @default(now())
+
+  @@index([propertyId, day], name: "idx_conversion_event_property_day")
 }
 
 model Review {
-  id         String   @id @default(cuid())
-  property   Property @relation(fields: [propertyId], references: [id])
+  id              String          @id @default(cuid())
+  property        Property        @relation(fields: [propertyId], references: [id])
+  propertyId      String
+  provider        ReviewProvider  @default(GBP)
+  authorName      String?
+  rating          Int
+  text            String
+  at              DateTime
+  reviewerEmail   String?
+  reviewerPhoto   String?
+  responseText    String?
+  respondedAt     DateTime?
+  rawPayload      Json?
+  createdAt       DateTime        @default(now())
+
+  @@index([propertyId, at], name: "idx_review_property_at")
+}
+
+model SentimentSummary {
+  id         String    @id @default(cuid())
+  property   Property  @relation(fields: [propertyId], references: [id])
   propertyId String
-  author     String
-  rating     Int
-  body       String
-  submittedAt DateTime @default(now())
+  weekStart  DateTime
+  posPct     Float
+  negPct     Float
+  topics     Json
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([propertyId, weekStart], name: "uniq_sentiment_property_week")
+}
+
+model KPIThreshold {
+  id         String    @id @default(cuid())
+  property   Property? @relation(fields: [propertyId], references: [id])
+  propertyId String?
+  org        Org?      @relation(fields: [orgId], references: [id])
+  orgId      String?
+  kpi        String
+  target     Float
+  warnBelow  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([propertyId, kpi])
 }
 
 model ReportSnapshot {
-  id          String   @id @default(cuid())
-  org         Org      @relation(fields: [orgId], references: [id])
-  orgId       String
-  generatedAt DateTime @default(now())
-  highlights  Json
-  watchlist   Json
+  id          String    @id @default(cuid())
+  property    Property  @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  weekStart   DateTime
+  occupancy   Float
+  cpl         Float?
+  cpls        Float?
+  red         Boolean   @default(false)
+  watch       Boolean   @default(false)
+  payload     Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([propertyId, weekStart], name: "uniq_report_property_week")
 }
 
-model Table {
-  id          String       @id @default(cuid())
-  org         Org          @relation(fields: [orgId], references: [id])
-  orgId       String
-  name        String
-  columns     TableColumn[]
-  rows        TableRow[]
-  views       TableView[]
-  audits      TableAudit[]
-  forms       Form[]
-  permissions TablePermission[]
-  snapshots   TableCrdtSnapshot?
-  refColumns  TableColumn[] @relation("RefTable")
-  createdAt   DateTime     @default(now())
-}
-
-model TableColumn {
+model Alert {
   id          String        @id @default(cuid())
-  table       Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId     String
-  name        String
-  type        TableColumnType
-  refTable    Table?        @relation("RefTable", fields: [refTableId], references: [id])
-  refTableId  String?
-  formulaExpr String?
-  order       Int
-  cells       TableCell[]
-  permissions TablePermission[]
+  property    Property      @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  type        String
+  message     String
+  at          DateTime
+  severity    AlertSeverity @default(MEDIUM)
+  acknowledgedAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([propertyId, at], name: "idx_alert_property_at")
 }
 
-model TableRow {
-  id        String      @id @default(cuid())
-  table     Table       @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId   String
-  createdAt DateTime    @default(now())
-  order     Int
-  cells     TableCell[]
-  permissions TablePermission[]
+model Ticket {
+  id          String    @id @default(cuid())
+  property    Property  @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  title       String
+  status      String    @default("OPEN")
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tasks       Task[]
 }
 
-model TableCell {
-  id        String     @id @default(cuid())
-  row       TableRow   @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  rowId     String
-  column    TableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  columnId  String
-  valueJson Json
+model Task {
+  id          String     @id @default(cuid())
+  ticket      Ticket?    @relation(fields: [ticketId], references: [id])
+  ticketId    String?
+  property    Property?  @relation(fields: [propertyId], references: [id])
+  propertyId  String?
+  title       String
+  status      String     @default("PENDING")
+  assignee    User?      @relation(fields: [assigneeId], references: [id])
+  assigneeId  String?
+  dueAt       DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
-model TableView {
-  id         String   @id @default(cuid())
-  table      Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId    String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  name       String
-  configJson Json
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-enum TableColumnType {
-  text
-  number
-  date
-  bool
-  ref
-  formula
-}
-
-model TableAudit {
-  id        String            @id @default(cuid())
-  table     Table             @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId   String
-  row       TableRow?         @relation(fields: [rowId], references: [id], onDelete: SetNull)
-  rowId     String?
-  column    TableColumn?      @relation(fields: [columnId], references: [id], onDelete: SetNull)
-  columnId  String?
-  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId    String?
-  action    TableAuditAction
-  oldValue  Json?
-  newValue  Json?
-  createdAt DateTime          @default(now())
-}
-
-model Form {
-  id         String   @id @default(cuid())
-  table      Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId    String
-  name       String
-  configJson Json
-  isPublic   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-}
-
-model TablePermission {
-  id        String     @id @default(cuid())
-  table     Table      @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId   String
-  role      TableRole
-  row       TableRow?  @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  rowId     String?
-  column    TableColumn? @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  columnId  String?
-  canRead   Boolean   @default(true)
-  canWrite  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model TableCrdtSnapshot {
+model SOP {
   id        String   @id @default(cuid())
-  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableId   String   @unique
-  state     Bytes
+  org       Org      @relation(fields: [orgId], references: [id])
+  orgId     String
+  name      String
+  body      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum TableAuditAction {
-  row_created
-  row_updated
-  row_deleted
-  column_created
-  column_updated
-  column_deleted
-  cell_updated
-  form_submitted
-  table_updated
+model BillingItem {
+  id         String    @id @default(cuid())
+  org        Org?      @relation(fields: [orgId], references: [id])
+  orgId      String?
+  property   Property? @relation(fields: [propertyId], references: [id])
+  propertyId String?
+  description String
+  amount     Decimal   @db.Decimal(12, 2)
+  status     String    @default("OPEN")
+  dueDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
-enum TableRole {
-  admin
-  editor
-  viewer
+model ScrapeJob {
+  id          String     @id @default(cuid())
+  property    Property?  @relation(fields: [propertyId], references: [id])
+  propertyId  String?
+  type        String
+  status      String    @default("PENDING")
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  findings    Finding[]
+}
+
+model Finding {
+  id         String        @id @default(cuid())
+  job        ScrapeJob?    @relation(fields: [jobId], references: [id])
+  jobId      String?
+  property   Property?     @relation(fields: [propertyId], references: [id])
+  propertyId String?
+  message    String
+  severity   AlertSeverity @default(MEDIUM)
+  createdAt  DateTime      @default(now())
+  resolvedAt DateTime?
+}
+
+model EtlCursor {
+  id        String            @id @default(cuid())
+  source    SourceAccountType
+  scope     String
+  cursor    Json
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([source, scope], name: "uniq_etl_source_scope")
 }

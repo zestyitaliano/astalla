@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Get, Headers, Query } from "@nestjs/common";
 
 import { MetricsService } from "./metrics.service";
 
@@ -9,24 +9,31 @@ export class MetricsController {
   @Get("occupancy")
   getOccupancy(
     @Query("propertyId") propertyId?: string,
-    @Query("window") windowParam?: string
+    @Query("window") windowParam?: string,
+    @Headers("x-mock-mode") mockHeader?: string
   ) {
-    return this.metricsService.getOccupancy(propertyId, windowParam);
+    return this.metricsService.getOccupancy(propertyId, windowParam, this.shouldUseMock(mockHeader));
   }
 
   @Get("pipeline")
   getPipeline(
     @Query("propertyId") propertyId?: string,
-    @Query("window") windowParam?: string
+    @Query("window") windowParam?: string,
+    @Headers("x-mock-mode") mockHeader?: string
   ) {
-    return this.metricsService.getPipeline(propertyId, windowParam);
+    return this.metricsService.getPipeline(propertyId, windowParam, this.shouldUseMock(mockHeader));
   }
 
   @Get("cost")
   getCost(
     @Query("propertyId") propertyId?: string,
-    @Query("window") windowParam?: string
+    @Query("window") windowParam?: string,
+    @Headers("x-mock-mode") mockHeader?: string
   ) {
-    return this.metricsService.getCost(propertyId, windowParam);
+    return this.metricsService.getCost(propertyId, windowParam, this.shouldUseMock(mockHeader));
+  }
+
+  private shouldUseMock(header?: string) {
+    return header?.toLowerCase() === "true";
   }
 }

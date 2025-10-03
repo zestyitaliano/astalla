@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Headers } from "@nestjs/common";
 
 import { ReportsService } from "./reports.service";
 
@@ -7,7 +7,11 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get("weekly")
-  getWeekly() {
-    return this.reportsService.getWeeklyReport();
+  getWeekly(@Headers("x-mock-mode") mockHeader?: string) {
+    return this.reportsService.getWeeklyReport(this.shouldUseMock(mockHeader));
+  }
+
+  private shouldUseMock(header?: string) {
+    return header?.toLowerCase() === "true";
   }
 }

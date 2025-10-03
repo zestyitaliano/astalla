@@ -6,11 +6,10 @@ import { AuthModule } from "./auth/auth.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { PrismaModule } from "./prisma/prisma.module";
-import { ProvidersModule } from "./providers/providers.module";
 import { PropertiesModule } from "./properties/properties.module";
+import { ProvidersModule } from "./providers/providers.module";
 import { ReportsModule } from "./reports/reports.module";
 import { ReviewsModule } from "./reviews/reviews.module";
-import { TablesModule } from "./tables/tables.module";
 
 @Module({
   imports: [
@@ -45,8 +44,7 @@ import { TablesModule } from "./tables/tables.module";
     ReviewsModule,
     ReportsModule,
     AlertsModule,
-    JobsModule,
-    TablesModule
+    JobsModule
   ]
 })
 export class AppModule {}

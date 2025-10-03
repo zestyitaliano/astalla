@@ -38,8 +38,10 @@ function generateNumericTrend(base: number, windowDays: number, variance = 0.12)
 type PropertyConfig = {
   id: string;
   name: string;
+  propertyCode: string;
   city: string;
   state: string;
+  region: string;
   totalUnits: number;
   occupancy: Record<7 | 30 | 90, { rate: number; change: number }>;
   pipeline: Record<7 | 30 | 90, { leads: number; tours: number; started: number; approved: number }>;
@@ -52,8 +54,10 @@ const properties: PropertyConfig[] = [
   {
     id: "prop-atrium",
     name: "Atrium Center",
+    propertyCode: "ATRIUM",
     city: "Austin",
     state: "TX",
+    region: "South",
     totalUnits: 360,
     occupancy: {
       7: { rate: 0.94, change: 0.012 },
@@ -74,7 +78,12 @@ const properties: PropertyConfig[] = [
       summary: {
         averageRating: 4.4,
         reviewCount: 128,
-        responseRate: 0.86
+        responseRate: 0.86,
+        sentiment: {
+          positive: 0.72,
+          negative: 0.11,
+          topics: ["maintenance", "lounge", "parking"]
+        }
       },
       recent: [
         {
@@ -113,8 +122,10 @@ const properties: PropertyConfig[] = [
   {
     id: "prop-harbor",
     name: "Harbor Tower",
+    propertyCode: "HARBOR",
     city: "Seattle",
     state: "WA",
+    region: "West",
     totalUnits: 420,
     occupancy: {
       7: { rate: 0.888, change: -0.006 },
@@ -135,7 +146,12 @@ const properties: PropertyConfig[] = [
       summary: {
         averageRating: 4.1,
         reviewCount: 96,
-        responseRate: 0.74
+        responseRate: 0.74,
+        sentiment: {
+          positive: 0.64,
+          negative: 0.16,
+          topics: ["views", "amenities", "parking"]
+        }
       },
       recent: [
         {
@@ -174,8 +190,10 @@ const properties: PropertyConfig[] = [
   {
     id: "prop-quartz",
     name: "Quartz Labs",
+    propertyCode: "QUARTZ",
     city: "Chicago",
     state: "IL",
+    region: "Midwest",
     totalUnits: 310,
     occupancy: {
       7: { rate: 0.864, change: 0.02 },
@@ -196,7 +214,12 @@ const properties: PropertyConfig[] = [
       summary: {
         averageRating: 4.6,
         reviewCount: 142,
-        responseRate: 0.9
+        responseRate: 0.9,
+        sentiment: {
+          positive: 0.78,
+          negative: 0.09,
+          topics: ["events", "security", "amenities"]
+        }
       },
       recent: [
         {
@@ -248,11 +271,13 @@ function resolveProperty(propertyId?: string) {
 
 export function getProperties(): PropertiesResponse {
   return {
-    properties: properties.map(({ id, name, city, state }) => ({
+    properties: properties.map(({ id, name, city, state, propertyCode, region }) => ({
       id,
       name,
       city,
-      state
+      state,
+      propertyCode,
+      region
     }))
   };
 }
@@ -262,13 +287,18 @@ export function getOccupancy(propertyId?: string, windowParam?: string): Occupan
   const windowDays = resolveWindow(windowParam);
   const data = property.occupancy[windowDays];
   const unitsOccupied = Math.round(property.totalUnits * data.rate);
+  const anticipated = Math.min(1, Math.max(0, data.rate + 0.03));
 
   return {
     occupancyRate: Number(data.rate.toFixed(3)),
     change: Number(data.change.toFixed(3)),
     unitsOccupied,
     totalUnits: property.totalUnits,
-    trend: generateTrend(data.rate, windowDays)
+    trend: generateTrend(data.rate, windowDays),
+    anticipatedOccupancy: Number(anticipated.toFixed(3)),
+    upcomingMoveIns: Math.max(2, Math.round(windowDays / 7) * 3),
+    upcomingMoveOuts: Math.max(1, Math.round(windowDays / 10)),
+    approvedApplications: Math.max(1, Math.round(windowDays / 8))
   };
 }
 
@@ -311,9 +341,38 @@ export function getAlerts(propertyId?: string): { alerts: Alert[] } {
   };
 }
 
+export const sampleWeeklyReport = {
+  generatedAt: new Date(now - 1000 * 60 * 60 * 24 * 3).toISOString(),
+  highlights: [
+    "Occupancy improved across the portfolio with Atrium Center leading at 94%",
+    "Quartz Labs reduced marketing spend by 12% while increasing approvals",
+    "GBP response coverage exceeded 85% for all monitored properties"
+  ],
+  watchlist: [
+    {
+      propertyId: "prop-harbor",
+      propertyName: "Harbor Tower",
+      tag: "watch",
+      issue: "Tour-to-lease conversions dipped 3% week over week"
+    },
+    {
+      propertyId: "prop-quartz",
+      propertyName: "Quartz Labs",
+      tag: "red",
+      issue: "Lead response SLA breached on 5 open prospects"
+    }
+  ]
+};
+
 export const sampleUser = {
   id: "user_mock",
   name: "Mock User",
   email: "mock.user@example.com",
-  orgId: "org_123"
+  orgId: "org_123",
+  roles: [
+    {
+      role: "ORG_ADMIN",
+      orgId: "org_123"
+    }
+  ]
 };

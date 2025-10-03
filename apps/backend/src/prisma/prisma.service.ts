@@ -4,21 +4,33 @@ import { PrismaClient } from "@prisma/client";
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private readonly hasDatasource: boolean;
+
   constructor(private readonly configService: ConfigService) {
-    super({
-      datasources: {
-        db: {
-          url: configService.get<string>("database.url")
+    const url = configService.get<string>("database.url");
+    super(url
+      ? {
+          datasources: {
+            db: {
+              url
+            }
+          }
         }
-      }
-    });
+      : {});
+    this.hasDatasource = Boolean(url);
   }
 
   async onModuleInit() {
+    if (!this.hasDatasource) {
+      return;
+    }
     await this.$connect();
   }
 
   async onModuleDestroy() {
+    if (!this.hasDatasource) {
+      return;
+    }
     await this.$disconnect();
   }
 
