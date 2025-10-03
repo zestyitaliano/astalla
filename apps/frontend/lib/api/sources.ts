@@ -11,11 +11,22 @@ import {
 
 import { apiBaseUrl, isMockMode } from "../utils";
 
+type SchemaParser<T> = { parse: (data: unknown) => T };
+
+async function request(
+  path: string,
+  init: RequestInit
+): Promise<void>;
 async function request<T>(
   path: string,
   init: RequestInit,
-  schema?: { parse: (data: unknown) => T }
-): Promise<T extends void ? void : T> {
+  schema: SchemaParser<T>
+): Promise<T>;
+async function request<T>(
+  path: string,
+  init: RequestInit,
+  schema?: SchemaParser<T>
+): Promise<T | void> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
@@ -31,7 +42,7 @@ async function request<T>(
   }
 
   if (!schema) {
-    return undefined as T extends void ? void : T;
+    return;
   }
 
   const json = await response.json();
