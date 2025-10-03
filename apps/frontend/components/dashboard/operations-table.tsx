@@ -122,6 +122,8 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
     }
   });
 
+  const { mutate: deleteRow, isPending: isDeleting } = deleteMutation;
+
   const columns = useMemo<ColumnDef<PortfolioRow, unknown>[]>(() => {
     return [
       {
@@ -239,11 +241,11 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground"
-              onClick={() => deleteMutation.mutate(row.original.id)}
-              disabled={!canEdit || deleteMutation.isPending}
+              onClick={() => deleteRow(row.original.id)}
+              disabled={!canEdit || isDeleting}
               aria-label={`Delete ${row.original.name}`}
             >
-              {deleteMutation.isPending ? (
+              {isDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Trash2 className="h-4 w-4" />
@@ -253,7 +255,7 @@ export function OperationsTable({ canEdit }: { canEdit: boolean }) {
         )
       }
     ];
-  }, [canEdit, deleteMutation.isPending]);
+  }, [canEdit, deleteRow, isDeleting]);
 
   return (
     <div className="space-y-4">

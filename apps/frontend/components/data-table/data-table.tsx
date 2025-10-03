@@ -363,7 +363,14 @@ export function DataTable<TData extends { id: string }>({
                   >
                     {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                       const row = tableRows[virtualRow.index];
-                      return <VirtualizedRow key={row.id} row={row} virtualRow={virtualRow} />;
+                      return (
+                        <VirtualizedRow
+                          key={row.id}
+                          row={row}
+                          virtualRow={virtualRow}
+                          measureElement={rowVirtualizer.measureElement}
+                        />
+                      );
                     })}
                   </tbody>
                 ) : (
@@ -483,16 +490,15 @@ function SortableRow<TData>({ row }: SortableRowProps<TData>) {
 interface VirtualizedRowProps<TData> {
   row: ReturnType<Table<TData>["getRowModel"]>["rows"][number];
   virtualRow: VirtualItem;
+  measureElement: (node: HTMLElement | null) => void;
 }
 
-function VirtualizedRow<TData>({ row, virtualRow }: VirtualizedRowProps<TData>) {
+function VirtualizedRow<TData>({ row, virtualRow, measureElement }: VirtualizedRowProps<TData>) {
   return (
     <tr
       data-index={virtualRow.index}
       ref={(node) => {
-        if (node) {
-          virtualRow.measureElement?.(node);
-        }
+        measureElement(node);
       }}
       style={{
         position: "absolute",
