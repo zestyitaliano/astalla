@@ -37,11 +37,8 @@ import {
   Trash2
 } from "lucide-react";
 
+import { ColumnType, type TableColumnDto, type TableRowDto, type TableViewDto } from "@shared/api";
 import {
-  ColumnType,
-  type TableColumnDto,
-  type TableRowDto,
-  type TableViewDto,
   useCreateColumnMutation,
   useCreateRowMutation,
   useCreateViewMutation,
