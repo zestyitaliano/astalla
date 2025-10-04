@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 
 import {
+  ColumnType,
   type TableColumnDto,
   type TableRowDto,
   type TableViewDto,
@@ -92,12 +93,12 @@ interface TableGridProps {
 }
 
 const COLUMN_TYPE_OPTIONS: Array<{ label: string; value: ColumnKind }> = [
-  { label: "Text", value: "TEXT" },
-  { label: "Number", value: "NUMBER" },
-  { label: "Date", value: "DATE" },
-  { label: "Boolean", value: "BOOLEAN" },
-  { label: "Select", value: "SELECT" },
-  { label: "Reference", value: "REFERENCE" }
+  { label: "Text", value: ColumnType.TEXT },
+  { label: "Number", value: ColumnType.NUMBER },
+  { label: "Date", value: ColumnType.DATE },
+  { label: "Boolean", value: ColumnType.BOOLEAN },
+  { label: "Select", value: ColumnType.SELECT },
+  { label: "Reference", value: ColumnType.REFERENCE }
 ];
 
 function parseViewConfig(value: unknown): ViewConfig {
