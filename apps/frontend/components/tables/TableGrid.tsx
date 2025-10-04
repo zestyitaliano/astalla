@@ -642,7 +642,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const columnSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const handleAddRow = () => {
-    createRowMutation.mutate();
+    createRowMutation.mutate(undefined);
   };
 
   const handleDeleteSelected = () => {
