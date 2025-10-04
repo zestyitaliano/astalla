@@ -6,7 +6,8 @@ import {
   PointerSensor,
   closestCenter,
   useSensor,
-  useSensors
+  useSensors,
+  type DragEndEvent
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -713,19 +714,20 @@ export function TableGrid({ tableId }: TableGridProps) {
   }, [columnOrder]);
 
   const handleColumnOrderChange = useCallback(
-    (event: { active: { id: string }; over: { id: string } | null }) => {
-      const overId = event.over?.id;
-      if (!overId || event.active.id === overId) {
+    (event: DragEndEvent) => {
+      const activeId = String(event.active.id);
+      const overId = event.over ? String(event.over.id) : null;
+      if (!overId || activeId === overId) {
         return;
       }
       setColumnOrder((prev) => {
-        const activeIndex = prev.indexOf(String(event.active.id));
-        const overIndex = prev.indexOf(String(overId));
+        const activeIndex = prev.indexOf(activeId);
+        const overIndex = prev.indexOf(overId);
         if (activeIndex === -1 || overIndex === -1) {
           return prev;
         }
         const next = arrayMove(prev, activeIndex, overIndex);
-        const movedColumnId = String(event.active.id);
+        const movedColumnId = activeId;
         const newPosition = next.indexOf(movedColumnId) + 1;
         updateColumnMutation.mutate({ id: movedColumnId, payload: { position: newPosition } });
         if (activeViewId) {
