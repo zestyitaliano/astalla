@@ -444,17 +444,18 @@ export function TableGrid({ tableId }: TableGridProps) {
   }, [sortedRows, columns]);
 
   const handleRowDragEnd = useCallback(
-    (event: { active: { id: string }; over: { id: string } | null }) => {
+    (event: DragEndEvent) => {
       if (reorderDisabled) {
         return;
       }
-      const overId = event.over?.id;
-      if (!overId || event.active.id === overId) {
+      const activeId = String(event.active.id);
+      const overId = event.over ? String(event.over.id) : null;
+      if (!overId || activeId === overId) {
         return;
       }
       setRowOrder((prev) => {
-        const activeIndex = prev.indexOf(String(event.active.id));
-        const overIndex = prev.indexOf(String(overId));
+        const activeIndex = prev.indexOf(activeId);
+        const overIndex = prev.indexOf(overId);
         if (activeIndex === -1 || overIndex === -1) {
           return prev;
         }
