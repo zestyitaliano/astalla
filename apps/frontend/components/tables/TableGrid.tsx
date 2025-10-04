@@ -350,7 +350,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
-  const [newColumnType, setNewColumnType] = useState<ColumnKind>("TEXT");
+  const [newColumnType, setNewColumnType] = useState<ColumnKind>(ColumnType.TEXT);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<{ createdColumns: number; createdRows: number } | null>(null);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
@@ -663,7 +663,7 @@ export function TableGrid({ tableId }: TableGridProps) {
     const name = newColumnName.trim() || "New column";
     await createColumnMutation.mutateAsync({ name, type: newColumnType });
     setNewColumnName("");
-    setNewColumnType("TEXT");
+    setNewColumnType(ColumnType.TEXT);
     setIsAddColumnOpen(false);
   };
 
