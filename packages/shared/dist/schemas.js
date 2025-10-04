@@ -255,3 +255,120 @@ export const updatePublicDashboardRequestSchema = z
     .refine((payload) => Object.keys(payload).length > 0, {
     message: "Update payload cannot be empty"
 });
+export var ColumnType;
+(function (ColumnType) {
+    ColumnType["TEXT"] = "TEXT";
+    ColumnType["NUMBER"] = "NUMBER";
+    ColumnType["DATE"] = "DATE";
+    ColumnType["BOOLEAN"] = "BOOLEAN";
+    ColumnType["SELECT"] = "SELECT";
+    ColumnType["REFERENCE"] = "REFERENCE";
+})(ColumnType || (ColumnType = {}));
+export const columnTypeSchema = z.nativeEnum(ColumnType);
+export const tableCellDtoSchema = z.object({
+    id: z.string(),
+    rowId: z.string(),
+    columnId: z.string(),
+    value: z.unknown().nullable().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const tableColumnDtoSchema = z.object({
+    id: z.string(),
+    tableId: z.string(),
+    name: z.string(),
+    slug: z.string(),
+    type: columnTypeSchema,
+    position: z.number(),
+    config: z.unknown().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const tableRowDtoSchema = z.object({
+    id: z.string(),
+    tableId: z.string(),
+    position: z.number(),
+    cells: z.array(tableCellDtoSchema),
+    createdBy: z.string().nullable().optional(),
+    updatedBy: z.string().nullable().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const tableViewDtoSchema = z.object({
+    id: z.string(),
+    tableId: z.string(),
+    name: z.string(),
+    config: z.unknown(),
+    createdBy: z.string().nullable().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const dataTableDtoSchema = z.object({
+    id: z.string(),
+    orgId: z.string(),
+    name: z.string(),
+    description: z.string().nullable().optional(),
+    columns: z.array(tableColumnDtoSchema).optional(),
+    rows: z.array(tableRowDtoSchema).optional(),
+    views: z.array(tableViewDtoSchema).optional(),
+    createdBy: z.string().nullable().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true })
+});
+export const tableAuditDtoSchema = z.object({
+    id: z.string(),
+    tableId: z.string(),
+    actorId: z.string().nullable().optional(),
+    action: z.string(),
+    payload: z.unknown(),
+    createdAt: z.string().datetime({ offset: true })
+});
+export const createTableDtoSchema = z.object({
+    name: z.string().min(1),
+    description: z.string().optional()
+});
+export const createColumnDtoSchema = z.object({
+    tableId: z.string(),
+    name: z.string().min(1),
+    type: columnTypeSchema,
+    config: z.unknown().optional()
+});
+export const updateColumnDtoSchema = z
+    .object({
+    name: z.string().optional(),
+    position: z.number().int().optional(),
+    config: z.unknown().optional()
+})
+    .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+});
+export const createRowDtoSchema = z.object({
+    tableId: z.string(),
+    afterRowId: z.string().optional()
+});
+export const patchCellsDtoSchema = z.object({
+    rowId: z.string(),
+    cells: z.array(z.object({
+        columnId: z.string(),
+        value: z.unknown()
+    }))
+});
+export const reorderRowsDtoSchema = z.object({
+    order: z.array(z.object({
+        rowId: z.string(),
+        position: z.number().int()
+    }))
+});
+export const createViewDtoSchema = z.object({
+    tableId: z.string(),
+    name: z.string().min(1),
+    config: z.unknown()
+});
+export const updateViewDtoSchema = z
+    .object({
+    name: z.string().optional(),
+    config: z.unknown().optional()
+})
+    .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+});
