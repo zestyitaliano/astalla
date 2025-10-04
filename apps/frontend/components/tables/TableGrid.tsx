@@ -38,6 +38,7 @@ import {
 import {
   type TableColumnDto,
   type TableRowDto,
+  type TableViewDto,
   useCreateColumnMutation,
   useCreateRowMutation,
   useCreateViewMutation,
@@ -332,7 +333,7 @@ export function TableGrid({ tableId }: TableGridProps) {
 
   const columns = useMemo<TableColumnDto[]>(() => data?.columns ?? [], [data?.columns]);
   const rows = useMemo<TableRowDto[]>(() => data?.rows ?? [], [data?.rows]);
-  const views = useMemo(() => data?.views ?? [], [data?.views]);
+  const views = useMemo<TableViewDto[]>(() => data?.views ?? [], [data?.views]);
 
   const columnMap = useMemo(
     () => new Map(columns.map((column: TableColumnDto) => [column.id, column])),
@@ -379,7 +380,9 @@ export function TableGrid({ tableId }: TableGridProps) {
   }, [rows]);
 
   useEffect(() => {
-    const activeView = activeViewId ? views.find((view) => view.id === activeViewId) : null;
+    const activeView = activeViewId
+      ? views.find((view: TableViewDto) => view.id === activeViewId)
+      : null;
     if (!activeView) {
       setFilters([]);
       setSorts([]);
