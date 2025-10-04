@@ -449,7 +449,9 @@ enum ColumnType {
   NUMBER
   DATE
   BOOLEAN
+  /// config.options: [{label, value, color}]
   SELECT
+  /// config: { tableId, columnId? }
   REFERENCE
 }
 
@@ -458,9 +460,9 @@ model DataTable {
   orgId       String
   name        String
   description String?
-  views       TableView[]
   columns     TableColumn[]
   rows        TableRow[]
+  views       TableView[]
   createdBy   String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -516,6 +518,7 @@ model TableView {
   table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId   String
   name      String
+  /// { filters: [...], sorts: [...], columnOrder: [...], hidden: [...] }
   config    Json
   createdBy String?
   createdAt DateTime   @default(now())
@@ -528,6 +531,7 @@ model TableAudit {
   id        String   @id @default(cuid())
   tableId   String
   actorId   String?
+  /// CREATE_TABLE | ADD_COLUMN | UPDATE_CELL | ...
   action    String
   payload   Json
   createdAt DateTime @default(now())

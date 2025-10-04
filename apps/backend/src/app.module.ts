@@ -13,6 +13,7 @@ import { PublicDashboardsModule } from "./public-dashboards/public-dashboards.mo
 import { ReportsModule } from "./reports/reports.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SourcesModule } from "./sources/sources.module";
+import { TablesModule } from "./tables/tables.module";
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { SourcesModule } from "./sources/sources.module";
     ReportsModule,
     AlertsModule,
     JobsModule,
-    SourcesModule
+    SourcesModule,
+    TablesModule
   ]
 })
 export class AppModule {}

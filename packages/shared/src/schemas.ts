@@ -299,6 +299,142 @@ export const updatePublicDashboardRequestSchema = z
     message: "Update payload cannot be empty"
   });
 
+export enum ColumnType {
+  TEXT = "TEXT",
+  NUMBER = "NUMBER",
+  DATE = "DATE",
+  BOOLEAN = "BOOLEAN",
+  SELECT = "SELECT",
+  REFERENCE = "REFERENCE"
+}
+
+export const columnTypeSchema = z.nativeEnum(ColumnType);
+
+export const tableCellDtoSchema = z.object({
+  id: z.string(),
+  rowId: z.string(),
+  columnId: z.string(),
+  value: z.unknown().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const tableColumnDtoSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  type: columnTypeSchema,
+  position: z.number(),
+  config: z.unknown().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const tableRowDtoSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  position: z.number(),
+  cells: z.array(tableCellDtoSchema),
+  createdBy: z.string().nullable().optional(),
+  updatedBy: z.string().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const tableViewDtoSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  name: z.string(),
+  config: z.unknown(),
+  createdBy: z.string().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const dataTableDtoSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  columns: z.array(tableColumnDtoSchema).optional(),
+  rows: z.array(tableRowDtoSchema).optional(),
+  views: z.array(tableViewDtoSchema).optional(),
+  createdBy: z.string().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const tableAuditDtoSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  actorId: z.string().nullable().optional(),
+  action: z.string(),
+  payload: z.unknown(),
+  createdAt: z.string().datetime({ offset: true })
+});
+
+export const createTableDtoSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional()
+});
+
+export const createColumnDtoSchema = z.object({
+  tableId: z.string(),
+  name: z.string().min(1),
+  type: columnTypeSchema,
+  config: z.unknown().optional()
+});
+
+export const updateColumnDtoSchema = z
+  .object({
+    name: z.string().optional(),
+    position: z.number().int().optional(),
+    config: z.unknown().optional()
+  })
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+  });
+
+export const createRowDtoSchema = z.object({
+  tableId: z.string(),
+  afterRowId: z.string().optional()
+});
+
+export const patchCellsDtoSchema = z.object({
+  rowId: z.string(),
+  cells: z.array(
+    z.object({
+      columnId: z.string(),
+      value: z.unknown()
+    })
+  )
+});
+
+export const reorderRowsDtoSchema = z.object({
+  order: z.array(
+    z.object({
+      rowId: z.string(),
+      position: z.number().int()
+    })
+  )
+});
+
+export const createViewDtoSchema = z.object({
+  tableId: z.string(),
+  name: z.string().min(1),
+  config: z.unknown()
+});
+
+export const updateViewDtoSchema = z
+  .object({
+    name: z.string().optional(),
+    config: z.unknown().optional()
+  })
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+  });
+
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
@@ -333,3 +469,18 @@ export type PublicDashboard = z.infer<typeof publicDashboardSchema>;
 export type PublicDashboardListResponse = z.infer<typeof publicDashboardListResponseSchema>;
 export type CreatePublicDashboardRequest = z.infer<typeof createPublicDashboardRequestSchema>;
 export type UpdatePublicDashboardRequest = z.infer<typeof updatePublicDashboardRequestSchema>;
+export type ColumnTypeValue = z.infer<typeof columnTypeSchema>;
+export type TableCellDto = z.infer<typeof tableCellDtoSchema>;
+export type TableColumnDto = z.infer<typeof tableColumnDtoSchema>;
+export type TableRowDto = z.infer<typeof tableRowDtoSchema>;
+export type TableViewDto = z.infer<typeof tableViewDtoSchema>;
+export type DataTableDto = z.infer<typeof dataTableDtoSchema>;
+export type TableAuditDto = z.infer<typeof tableAuditDtoSchema>;
+export type CreateTableDto = z.infer<typeof createTableDtoSchema>;
+export type CreateColumnDto = z.infer<typeof createColumnDtoSchema>;
+export type UpdateColumnDto = z.infer<typeof updateColumnDtoSchema>;
+export type CreateRowDto = z.infer<typeof createRowDtoSchema>;
+export type PatchCellsDto = z.infer<typeof patchCellsDtoSchema>;
+export type ReorderRowsDto = z.infer<typeof reorderRowsDtoSchema>;
+export type CreateViewDto = z.infer<typeof createViewDtoSchema>;
+export type UpdateViewDto = z.infer<typeof updateViewDtoSchema>;
