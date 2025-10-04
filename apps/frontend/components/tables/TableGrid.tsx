@@ -442,37 +442,6 @@ export function TableGrid({ tableId }: TableGridProps) {
     });
   }, [sortedRows, columns]);
 
-  const tableColumnOrder = useMemo(() => ["__select__", "__position__", ...columnOrder], [columnOrder]);
-
-  const columnDragItems = tableColumnOrder;
-
-  const table = useReactTable({
-    data: gridRows,
-    columns: columnDefs,
-    state: {
-      columnOrder: tableColumnOrder,
-      columnVisibility
-    },
-    onColumnOrderChange: (updater) => {
-      const nextOrder = typeof updater === "function" ? (updater as (old: string[]) => string[])(tableColumnOrder) : updater;
-      const filtered = nextOrder.filter((id) => id !== "__select__" && id !== "__position__");
-      setColumnOrder(filtered);
-    },
-    getCoreRowModel: getCoreRowModel()
-  });
-
-  const parentRef = useRef<HTMLDivElement | null>(null);
-  const rowModel = table.getRowModel();
-  const rowVirtualizer = useVirtualizer({
-    count: rowModel.rows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 44,
-    overscan: 8
-  });
-
-  const rowSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-  const columnSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
   const handleRowDragEnd = useCallback(
     (event: { active: { id: string }; over: { id: string } | null }) => {
       if (reorderDisabled) {
@@ -640,6 +609,37 @@ export function TableGrid({ tableId }: TableGridProps) {
     commitRename,
     handleCommitCell
   ]);
+
+  const tableColumnOrder = useMemo(() => ["__select__", "__position__", ...columnOrder], [columnOrder]);
+
+  const columnDragItems = tableColumnOrder;
+
+  const table = useReactTable({
+    data: gridRows,
+    columns: columnDefs,
+    state: {
+      columnOrder: tableColumnOrder,
+      columnVisibility
+    },
+    onColumnOrderChange: (updater) => {
+      const nextOrder = typeof updater === "function" ? (updater as (old: string[]) => string[])(tableColumnOrder) : updater;
+      const filtered = nextOrder.filter((id) => id !== "__select__" && id !== "__position__");
+      setColumnOrder(filtered);
+    },
+    getCoreRowModel: getCoreRowModel()
+  });
+
+  const parentRef = useRef<HTMLDivElement | null>(null);
+  const rowModel = table.getRowModel();
+  const rowVirtualizer = useVirtualizer({
+    count: rowModel.rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 44,
+    overscan: 8
+  });
+
+  const rowSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const columnSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const handleAddRow = () => {
     createRowMutation.mutate();
