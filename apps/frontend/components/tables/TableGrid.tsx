@@ -442,9 +442,9 @@ export function TableGrid({ tableId }: TableGridProps) {
     });
   }, [sortedRows, columns]);
 
-  const columnDragItems = tableColumnOrder;
-
   const tableColumnOrder = useMemo(() => ["__select__", "__position__", ...columnOrder], [columnOrder]);
+
+  const columnDragItems = tableColumnOrder;
 
   const table = useReactTable({
     data: gridRows,
