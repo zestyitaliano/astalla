@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Key } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -262,7 +263,7 @@ function applySorts(rows: TableRowDto[], sorts: SortCondition[], columnMap: Map<
 }
 
 type VirtualItem = {
-  key: number | string;
+  key: Key;
   index: number;
   start: number;
   size: number;
