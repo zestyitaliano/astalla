@@ -163,7 +163,9 @@ function buildConfig({
 }
 
 function getCellValue(row: TableRowDto, columnId: string) {
-  const cell = row.cells.find((entry) => entry.columnId === columnId);
+  const cell = row.cells.find(
+    (entry: TableRowDto["cells"][number]) => entry.columnId === columnId
+  );
   return cell?.value ?? null;
 }
 
