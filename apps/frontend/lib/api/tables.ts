@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  type ColumnTypeValue,
   type CreateColumnDto,
   type CreateTableDto,
   type CreateViewDto,
@@ -252,7 +251,7 @@ export function useCreateTableMutation() {
 export function useCreateColumnMutation(tableId: string) {
   const invalidate = useInvalidateTableDetail();
   return useMutation({
-    mutationFn: (payload: { name: string; type: ColumnTypeValue; config?: unknown }) =>
+    mutationFn: (payload: { name: string; type: TableColumnDto["type"]; config?: unknown }) =>
       createColumn(tableId, payload),
     onSuccess: () => invalidate(tableId)
   });

@@ -35,7 +35,6 @@ import {
   Trash2
 } from "lucide-react";
 
-import type { ColumnTypeValue } from "@shared/api";
 import {
   type TableColumnDto,
   type TableRowDto,
@@ -66,7 +65,7 @@ type GridRow = {
   __meta: TableRowDto;
 } & Record<string, unknown>;
 
-type ColumnKind = ColumnTypeValue;
+type ColumnKind = TableColumnDto["type"];
 
 type FilterCondition = {
   columnId: string;
