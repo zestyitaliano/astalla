@@ -330,12 +330,15 @@ export function TableGrid({ tableId }: TableGridProps) {
   const exportCsvMutation = useExportCsvMutation(tableId);
   const importCsvMutation = useImportCsvMutation(tableId);
 
-  const columns = useMemo(() => data?.columns ?? [], [data?.columns]);
-  const rows = useMemo(() => data?.rows ?? [], [data?.rows]);
+  const columns = useMemo<TableColumnDto[]>(() => data?.columns ?? [], [data?.columns]);
+  const rows = useMemo<TableRowDto[]>(() => data?.rows ?? [], [data?.rows]);
   const views = useMemo(() => data?.views ?? [], [data?.views]);
 
-  const columnMap = useMemo(() => new Map(columns.map((column) => [column.id, column])), [columns]);
-  const baseColumnOrder = useMemo(() => columns.map((column) => column.id), [columns]);
+  const columnMap = useMemo(
+    () => new Map(columns.map((column: TableColumnDto) => [column.id, column])),
+    [columns]
+  );
+  const baseColumnOrder = useMemo(() => columns.map((column: TableColumnDto) => column.id), [columns]);
 
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [columnOrder, setColumnOrder] = useState<string[]>(baseColumnOrder);
