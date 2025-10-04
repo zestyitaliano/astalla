@@ -14,6 +14,7 @@ import {
 import { apiBaseUrl, isMockMode } from "@/lib/utils";
 
 type TableDetail = DataTableDto & {
+  updatedBy?: string | null;
   columns: TableColumnDto[];
   rows: TableRowDto[];
   views: TableViewDto[];
