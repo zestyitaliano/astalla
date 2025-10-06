@@ -92,26 +92,26 @@ export function PropertySelector({
   };
 
   return (
-    <div className="flex flex-col gap-5 rounded-3xl border border-border bg-panel/95 p-7 shadow-sm supports-[backdrop-filter]:backdrop-blur">
+    <div className="flex flex-col gap-5 rounded-3xl border border-border/60 bg-white/85 p-6 shadow-sm supports-[backdrop-filter]:bg-white/70">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <MapPin className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Portfolio</p>
-            <h2 className="text-xl font-semibold text-foreground">Property insights</h2>
+            <p className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Portfolio</p>
+            <h2 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-foreground">Property insights</h2>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="property-select">
+          <label className="text-[clamp(.8rem,1.4vw,.9rem)] font-medium uppercase tracking-wide text-muted-foreground" htmlFor="property-select">
             Property
           </label>
           <div className="relative">
             <select
               id="property-select"
               className={cn(
-                "appearance-none rounded-full border border-border bg-card px-4 py-2 pr-10 text-sm font-medium text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "appearance-none rounded-full border border-border/60 bg-card px-4 py-2 pr-10 text-sm font-medium text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 disabled && "cursor-not-allowed opacity-60"
               )}
               value={selectedPropertyId ?? ""}
@@ -131,8 +131,8 @@ export function PropertySelector({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Time range</span>
-        <div className="flex rounded-full border border-border bg-card p-1 shadow-sm">
+        <span className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Time range</span>
+        <div className="flex rounded-full border border-border/60 bg-card p-1 shadow-sm">
           {TIME_RANGES.map((option) => (
             <Button
               key={option.value}
@@ -152,7 +152,7 @@ export function PropertySelector({
         </div>
       </div>
       {properties.length === 0 ? (
-        <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-border/80 bg-card/40 p-5 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-border/80 bg-card/40 p-5 text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground">
           <p className="font-medium text-foreground">No properties yet. Add one to get started.</p>
           <Button type="button" size="sm" className="w-fit gap-2" onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4" /> Add property
