@@ -133,8 +133,43 @@ model SourceAccount {
   enabled     Boolean           @default(true)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  scripts     ProviderScript[]
+  actionLogs  SourceActionLog[]
 
   @@index([propertyId, type], name: "idx_source_account_property_type")
+}
+
+enum ScriptStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model ProviderScript {
+  id        String        @id @default(cuid())
+  source    SourceAccount @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId  String        @unique
+  version   Int           @default(1)
+  status    ScriptStatus  @default(DRAFT)
+  code      String
+  createdBy String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SourceActionLog {
+  id        String        @id @default(cuid())
+  source    SourceAccount @relation(fields: [sourceId], references: [id])
+  sourceId  String
+  action    String
+  ok        Boolean
+  latencyMs Int?
+  request   Json?
+  response  Json?
+  error     String?
+  createdBy String?
+  createdAt DateTime      @default(now())
+
+  @@index([sourceId, createdAt])
 }
 
 model PublicDashboard {
