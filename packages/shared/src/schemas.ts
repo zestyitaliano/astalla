@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+export const ColumnTypeEnum = z.enum(["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]);
+
+export const ScriptStatusEnum = z.enum(["DRAFT", "PUBLISHED"]);
+
+export const ProviderActionParam = z.object({
+  name: z.string(),
+  schema: z.any().optional(),
+  required: z.boolean().optional()
+});
+
+export const ProviderManifest = z.object({
+  name: z.string(),
+  actions: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      params: z.array(ProviderActionParam).optional()
+    })
+  )
+});
+
+export type ProviderManifest = z.infer<typeof ProviderManifest>;
+
 export const orgSchema = z.object({
   id: z.string(),
   name: z.string(),
