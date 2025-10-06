@@ -154,16 +154,18 @@ export function DashboardView({ role }: DashboardViewProps) {
 
   return (
     <DashboardShell user={meQuery.data ?? fallbackUser} role={role}>
-      <section>
-        <PropertySelector
-          properties={propertyOptions}
-          selectedPropertyId={selectedProperty}
-          onPropertyChange={setSelectedProperty}
-          timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
-          disabled={propertiesQuery.isLoading}
-          onCreateProperty={handleCreateProperty}
-        />
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4">
+        <div className="md:col-span-6">
+          <PropertySelector
+            properties={propertyOptions}
+            selectedPropertyId={selectedProperty}
+            onPropertyChange={setSelectedProperty}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            disabled={propertiesQuery.isLoading}
+            onCreateProperty={handleCreateProperty}
+          />
+        </div>
       </section>
 
       {propertiesQuery.isError ? (
@@ -206,7 +208,7 @@ export function DashboardView({ role }: DashboardViewProps) {
       ) : null}
 
       {!shouldShowEmptyState ? (
-        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4">
           <MetricCard
             title="Average occupancy"
             value={occupancyQuery.data ? formatPercent(occupancyQuery.data.occupancyRate) : "--"}
@@ -223,6 +225,7 @@ export function DashboardView({ role }: DashboardViewProps) {
             isLoading={occupancyQuery.isPending && !occupancyQuery.data}
             isError={occupancyQuery.isError}
             onRetry={() => occupancyQuery.refetch()}
+            className="min-h-[120px] md:col-span-2"
           />
           <MetricCard
             title="Pipeline conversions"
@@ -248,6 +251,7 @@ export function DashboardView({ role }: DashboardViewProps) {
             isLoading={pipelineQuery.isPending && !pipelineQuery.data}
             isError={pipelineQuery.isError}
             onRetry={() => pipelineQuery.refetch()}
+            className="min-h-[120px] md:col-span-2"
           />
           <MetricCard
             title="Cost per lead"
@@ -261,12 +265,13 @@ export function DashboardView({ role }: DashboardViewProps) {
             isLoading={costQuery.isPending && !costQuery.data}
             isError={costQuery.isError}
             onRetry={() => costQuery.refetch()}
+            className="min-h-[120px] md:col-span-2"
           />
         </section>
       ) : null}
 
       {!shouldShowEmptyState ? (
-        <section className="grid gap-5 lg:grid-cols-[1.6fr,1fr]">
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4">
           <DashboardCard
             title={selectedPropertyName ? `${selectedPropertyName} reviews` : "Resident feedback"}
             description="Latest resident sentiment and response coverage"
@@ -276,6 +281,7 @@ export function DashboardView({ role }: DashboardViewProps) {
                 Refresh
               </Button>
             }
+            className="md:col-span-4 min-h-[120px]"
           >
             {reviewsQuery.isLoading ? (
               <div className="flex items-center justify-center py-16">
@@ -336,16 +342,18 @@ export function DashboardView({ role }: DashboardViewProps) {
             ) : null}
           </DashboardCard>
 
-          <AlertsPanel
-            alerts={alertsQuery.data?.alerts}
-            isLoading={alertsQuery.isLoading}
-            isError={alertsQuery.isError}
-            onRetry={() => alertsQuery.refetch()}
-          />
+          <div className="md:col-span-2 min-h-[120px]">
+            <AlertsPanel
+              alerts={alertsQuery.data?.alerts}
+              isLoading={alertsQuery.isLoading}
+              isError={alertsQuery.isError}
+              onRetry={() => alertsQuery.refetch()}
+            />
+          </div>
         </section>
       ) : null}
 
-      <section className="pb-6">
+      <section className="grid grid-cols-1 gap-3 pb-6 md:grid-cols-6 md:gap-4">
         <DashboardCard
           title="Portfolio performance"
           description="Track contracts, SLAs and incident load across properties"
@@ -365,6 +373,7 @@ export function DashboardView({ role }: DashboardViewProps) {
             )
           }
           contentClassName="-mt-2"
+          className="md:col-span-6"
         >
           <OperationsTable canEdit={role === "admin"} />
         </DashboardCard>

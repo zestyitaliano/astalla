@@ -47,8 +47,8 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
   }, [activeAlertId, alerts]);
 
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-border/80 bg-card shadow-sm">
-      <header className="flex items-center justify-between gap-4 border-b border-border/60 px-6 py-4">
+    <div className="flex h-full flex-col rounded-3xl border border-border/60 bg-white/85 shadow-sm supports-[backdrop-filter]:bg-white/70">
+      <header className="flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -61,8 +61,8 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
             ) : null}
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Signals</p>
-            <h3 className="text-lg font-semibold text-foreground">Alerts & notifications</h3>
+            <p className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Signals</p>
+            <h3 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-foreground">Alerts & notifications</h3>
           </div>
         </div>
         <Button type="button" variant="ghost" size="icon" onClick={onRetry} disabled={isLoading} aria-label="Refresh alerts">
@@ -112,35 +112,35 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
                           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                           {alert.severity}
                         </span>
-                        <span className="text-xs text-muted-foreground">{formatRelativeTime(alert.occurredAt)}</span>
+                        <span className="text-[clamp(.8rem,1.4vw,.9rem)] text-muted-foreground">{formatRelativeTime(alert.occurredAt)}</span>
                       </div>
-                      <p className="text-sm font-semibold text-foreground">{alert.label}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{alert.detail}</p>
+                      <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-semibold text-foreground">{alert.label}</p>
+                      <p className="text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground line-clamp-2">{alert.detail}</p>
                     </button>
                   );
                 })}
               </div>
-              <div className="border-t border-border/60 px-6 py-4">
+              <div className="border-t border-border/60 px-5 py-4">
                 {alerts.find((alert) => alert.id === activeAlertId) ? (
                   (() => {
                     const activeAlert = alerts.find((alert) => alert.id === activeAlertId)!;
                     return (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Details</p>
-                        <p className="text-sm font-semibold text-foreground">{activeAlert.label}</p>
-                        <p className="text-sm leading-6 text-muted-foreground">{activeAlert.detail}</p>
+                        <p className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Details</p>
+                        <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-semibold text-foreground">{activeAlert.label}</p>
+                        <p className="text-[clamp(.9rem,1.5vw,1rem)] leading-6 text-muted-foreground">{activeAlert.detail}</p>
                       </div>
                     );
                   })()
                 ) : (
-                  <p className="text-sm text-muted-foreground">Select an alert to view the full context.</p>
+                  <p className="text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground">Select an alert to view the full context.</p>
                 )}
               </div>
             </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-              <p className="text-sm font-medium text-foreground">No alerts right now.</p>
-              <p className="text-sm text-muted-foreground">We&apos;ll notify you as soon as we detect something noteworthy.</p>
+              <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-medium text-foreground">No alerts right now.</p>
+              <p className="text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground">We&apos;ll notify you as soon as we detect something noteworthy.</p>
             </div>
           )
         ) : null}

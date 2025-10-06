@@ -4,10 +4,9 @@ import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
-import { Sidebar } from "@/components/shell/sidebar";
-import { Topbar } from "@/components/shell/topbar";
+import { AppChrome } from "@/components/shell/app-chrome";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Astalla Dashboard",
@@ -36,17 +35,11 @@ export default function RootLayout({
       <body className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-white font-sans text-slate-900 antialiased">
         <AppProviders>
           {isPublicHost ? (
-            <main className="min-h-screen">{children}</main>
+            <main className="min-h-screen">
+              <div className="mx-auto min-h-screen w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">{children}</div>
+            </main>
           ) : (
-            <div className="flex min-h-screen">
-              <Sidebar />
-              <div className="flex min-h-screen flex-1 flex-col bg-transparent">
-                <Topbar />
-                <main className="flex-1 min-h-0 p-6">
-                  <div className="mx-auto flex max-w-6xl flex-col gap-6">{children}</div>
-                </main>
-              </div>
-            </div>
+            <AppChrome>{children}</AppChrome>
           )}
         </AppProviders>
       </body>

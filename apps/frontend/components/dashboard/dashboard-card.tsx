@@ -26,23 +26,22 @@ export function DashboardCard({
   return (
     <Card
       className={cn(
-        "rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm transition-all",
-        "supports-[backdrop-filter]:bg-card/90 supports-[backdrop-filter]:backdrop-blur",
+        "text-card-foreground transition-shadow supports-[backdrop-filter]:backdrop-blur",
         "hover:shadow-md focus-within:shadow-md",
         className
       )}
     >
-      <div className={cn("flex flex-col", dense ? "p-6" : "p-7")}>
+      <div className={cn("flex flex-col", dense ? "p-5" : "p-6")}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <h2 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">{title}</h2>
+            <h2 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold tracking-tight text-foreground">{title}</h2>
             {description ? (
-              <p className="text-sm text-foreground/80">{description}</p>
+              <p className="text-[clamp(.9rem,1.5vw,1rem)] text-foreground/80">{description}</p>
             ) : null}
           </div>
           {action ? <div className="shrink-0 space-y-2 text-sm text-muted-foreground">{action}</div> : null}
         </div>
-        <Separator className="mt-5 bg-border/80" />
+        <Separator className="mt-5 bg-border/70" />
         <div className={cn("pt-5", dense ? "space-y-4" : "space-y-5", contentClassName)}>{children}</div>
       </div>
     </Card>
