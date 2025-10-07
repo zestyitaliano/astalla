@@ -89,13 +89,15 @@ interface TableGridProps {
   tableId: string;
 }
 
+const COLUMN_TYPE_ENUM = ColumnType.enum;
+
 const COLUMN_TYPE_OPTIONS: Array<{ label: string; value: ColumnKind }> = [
-  { label: "Text", value: ColumnType.TEXT },
-  { label: "Number", value: ColumnType.NUMBER },
-  { label: "Date", value: ColumnType.DATE },
-  { label: "Boolean", value: ColumnType.BOOLEAN },
-  { label: "Select", value: ColumnType.SELECT },
-  { label: "Reference", value: ColumnType.REFERENCE }
+  { label: "Text", value: COLUMN_TYPE_ENUM.TEXT },
+  { label: "Number", value: COLUMN_TYPE_ENUM.NUMBER },
+  { label: "Date", value: COLUMN_TYPE_ENUM.DATE },
+  { label: "Boolean", value: COLUMN_TYPE_ENUM.BOOLEAN },
+  { label: "Select", value: COLUMN_TYPE_ENUM.SELECT },
+  { label: "Reference", value: COLUMN_TYPE_ENUM.REFERENCE }
 ];
 
 function parseViewConfig(value: unknown): ViewConfig {
@@ -350,7 +352,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
-  const [newColumnType, setNewColumnType] = useState<ColumnKind>(ColumnType.TEXT);
+  const [newColumnType, setNewColumnType] = useState<ColumnKind>(COLUMN_TYPE_ENUM.TEXT);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<{ createdColumns: number; createdRows: number } | null>(null);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
@@ -663,7 +665,7 @@ export function TableGrid({ tableId }: TableGridProps) {
     const name = newColumnName.trim() || "New column";
     await createColumnMutation.mutateAsync({ name, type: newColumnType });
     setNewColumnName("");
-    setNewColumnType(ColumnType.TEXT);
+    setNewColumnType(COLUMN_TYPE_ENUM.TEXT);
     setIsAddColumnOpen(false);
   };
 

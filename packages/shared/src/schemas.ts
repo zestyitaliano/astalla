@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ColumnTypeEnum = z.enum(["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]);
+export const ColumnType = z.enum(["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]);
 
 export const ScriptStatusEnum = z.enum(["DRAFT", "PUBLISHED"]);
 
@@ -322,16 +322,7 @@ export const updatePublicDashboardRequestSchema = z
     message: "Update payload cannot be empty"
   });
 
-export enum ColumnType {
-  TEXT = "TEXT",
-  NUMBER = "NUMBER",
-  DATE = "DATE",
-  BOOLEAN = "BOOLEAN",
-  SELECT = "SELECT",
-  REFERENCE = "REFERENCE"
-}
-
-export const columnTypeSchema = z.nativeEnum(ColumnType);
+export const columnTypeSchema = ColumnType;
 
 export const tableCellDtoSchema = z.object({
   id: z.string(),
@@ -507,3 +498,84 @@ export type PatchCellsDto = z.infer<typeof patchCellsDtoSchema>;
 export type ReorderRowsDto = z.infer<typeof reorderRowsDtoSchema>;
 export type CreateViewDto = z.infer<typeof createViewDtoSchema>;
 export type UpdateViewDto = z.infer<typeof updateViewDtoSchema>;
+
+export const TableColumnSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  type: ColumnType,
+  position: z.number(),
+  config: z.any().optional(),
+});
+
+export const TableRowSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  position: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const TableCellSchema = z.object({
+  id: z.string(),
+  rowId: z.string(),
+  columnId: z.string(),
+  value: z.any().optional(),
+});
+
+export const TableViewSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  name: z.string(),
+  config: z.any(),
+});
+
+export const DataTableSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  columns: z.array(TableColumnSchema).optional(),
+  views: z.array(TableViewSchema).optional(),
+});
+
+export const CreateTableDto = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+});
+export const CreateColumnDto = z.object({
+  tableId: z.string(),
+  name: z.string().min(1),
+  type: ColumnType,
+  config: z.any().optional(),
+  position: z.number().optional(),
+});
+export const UpdateColumnDto = z.object({
+  name: z.string().optional(),
+  position: z.number().optional(),
+  config: z.any().optional(),
+});
+export const CreateRowDto = z.object({
+  tableId: z.string(),
+  afterRowId: z.string().optional(),
+});
+export const PatchCellsDto = z.object({
+  rowId: z.string(),
+  cells: z.array(z.object({ columnId: z.string(), value: z.any() })),
+});
+export const ReorderRowsDto = z.object({
+  order: z.array(z.object({ rowId: z.string(), position: z.number() })),
+});
+export const CreateViewDto = z.object({
+  tableId: z.string(),
+  name: z.string(),
+  config: z.any(),
+});
+export const UpdateViewDto = z.object({
+  name: z.string().optional(),
+  config: z.any().optional(),
+});
+
+export type TColumnType = z.infer<typeof ColumnType>;
+export type TDataTable = z.infer<typeof DataTableSchema>;

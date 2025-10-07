@@ -1,17 +1,91 @@
 import { z } from "zod";
+export declare const ColumnType: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+export declare const ScriptStatusEnum: z.ZodEnum<["DRAFT", "PUBLISHED"]>;
+export declare const ProviderActionParam: z.ZodObject<{
+    name: z.ZodString;
+    schema: z.ZodOptional<z.ZodAny>;
+    required: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    schema?: any;
+    required?: boolean | undefined;
+}, {
+    name: string;
+    schema?: any;
+    required?: boolean | undefined;
+}>;
+export declare const ProviderManifest: z.ZodObject<{
+    name: z.ZodString;
+    actions: z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        label: z.ZodString;
+        params: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            name: z.ZodString;
+            schema: z.ZodOptional<z.ZodAny>;
+            required: z.ZodOptional<z.ZodBoolean>;
+        }, "strip", z.ZodTypeAny, {
+            name: string;
+            schema?: any;
+            required?: boolean | undefined;
+        }, {
+            name: string;
+            schema?: any;
+            required?: boolean | undefined;
+        }>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        key: string;
+        label: string;
+        params?: {
+            name: string;
+            schema?: any;
+            required?: boolean | undefined;
+        }[] | undefined;
+    }, {
+        key: string;
+        label: string;
+        params?: {
+            name: string;
+            schema?: any;
+            required?: boolean | undefined;
+        }[] | undefined;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    actions: {
+        key: string;
+        label: string;
+        params?: {
+            name: string;
+            schema?: any;
+            required?: boolean | undefined;
+        }[] | undefined;
+    }[];
+}, {
+    name: string;
+    actions: {
+        key: string;
+        label: string;
+        params?: {
+            name: string;
+            schema?: any;
+            required?: boolean | undefined;
+        }[] | undefined;
+    }[];
+}>;
+export type ProviderManifest = z.infer<typeof ProviderManifest>;
 export declare const orgSchema: z.ZodObject<{
     id: z.ZodString;
     name: z.ZodString;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
 }, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
 }>;
@@ -28,8 +102,8 @@ export declare const propertySchema: z.ZodObject<{
     propertyCode: z.ZodOptional<z.ZodString>;
     region: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
     address: string;
@@ -40,8 +114,8 @@ export declare const propertySchema: z.ZodObject<{
     propertyCode?: string | undefined;
     region?: string | undefined;
 }, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
     address: string;
@@ -185,13 +259,13 @@ export declare const leadEventSchema: z.ZodObject<{
     type: z.ZodEnum<["created", "contacted", "toured", "applied", "approved", "denied", "leased"]>;
     occurredAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     type: "created" | "contacted" | "toured" | "applied" | "approved" | "denied" | "leased";
+    id: string;
     leadId: string;
     occurredAt: string;
 }, {
-    id: string;
     type: "created" | "contacted" | "toured" | "applied" | "approved" | "denied" | "leased";
+    id: string;
     leadId: string;
     occurredAt: string;
 }>;
@@ -201,13 +275,13 @@ export declare const applicationSchema: z.ZodObject<{
     status: z.ZodEnum<["pending", "approved", "denied", "cancelled"]>;
     submittedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: "approved" | "denied" | "pending" | "cancelled";
+    id: string;
     leadId: string;
     submittedAt: string;
 }, {
-    id: string;
     status: "approved" | "denied" | "pending" | "cancelled";
+    id: string;
     leadId: string;
     submittedAt: string;
 }>;
@@ -219,15 +293,15 @@ export declare const leaseSchema: z.ZodObject<{
     endDate: z.ZodString;
     status: z.ZodEnum<["draft", "active", "terminated", "expired"]>;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: "draft" | "active" | "terminated" | "expired";
+    id: string;
     propertyId: string;
     leadId: string;
     startDate: string;
     endDate: string;
 }, {
-    id: string;
     status: "draft" | "active" | "terminated" | "expired";
+    id: string;
     propertyId: string;
     leadId: string;
     startDate: string;
@@ -602,15 +676,15 @@ export declare const alertSchema: z.ZodObject<{
     severity: z.ZodEnum<["high", "medium", "low"]>;
     occurredAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
+    label: string;
     id: string;
     occurredAt: string;
-    label: string;
     detail: string;
     severity: "high" | "medium" | "low";
 }, {
+    label: string;
     id: string;
     occurredAt: string;
-    label: string;
     detail: string;
     severity: "high" | "medium" | "low";
 }>;
@@ -622,31 +696,31 @@ export declare const alertsResponseSchema: z.ZodObject<{
         severity: z.ZodEnum<["high", "medium", "low"]>;
         occurredAt: z.ZodString;
     }, "strip", z.ZodTypeAny, {
+        label: string;
         id: string;
         occurredAt: string;
-        label: string;
         detail: string;
         severity: "high" | "medium" | "low";
     }, {
+        label: string;
         id: string;
         occurredAt: string;
-        label: string;
         detail: string;
         severity: "high" | "medium" | "low";
     }>, "many">;
 }, "strip", z.ZodTypeAny, {
     alerts: {
+        label: string;
         id: string;
         occurredAt: string;
-        label: string;
         detail: string;
         severity: "high" | "medium" | "low";
     }[];
 }, {
     alerts: {
+        label: string;
         id: string;
         occurredAt: string;
-        label: string;
         detail: string;
         severity: "high" | "medium" | "low";
     }[];
@@ -665,10 +739,10 @@ export declare const sourceAccountSchema: z.ZodObject<{
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
+    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
     id: string;
     createdAt: string;
     updatedAt: string;
-    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
     enabled: boolean;
     name?: string | null | undefined;
     status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -676,10 +750,10 @@ export declare const sourceAccountSchema: z.ZodObject<{
     lastSuccessAt?: string | null | undefined;
     lastErrorAt?: string | null | undefined;
 }, {
+    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
     id: string;
     createdAt: string;
     updatedAt: string;
-    type: "ENTRATA" | "GA4" | "ADS" | "GBP";
     enabled: boolean;
     name?: string | null | undefined;
     status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -700,10 +774,10 @@ export declare const listSourcesResponseSchema: z.ZodObject<{
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
     }, "strip", z.ZodTypeAny, {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -711,10 +785,10 @@ export declare const listSourcesResponseSchema: z.ZodObject<{
         lastSuccessAt?: string | null | undefined;
         lastErrorAt?: string | null | undefined;
     }, {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -724,10 +798,10 @@ export declare const listSourcesResponseSchema: z.ZodObject<{
     }>, "many">;
 }, "strip", z.ZodTypeAny, {
     sources: {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -737,10 +811,10 @@ export declare const listSourcesResponseSchema: z.ZodObject<{
     }[];
 }, {
     sources: {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -797,10 +871,10 @@ export declare const sourceMutationResponseSchema: z.ZodObject<{
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
     }, "strip", z.ZodTypeAny, {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -808,10 +882,10 @@ export declare const sourceMutationResponseSchema: z.ZodObject<{
         lastSuccessAt?: string | null | undefined;
         lastErrorAt?: string | null | undefined;
     }, {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -822,10 +896,10 @@ export declare const sourceMutationResponseSchema: z.ZodObject<{
     validationMessage: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     source: {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -836,10 +910,10 @@ export declare const sourceMutationResponseSchema: z.ZodObject<{
     validationMessage?: string | undefined;
 }, {
     source: {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         id: string;
         createdAt: string;
         updatedAt: string;
-        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
         enabled: boolean;
         name?: string | null | undefined;
         status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
@@ -862,16 +936,16 @@ export declare const propertiesResponseSchema: z.ZodObject<{
         updatedAt: z.ZodString;
         propertyCode: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;
-    }, "id" | "name" | "city" | "state" | "propertyCode" | "region">, "strip", z.ZodTypeAny, {
-        id: string;
+    }, "name" | "id" | "city" | "state" | "propertyCode" | "region">, "strip", z.ZodTypeAny, {
         name: string;
+        id: string;
         city: string;
         state: string;
         propertyCode?: string | undefined;
         region?: string | undefined;
     }, {
-        id: string;
         name: string;
+        id: string;
         city: string;
         state: string;
         propertyCode?: string | undefined;
@@ -879,8 +953,8 @@ export declare const propertiesResponseSchema: z.ZodObject<{
     }>, "many">;
 }, "strip", z.ZodTypeAny, {
     properties: {
-        id: string;
         name: string;
+        id: string;
         city: string;
         state: string;
         propertyCode?: string | undefined;
@@ -888,8 +962,8 @@ export declare const propertiesResponseSchema: z.ZodObject<{
     }[];
 }, {
     properties: {
-        id: string;
         name: string;
+        id: string;
         city: string;
         state: string;
         propertyCode?: string | undefined;
@@ -1050,15 +1124,7 @@ export declare const updatePublicDashboardRequestSchema: z.ZodEffects<z.ZodObjec
     config?: unknown;
     isActive?: boolean | undefined;
 }>;
-export declare enum ColumnType {
-    TEXT = "TEXT",
-    NUMBER = "NUMBER",
-    DATE = "DATE",
-    BOOLEAN = "BOOLEAN",
-    SELECT = "SELECT",
-    REFERENCE = "REFERENCE"
-}
-export declare const columnTypeSchema: z.ZodNativeEnum<typeof ColumnType>;
+export declare const columnTypeSchema: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
 export declare const tableCellDtoSchema: z.ZodObject<{
     id: z.ZodString;
     rowId: z.ZodString;
@@ -1086,27 +1152,27 @@ export declare const tableColumnDtoSchema: z.ZodObject<{
     tableId: z.ZodString;
     name: z.ZodString;
     slug: z.ZodString;
-    type: z.ZodNativeEnum<typeof ColumnType>;
+    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
     position: z.ZodNumber;
     config: z.ZodOptional<z.ZodUnknown>;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    id: string;
     createdAt: string;
     updatedAt: string;
-    type: ColumnType;
     tableId: string;
     slug: string;
     position: number;
     config?: unknown;
 }, {
-    id: string;
     name: string;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    id: string;
     createdAt: string;
     updatedAt: string;
-    type: ColumnType;
     tableId: string;
     slug: string;
     position: number;
@@ -1184,16 +1250,16 @@ export declare const tableViewDtoSchema: z.ZodObject<{
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
     tableId: string;
     config?: unknown;
     createdBy?: string | null | undefined;
 }, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
     tableId: string;
@@ -1210,27 +1276,27 @@ export declare const dataTableDtoSchema: z.ZodObject<{
         tableId: z.ZodString;
         name: z.ZodString;
         slug: z.ZodString;
-        type: z.ZodNativeEnum<typeof ColumnType>;
+        type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
         position: z.ZodNumber;
         config: z.ZodOptional<z.ZodUnknown>;
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        id: string;
         name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
         createdAt: string;
         updatedAt: string;
-        type: ColumnType;
         tableId: string;
         slug: string;
         position: number;
         config?: unknown;
     }, {
-        id: string;
         name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
         createdAt: string;
         updatedAt: string;
-        type: ColumnType;
         tableId: string;
         slug: string;
         position: number;
@@ -1308,16 +1374,16 @@ export declare const dataTableDtoSchema: z.ZodObject<{
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        id: string;
         name: string;
+        id: string;
         createdAt: string;
         updatedAt: string;
         tableId: string;
         config?: unknown;
         createdBy?: string | null | undefined;
     }, {
-        id: string;
         name: string;
+        id: string;
         createdAt: string;
         updatedAt: string;
         tableId: string;
@@ -1328,19 +1394,19 @@ export declare const dataTableDtoSchema: z.ZodObject<{
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
     orgId: string;
     createdBy?: string | null | undefined;
     description?: string | null | undefined;
     columns?: {
-        id: string;
         name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
         createdAt: string;
         updatedAt: string;
-        type: ColumnType;
         tableId: string;
         slug: string;
         position: number;
@@ -1364,8 +1430,8 @@ export declare const dataTableDtoSchema: z.ZodObject<{
         updatedBy?: string | null | undefined;
     }[] | undefined;
     views?: {
-        id: string;
         name: string;
+        id: string;
         createdAt: string;
         updatedAt: string;
         tableId: string;
@@ -1373,19 +1439,19 @@ export declare const dataTableDtoSchema: z.ZodObject<{
         createdBy?: string | null | undefined;
     }[] | undefined;
 }, {
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
     updatedAt: string;
     orgId: string;
     createdBy?: string | null | undefined;
     description?: string | null | undefined;
     columns?: {
-        id: string;
         name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
         createdAt: string;
         updatedAt: string;
-        type: ColumnType;
         tableId: string;
         slug: string;
         position: number;
@@ -1409,8 +1475,8 @@ export declare const dataTableDtoSchema: z.ZodObject<{
         updatedBy?: string | null | undefined;
     }[] | undefined;
     views?: {
-        id: string;
         name: string;
+        id: string;
         createdAt: string;
         updatedAt: string;
         tableId: string;
@@ -1453,16 +1519,16 @@ export declare const createTableDtoSchema: z.ZodObject<{
 export declare const createColumnDtoSchema: z.ZodObject<{
     tableId: z.ZodString;
     name: z.ZodString;
-    type: z.ZodNativeEnum<typeof ColumnType>;
+    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
     config: z.ZodOptional<z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
     name: string;
-    type: ColumnType;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
     tableId: string;
     config?: unknown;
 }, {
     name: string;
-    type: ColumnType;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
     tableId: string;
     config?: unknown;
 }>;
@@ -1622,3 +1688,290 @@ export type PatchCellsDto = z.infer<typeof patchCellsDtoSchema>;
 export type ReorderRowsDto = z.infer<typeof reorderRowsDtoSchema>;
 export type CreateViewDto = z.infer<typeof createViewDtoSchema>;
 export type UpdateViewDto = z.infer<typeof updateViewDtoSchema>;
+export declare const TableColumnSchema: z.ZodObject<{
+    id: z.ZodString;
+    tableId: z.ZodString;
+    name: z.ZodString;
+    slug: z.ZodString;
+    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+    position: z.ZodNumber;
+    config: z.ZodOptional<z.ZodAny>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    id: string;
+    tableId: string;
+    slug: string;
+    position: number;
+    config?: any;
+}, {
+    name: string;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    id: string;
+    tableId: string;
+    slug: string;
+    position: number;
+    config?: any;
+}>;
+export declare const TableRowSchema: z.ZodObject<{
+    id: z.ZodString;
+    tableId: z.ZodString;
+    position: z.ZodNumber;
+    createdAt: z.ZodString;
+    updatedAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    tableId: string;
+    position: number;
+}, {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    tableId: string;
+    position: number;
+}>;
+export declare const TableCellSchema: z.ZodObject<{
+    id: z.ZodString;
+    rowId: z.ZodString;
+    columnId: z.ZodString;
+    value: z.ZodOptional<z.ZodAny>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    rowId: string;
+    columnId: string;
+    value?: any;
+}, {
+    id: string;
+    rowId: string;
+    columnId: string;
+    value?: any;
+}>;
+export declare const TableViewSchema: z.ZodObject<{
+    id: z.ZodString;
+    tableId: z.ZodString;
+    name: z.ZodString;
+    config: z.ZodAny;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    id: string;
+    tableId: string;
+    config?: any;
+}, {
+    name: string;
+    id: string;
+    tableId: string;
+    config?: any;
+}>;
+export declare const DataTableSchema: z.ZodObject<{
+    id: z.ZodString;
+    orgId: z.ZodString;
+    name: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    columns: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        tableId: z.ZodString;
+        name: z.ZodString;
+        slug: z.ZodString;
+        type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+        position: z.ZodNumber;
+        config: z.ZodOptional<z.ZodAny>;
+    }, "strip", z.ZodTypeAny, {
+        name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: any;
+    }, {
+        name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: any;
+    }>, "many">>;
+    views: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        tableId: z.ZodString;
+        name: z.ZodString;
+        config: z.ZodAny;
+    }, "strip", z.ZodTypeAny, {
+        name: string;
+        id: string;
+        tableId: string;
+        config?: any;
+    }, {
+        name: string;
+        id: string;
+        tableId: string;
+        config?: any;
+    }>, "many">>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    id: string;
+    orgId: string;
+    description?: string | undefined;
+    columns?: {
+        name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: any;
+    }[] | undefined;
+    views?: {
+        name: string;
+        id: string;
+        tableId: string;
+        config?: any;
+    }[] | undefined;
+}, {
+    name: string;
+    id: string;
+    orgId: string;
+    description?: string | undefined;
+    columns?: {
+        name: string;
+        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        id: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: any;
+    }[] | undefined;
+    views?: {
+        name: string;
+        id: string;
+        tableId: string;
+        config?: any;
+    }[] | undefined;
+}>;
+export declare const CreateTableDto: z.ZodObject<{
+    name: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    description?: string | undefined;
+}, {
+    name: string;
+    description?: string | undefined;
+}>;
+export declare const CreateColumnDto: z.ZodObject<{
+    tableId: z.ZodString;
+    name: z.ZodString;
+    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+    config: z.ZodOptional<z.ZodAny>;
+    position: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    tableId: string;
+    config?: any;
+    position?: number | undefined;
+}, {
+    name: string;
+    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    tableId: string;
+    config?: any;
+    position?: number | undefined;
+}>;
+export declare const UpdateColumnDto: z.ZodObject<{
+    name: z.ZodOptional<z.ZodString>;
+    position: z.ZodOptional<z.ZodNumber>;
+    config: z.ZodOptional<z.ZodAny>;
+}, "strip", z.ZodTypeAny, {
+    name?: string | undefined;
+    config?: any;
+    position?: number | undefined;
+}, {
+    name?: string | undefined;
+    config?: any;
+    position?: number | undefined;
+}>;
+export declare const CreateRowDto: z.ZodObject<{
+    tableId: z.ZodString;
+    afterRowId: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    tableId: string;
+    afterRowId?: string | undefined;
+}, {
+    tableId: string;
+    afterRowId?: string | undefined;
+}>;
+export declare const PatchCellsDto: z.ZodObject<{
+    rowId: z.ZodString;
+    cells: z.ZodArray<z.ZodObject<{
+        columnId: z.ZodString;
+        value: z.ZodAny;
+    }, "strip", z.ZodTypeAny, {
+        columnId: string;
+        value?: any;
+    }, {
+        columnId: string;
+        value?: any;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    rowId: string;
+    cells: {
+        columnId: string;
+        value?: any;
+    }[];
+}, {
+    rowId: string;
+    cells: {
+        columnId: string;
+        value?: any;
+    }[];
+}>;
+export declare const ReorderRowsDto: z.ZodObject<{
+    order: z.ZodArray<z.ZodObject<{
+        rowId: z.ZodString;
+        position: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        rowId: string;
+        position: number;
+    }, {
+        rowId: string;
+        position: number;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    order: {
+        rowId: string;
+        position: number;
+    }[];
+}, {
+    order: {
+        rowId: string;
+        position: number;
+    }[];
+}>;
+export declare const CreateViewDto: z.ZodObject<{
+    tableId: z.ZodString;
+    name: z.ZodString;
+    config: z.ZodAny;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    tableId: string;
+    config?: any;
+}, {
+    name: string;
+    tableId: string;
+    config?: any;
+}>;
+export declare const UpdateViewDto: z.ZodObject<{
+    name: z.ZodOptional<z.ZodString>;
+    config: z.ZodOptional<z.ZodAny>;
+}, "strip", z.ZodTypeAny, {
+    name?: string | undefined;
+    config?: any;
+}, {
+    name?: string | undefined;
+    config?: any;
+}>;
+export type TColumnType = z.infer<typeof ColumnType>;
+export type TDataTable = z.infer<typeof DataTableSchema>;
