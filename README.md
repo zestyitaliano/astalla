@@ -108,8 +108,8 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 ### Backend (Render)
 
 1. Create a new Render Web Service pointing to `apps/backend`.
-2. Set the build command to `pnpm install && pnpm --filter apps/backend build`.
-3. Set the start command to `pnpm --filter apps/backend start`.
+2. Set the build command to `pnpm install && pnpm --filter apps-backend build`.
+3. Set the start command to `pnpm --filter apps-backend start`.
 4. Provision a Postgres instance and Redis (or supply external connection strings) and expose them via `DATABASE_URL` and `REDIS_URL` env vars. Include `FRONTEND_ORIGIN` so CORS is configured correctly.
 
 > For preview environments, be sure to share the backend URL with the frontend via `NEXT_PUBLIC_API_BASE_URL` and `NEXTAUTH_URL`. Without `NEXT_PUBLIC_API_BASE_URL`, server-side code in the frontend cannot contact the API.
