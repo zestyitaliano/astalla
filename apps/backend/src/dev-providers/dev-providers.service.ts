@@ -9,6 +9,7 @@ import type { ProviderManifest } from "@shared/api";
 import { ProviderManifest as ProviderManifestSchema } from "@shared/api";
 
 import { PrismaService } from "../prisma/prisma.service";
+import { JSON_NULL } from "../util/json";
 
 const EXECUTION_TIMEOUT_MS = 5_000;
 const RESPONSE_SIZE_LIMIT = 10 * 1024 * 1024;
@@ -380,7 +381,7 @@ export class DevProvidersService {
 
   private asJson(value: unknown): Prisma.InputJsonValue {
     if (value === undefined || value === null) {
-      return Prisma.JsonNull;
+      return JSON_NULL;
     }
 
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {

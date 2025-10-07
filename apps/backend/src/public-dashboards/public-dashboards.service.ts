@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../prisma/prisma.service";
+import { JSON_NULL } from "../util/json";
 import { CreatePublicDashboardDto } from "./dto/create-public-dashboard.dto";
 import { UpdatePublicDashboardDto } from "./dto/update-public-dashboard.dto";
 
@@ -111,7 +112,7 @@ export class PublicDashboardsService {
 
   private toJsonInput(value: unknown): Prisma.InputJsonValue {
     if (value === undefined || value === null) {
-      return Prisma.JsonNull;
+      return JSON_NULL;
     }
 
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
