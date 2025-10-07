@@ -24,7 +24,7 @@ export class PublicDashboardsService {
       subdomain,
       orgId: payload.orgId,
       propertyId: payload.propertyId ?? null,
-      config: payload.config ?? { widgets: [] },
+      config: this.toJsonInput(payload.config ?? { widgets: [] }),
       isActive: payload.isActive ?? true
     };
 
@@ -51,7 +51,7 @@ export class PublicDashboardsService {
       data.propertyId = payload.propertyId || null;
     }
     if (payload.config !== undefined) {
-      data.config = payload.config;
+      data.config = this.toJsonInput(payload.config);
     }
     if (payload.isActive !== undefined) {
       data.isActive = payload.isActive;
@@ -107,5 +107,21 @@ export class PublicDashboardsService {
     }
 
     throw error;
+  }
+
+  private toJsonInput(value: unknown): Prisma.InputJsonValue {
+    if (value === undefined || value === null) {
+      return Prisma.JsonNull;
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+
+    try {
+      return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+    } catch {
+      return String(value) as Prisma.InputJsonValue;
+    }
   }
 }

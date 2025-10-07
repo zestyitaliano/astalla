@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import type { WeeklyReportResponse } from "@shared/api";
 
 import {
   getAlerts,
@@ -54,7 +55,7 @@ export class MockIntegrationsService {
     return getReviews(propertyId);
   }
 
-  getWeeklyReport() {
+  getWeeklyReport(): WeeklyReportResponse {
     this.ensureMockMode();
     return sampleWeeklyReport;
   }

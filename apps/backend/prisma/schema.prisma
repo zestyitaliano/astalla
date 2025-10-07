@@ -53,6 +53,7 @@ model Org {
   name           String
   properties     Property[]
   roles          UserOrgRole[]
+  users          User[]
   sops           SOP[]
   billingItems   BillingItem[]
   thresholds     KPIThreshold[]
@@ -63,7 +64,11 @@ model Org {
 model User {
   id        String        @id @default(cuid())
   email     String        @unique
+  username  String?       @unique
   name      String?
+  passwordHash String?
+  org       Org?          @relation(fields: [orgId], references: [id])
+  orgId     String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   roles     UserOrgRole[]
@@ -203,7 +208,7 @@ model Lead {
   events       LeadEvent[]
   conversions  ConversionEvent[]
 
-  @@unique([propertyId, externalId], name: "uniq_lead_property_external")
+  @@unique([propertyId, externalId])
   @@index([propertyId, createdAt], name: "idx_lead_property_created")
 }
 
