@@ -8,6 +8,7 @@ import { CreateSourceDto, CredentialPayload, SourceTypeDto, UpdateSourceDto } fr
 import { configureEtlProcessor, processEtlJob } from "../jobs/etl.processor";
 import { JobsService } from "../jobs/jobs.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { JSON_NULL } from "../util/json";
 import { EntrataProvider } from "../providers/entrata.provider";
 import { Ga4Provider } from "../providers/ga4.provider";
 import { GoogleBusinessProvider } from "../providers/gbp.provider";
@@ -327,7 +328,7 @@ export class SourcesService {
 
   private toJsonInput(value: unknown): Prisma.InputJsonValue {
     if (value === undefined || value === null) {
-      return Prisma.JsonNull;
+      return JSON_NULL;
     }
 
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
