@@ -379,10 +379,18 @@ export class DevProvidersService {
   }
 
   private asJson(value: unknown): Prisma.InputJsonValue {
+    if (value === undefined || value === null) {
+      return Prisma.JsonNull;
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+
     try {
-      return JSON.parse(JSON.stringify(value)) as Prisma.JsonValue;
+      return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
     } catch {
-      return String(value);
+      return String(value) as Prisma.InputJsonValue;
     }
   }
 

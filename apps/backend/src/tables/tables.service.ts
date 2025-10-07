@@ -97,7 +97,7 @@ export class TablesService {
           slug,
           type: dto.type as PrismaColumnType,
           position: nextPosition,
-          config: dto.config ?? null
+          ...(dto.config !== undefined ? { config: this.serializeJson(dto.config) } : {})
         }
       });
 
@@ -133,13 +133,13 @@ export class TablesService {
       }
 
       if (dto.config !== undefined) {
-        data.config = dto.config;
+        data.config = this.serializeJson(dto.config);
       }
 
       if (dto.type && dto.type !== column.type) {
         data.type = dto.type as PrismaColumnType;
         if (dto.type !== PrismaColumnType.SELECT && dto.config === undefined) {
-          data.config = null;
+          data.config = Prisma.JsonNull;
         }
       }
 
@@ -333,6 +333,10 @@ export class TablesService {
 
         const normalizedValue = this.normalizeIncomingValue(column.type, cell.value);
 
+        if (normalizedValue === undefined) {
+          continue;
+        }
+
         await tx.tableCell.upsert({
           where: {
             rowId_columnId: {
@@ -401,7 +405,7 @@ export class TablesService {
       data: {
         tableId: dto.tableId,
         name: dto.name,
-        config: dto.config,
+        config: this.serializeJson(dto.config),
         createdBy: actorId ?? undefined
       }
     });
@@ -420,12 +424,17 @@ export class TablesService {
       throw new NotFoundException("View not found");
     }
 
+    const data: Prisma.TableViewUpdateInput = {
+      name: dto.name ?? view.name
+    };
+
+    if (dto.config !== undefined) {
+      data.config = this.serializeJson(dto.config);
+    }
+
     const updated = await this.prisma.tableView.update({
       where: { id },
-      data: {
-        name: dto.name ?? view.name,
-        config: dto.config ?? view.config
-      }
+      data
     });
 
     await this.logAudit(this.prisma, view.tableId, actorId, "UPDATE_VIEW", {
@@ -576,7 +585,7 @@ export class TablesService {
               slug,
               type: PrismaColumnType.TEXT,
               position: nextColumnPosition++,
-              config: null
+              config: Prisma.JsonNull
             }
           });
           nameMap.set(normalizedName.toLowerCase(), column);
@@ -730,7 +739,7 @@ export class TablesService {
         tableId,
         actorId: actorId ?? undefined,
         action,
-        payload
+        payload: this.serializeJson(payload)
       }
     });
   }
@@ -756,13 +765,36 @@ export class TablesService {
     return base || "column";
   }
 
-  private normalizeIncomingValue(type: PrismaColumnType, value: unknown): unknown {
+  private serializeJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+    if (value === undefined || value === null) {
+      return Prisma.JsonNull;
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    try {
+      return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+    } catch {
+      return String(value) as Prisma.InputJsonValue;
+    }
+  }
+
+  private normalizeIncomingValue(
+    type: PrismaColumnType,
+    value: unknown
+  ): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
     if (value === undefined) {
       return undefined;
     }
 
     if (value === null) {
-      return null;
+      return Prisma.JsonNull;
     }
 
     if (type === PrismaColumnType.TEXT) {
@@ -773,7 +805,7 @@ export class TablesService {
       const trimmed = value.trim();
 
       if (!trimmed) {
-        return null;
+        return Prisma.JsonNull;
       }
 
       value = trimmed;
@@ -782,11 +814,11 @@ export class TablesService {
     switch (type) {
       case PrismaColumnType.NUMBER: {
         const numberValue = typeof value === "number" ? value : Number(value);
-        return Number.isFinite(numberValue) ? numberValue : null;
+        return Number.isFinite(numberValue) ? numberValue : Prisma.JsonNull;
       }
       case PrismaColumnType.DATE: {
         const date = new Date(value as string);
-        return Number.isNaN(date.getTime()) ? null : date.toISOString();
+        return Number.isNaN(date.getTime()) ? Prisma.JsonNull : date.toISOString();
       }
       case PrismaColumnType.BOOLEAN: {
         if (typeof value === "boolean") {
@@ -807,7 +839,7 @@ export class TablesService {
           }
         }
 
-        return null;
+        return Prisma.JsonNull;
       }
       case PrismaColumnType.SELECT:
       case PrismaColumnType.REFERENCE: {
@@ -815,16 +847,17 @@ export class TablesService {
           const trimmed = value.trim();
           if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
             try {
-              return JSON.parse(trimmed);
+              return this.serializeJson(JSON.parse(trimmed));
             } catch {
-              return value;
+              return this.serializeJson(value);
             }
           }
         }
-        return value;
+
+        return this.serializeJson(value);
       }
       default:
-        return value;
+        return this.serializeJson(value);
     }
   }
 

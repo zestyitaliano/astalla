@@ -53,9 +53,9 @@ model Org {
   name           String
   properties     Property[]
   roles          UserOrgRole[]
+  users          User[]
   sops           SOP[]
   billingItems   BillingItem[]
-  reports        ReportSnapshot[]
   thresholds     KPIThreshold[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -64,10 +64,15 @@ model Org {
 model User {
   id        String        @id @default(cuid())
   email     String        @unique
+  username  String?       @unique
   name      String?
+  passwordHash String?
+  org       Org?          @relation(fields: [orgId], references: [id])
+  orgId     String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   roles     UserOrgRole[]
+  assignedTasks Task[]   @relation("TaskAssignee")
 }
 
 model UserOrgRole {
@@ -77,7 +82,7 @@ model UserOrgRole {
   org        Org       @relation(fields: [orgId], references: [id])
   orgId      String
   role       UserRole
-  property   Property? @relation(fields: [propertyId], references: [id])
+  property   Property? @relation("PropertyUserRoles", fields: [propertyId], references: [id])
   propertyId String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -116,8 +121,10 @@ model Property {
   sourceAccounts       SourceAccount[]
   tickets              Ticket[]
   tasks                Task[]
+  userRoles            UserOrgRole[]     @relation("PropertyUserRoles")
   billingItems         BillingItem[]
   scrapeJobs           ScrapeJob[]
+  findings             Finding[]         @relation("PropertyFindings")
 }
 
 model SourceAccount {
@@ -201,7 +208,7 @@ model Lead {
   events       LeadEvent[]
   conversions  ConversionEvent[]
 
-  @@unique([propertyId, externalId], name: "uniq_lead_property_external")
+  @@unique([propertyId, externalId])
   @@index([propertyId, createdAt], name: "idx_lead_property_created")
 }
 
@@ -230,7 +237,7 @@ model Application {
   approvedAt  DateTime?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
-  leases      Lease[]
+  leases      Lease[]            @relation("ApplicationLeases")
 
   @@index([propertyId, submittedAt], name: "idx_application_property_submitted")
 }
@@ -243,6 +250,8 @@ model Lease {
   propertyId  String
   unit        Unit?       @relation(fields: [unitId], references: [id])
   unitId      String?
+  application Application? @relation("ApplicationLeases", fields: [applicationId], references: [id])
+  applicationId String?
   startDate   DateTime
   endDate     DateTime?
   status      LeaseStatus
@@ -413,7 +422,7 @@ model Task {
   propertyId  String?
   title       String
   status      String     @default("PENDING")
-  assignee    User?      @relation(fields: [assigneeId], references: [id])
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
   assigneeId  String?
   dueAt       DateTime?
   createdAt   DateTime   @default(now())
@@ -460,7 +469,7 @@ model Finding {
   id         String        @id @default(cuid())
   job        ScrapeJob?    @relation(fields: [jobId], references: [id])
   jobId      String?
-  property   Property?     @relation(fields: [propertyId], references: [id])
+  property   Property?     @relation("PropertyFindings", fields: [propertyId], references: [id])
   propertyId String?
   message    String
   severity   AlertSeverity @default(MEDIUM)
@@ -516,6 +525,8 @@ model TableColumn {
   config    Json?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
+
+  cells     TableCell[]
 
   @@unique([tableId, slug])
   @@index([tableId, position])

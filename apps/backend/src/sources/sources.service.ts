@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, SourceAccountType } from "@prisma/client";
+import type { SourceAccount } from "@prisma/client";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 
 import { CreateSourceDto, CredentialPayload, SourceTypeDto, UpdateSourceDto } from "./sources.dto";
@@ -19,7 +20,7 @@ interface ProviderValidationResult {
   message?: string;
 }
 
-interface SourceSummary {
+export interface SourceSummary {
   id: string;
   name?: string | null;
   propertyId?: string;
@@ -215,9 +216,9 @@ export class SourcesService {
     return { ok: true, mode: "immediate" };
   }
 
-  private encryptCredential(credential: CredentialPayload): Prisma.JsonValue {
+  private encryptCredential(credential: CredentialPayload): Prisma.InputJsonValue {
     if (!this.encryptionKey) {
-      return credential as Prisma.JsonObject;
+      return this.toJsonInput(credential);
     }
 
     const iv = randomBytes(12);
@@ -227,7 +228,7 @@ export class SourcesService {
     const authTag = cipher.getAuthTag();
 
     const packed = Buffer.concat([iv, authTag, encrypted]).toString("base64");
-    return { enc: packed };
+    return { enc: packed } as Prisma.JsonObject;
   }
 
   private decryptCredential(value: unknown): CredentialPayload {
@@ -275,7 +276,7 @@ export class SourcesService {
     return { source: updated, validation };
   }
 
-  private async validate(source: Prisma.SourceAccount): Promise<ProviderValidationResult> {
+  private async validate(source: SourceAccount): Promise<ProviderValidationResult> {
     const credential = this.decryptCredential(source.credential);
 
     try {
@@ -304,7 +305,7 @@ export class SourcesService {
     return result;
   }
 
-  private toSummary(source: Prisma.SourceAccount): SourceSummary {
+  private toSummary(source: SourceAccount): SourceSummary {
     const type = PRISMA_TO_DTO[source.type];
     if (!type) {
       throw new Error(`Cannot map source type ${source.type}`);
@@ -322,5 +323,21 @@ export class SourcesService {
       createdAt: source.createdAt.toISOString(),
       updatedAt: source.updatedAt.toISOString()
     };
+  }
+
+  private toJsonInput(value: unknown): Prisma.InputJsonValue {
+    if (value === undefined || value === null) {
+      return Prisma.JsonNull;
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+
+    try {
+      return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+    } catch {
+      return String(value) as Prisma.InputJsonValue;
+    }
   }
 }

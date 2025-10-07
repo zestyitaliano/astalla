@@ -27,6 +27,22 @@ interface EtlJobPayload {
 
 let dependencies: EtlProcessorDependencies | null = null;
 
+function toJsonInput(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === undefined || value === null) {
+    return Prisma.JsonNull;
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  } catch {
+    return String(value) as Prisma.InputJsonValue;
+  }
+}
+
 export function configureEtlProcessor(deps: EtlProcessorDependencies) {
   dependencies = deps;
 }
@@ -350,7 +366,7 @@ async function syncGoogleBusiness(
         text: review.comment ?? "",
         responseText: review.reviewReply?.comment ?? null,
         respondedAt: review.reviewReply?.updateTime ? new Date(review.reviewReply.updateTime) : null,
-        rawPayload: review
+        rawPayload: toJsonInput(review)
       },
       create: {
         id: reviewId,
@@ -362,7 +378,7 @@ async function syncGoogleBusiness(
         at: createdAt,
         responseText: review.reviewReply?.comment ?? null,
         respondedAt: review.reviewReply?.updateTime ? new Date(review.reviewReply.updateTime) : null,
-        rawPayload: review
+        rawPayload: toJsonInput(review)
       }
     });
   }

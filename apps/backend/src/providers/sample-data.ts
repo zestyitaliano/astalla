@@ -4,7 +4,8 @@ import type {
   LatestReviewsResponse,
   OccupancyMetricsResponse,
   PipelineMetricsResponse,
-  PropertiesResponse
+  PropertiesResponse,
+  WeeklyReportResponse
 } from "@shared/api";
 
 const now = Date.now();
@@ -341,7 +342,7 @@ export function getAlerts(propertyId?: string): { alerts: Alert[] } {
   };
 }
 
-export const sampleWeeklyReport = {
+export const sampleWeeklyReport: WeeklyReportResponse = {
   generatedAt: new Date(now - 1000 * 60 * 60 * 24 * 3).toISOString(),
   highlights: [
     "Occupancy improved across the portfolio with Atrium Center leading at 94%",

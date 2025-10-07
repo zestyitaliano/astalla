@@ -128,6 +128,10 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
+    if (!user.passwordHash) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
     const userWithCredentials = user as UserWithCredentials;
 
     const isPasswordValid = this.verifyPassword(password, userWithCredentials.passwordHash);
