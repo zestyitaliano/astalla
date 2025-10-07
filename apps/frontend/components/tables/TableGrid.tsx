@@ -100,6 +100,49 @@ const COLUMN_TYPE_OPTIONS: Array<{ label: string; value: ColumnKind }> = [
   { label: "Reference", value: COLUMN_TYPE_ENUM.REFERENCE }
 ];
 
+function parseSelectOptionsInput(raw: string) {
+  const values = raw
+    .split(/\r?\n/)
+    .flatMap((line) => line.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(values));
+}
+
+function buildSelectConfig(options: string[]) {
+  return {
+    options: options.map((value) => ({ label: value, value }))
+  };
+}
+
+function extractSelectOptionLabels(config: unknown): string[] {
+  if (!config || typeof config !== "object") {
+    return [];
+  }
+
+  const rawOptions = (config as any).options;
+  if (!Array.isArray(rawOptions)) {
+    return [];
+  }
+
+  return rawOptions
+    .map((option) => {
+      if (!option) {
+        return null;
+      }
+      if (typeof option === "string") {
+        return option;
+      }
+      if (typeof option === "object") {
+        const value = (option as any).label ?? (option as any).value;
+        return value ? String(value) : null;
+      }
+      return null;
+    })
+    .filter((value): value is string => Boolean(value));
+}
+
 function parseViewConfig(value: unknown): ViewConfig {
   if (!value || typeof value !== "object") {
     return {};
@@ -353,6 +396,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState<ColumnKind>(COLUMN_TYPE_ENUM.TEXT);
+  const [newColumnOptions, setNewColumnOptions] = useState("");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<{ createdColumns: number; createdRows: number } | null>(null);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
@@ -363,6 +407,14 @@ export function TableGrid({ tableId }: TableGridProps) {
   useEffect(() => {
     setColumnOrder(baseColumnOrder);
   }, [baseColumnOrder]);
+
+  useEffect(() => {
+    if (!isAddColumnOpen) {
+      setNewColumnName("");
+      setNewColumnType(COLUMN_TYPE_ENUM.TEXT);
+      setNewColumnOptions("");
+    }
+  }, [isAddColumnOpen]);
 
   useEffect(() => {
     setColumnVisibility((prev) => {
@@ -510,11 +562,76 @@ export function TableGrid({ tableId }: TableGridProps) {
     [updateColumnMutation]
   );
 
+  const handleChangeColumnType = useCallback(
+    (column: TableColumnDto, nextType: ColumnKind) => {
+      if (column.type === nextType) {
+        return;
+      }
+
+      const payload: { type: ColumnKind; config?: unknown } = { type: nextType };
+
+      if (nextType === COLUMN_TYPE_ENUM.SELECT) {
+        const existing = extractSelectOptionLabels(column.config);
+        const defaultValue = existing.join(", ");
+        const input = typeof window !== "undefined"
+          ? window.prompt(
+              "Enter select options separated by commas or line breaks",
+              defaultValue
+            )
+          : "";
+
+        if (input === null) {
+          return;
+        }
+
+        const values = parseSelectOptionsInput(input ?? "");
+        payload.config = buildSelectConfig(values);
+      } else if (column.type === COLUMN_TYPE_ENUM.SELECT) {
+        payload.config = null;
+      }
+
+      updateColumnMutation.mutate({ id: column.id, payload });
+    },
+    [updateColumnMutation]
+  );
+
   const handleCommitCell = useCallback(
     (rowId: string, columnId: string, value: unknown) => {
       patchCellsMutation.mutate({ rowId, cells: [{ columnId, value }] });
     },
     [patchCellsMutation]
+  );
+
+  const handleMoveColumn = useCallback(
+    (columnId: string, direction: "left" | "right") => {
+      setColumnOrder((prev) => {
+        const currentIndex = prev.indexOf(columnId);
+        if (currentIndex === -1) {
+          return prev;
+        }
+
+        const targetIndex =
+          direction === "left"
+            ? Math.max(currentIndex - 1, 0)
+            : Math.min(currentIndex + 1, prev.length - 1);
+
+        if (targetIndex === currentIndex) {
+          return prev;
+        }
+
+        const next = arrayMove(prev, currentIndex, targetIndex);
+        const newPosition = next.indexOf(columnId) + 1;
+        updateColumnMutation.mutate({ id: columnId, payload: { position: newPosition } });
+
+        if (activeViewId) {
+          const config = buildConfig({ filters, sorts, columnVisibility, columnOrder: next });
+          updateViewMutation.mutate({ id: activeViewId, payload: { config } });
+        }
+
+        return next;
+      });
+    },
+    [activeViewId, columnVisibility, filters, sorts, updateColumnMutation, updateViewMutation]
   );
 
   const columnDefs = useMemo<ColumnDef<GridRow>[]>(() => {
@@ -573,19 +690,30 @@ export function TableGrid({ tableId }: TableGridProps) {
       defs.push({
         id: column.id,
         accessorKey: column.id,
-        header: () => (
-          <ColumnHeader
-            column={column}
-            columnVisibility={columnVisibility}
-            onToggleVisibility={() => handleToggleColumnVisibility(column.id)}
-            onDelete={() => handleDeleteColumn(column.id)}
-            onStartRename={() => startRenameColumn(column)}
-            isEditing={editingColumnId === column.id}
-            editingName={editingColumnName}
-            onEditingNameChange={setEditingColumnName}
-            onCommit={(next) => commitRename(column.id, next)}
-          />
-        ),
+        header: () => {
+          const columnIndex = columnOrder.indexOf(column.id);
+          const canMoveLeft = columnIndex > 0;
+          const canMoveRight = columnIndex > -1 && columnIndex < columnOrder.length - 1;
+
+          return (
+            <ColumnHeader
+              column={column}
+              columnVisibility={columnVisibility}
+              onToggleVisibility={() => handleToggleColumnVisibility(column.id)}
+              onDelete={() => handleDeleteColumn(column.id)}
+              onStartRename={() => startRenameColumn(column)}
+              isEditing={editingColumnId === column.id}
+              editingName={editingColumnName}
+              onEditingNameChange={setEditingColumnName}
+              onCommit={(next) => commitRename(column.id, next)}
+              onChangeType={(next) => handleChangeColumnType(column, next)}
+              onMoveLeft={() => handleMoveColumn(column.id, "left")}
+              onMoveRight={() => handleMoveColumn(column.id, "right")}
+              canMoveLeft={canMoveLeft}
+              canMoveRight={canMoveRight}
+            />
+          );
+        },
         cell: ({ row, getValue }) => (
           <CellEditor
             column={column}
@@ -610,7 +738,10 @@ export function TableGrid({ tableId }: TableGridProps) {
     handleDeleteColumn,
     startRenameColumn,
     commitRename,
-    handleCommitCell
+    handleCommitCell,
+    columnOrder,
+    handleMoveColumn,
+    handleChangeColumnType
   ]);
 
   const tableColumnOrder = useMemo(() => ["__select__", "__position__", ...columnOrder], [columnOrder]);
@@ -663,9 +794,17 @@ export function TableGrid({ tableId }: TableGridProps) {
 
   const handleAddColumn = async () => {
     const name = newColumnName.trim() || "New column";
-    await createColumnMutation.mutateAsync({ name, type: newColumnType });
-    setNewColumnName("");
-    setNewColumnType(COLUMN_TYPE_ENUM.TEXT);
+    const payload: { name: string; type: ColumnKind; config?: unknown } = {
+      name,
+      type: newColumnType
+    };
+
+    if (newColumnType === COLUMN_TYPE_ENUM.SELECT) {
+      const values = parseSelectOptionsInput(newColumnOptions);
+      payload.config = buildSelectConfig(values);
+    }
+
+    await createColumnMutation.mutateAsync(payload);
     setIsAddColumnOpen(false);
   };
 
@@ -1111,6 +1250,21 @@ export function TableGrid({ tableId }: TableGridProps) {
                   ))}
                 </div>
               </div>
+              {newColumnType === COLUMN_TYPE_ENUM.SELECT ? (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground" htmlFor="column-options">
+                    Options
+                  </label>
+                  <textarea
+                    id="column-options"
+                    value={newColumnOptions}
+                    onChange={(event) => setNewColumnOptions(event.target.value)}
+                    placeholder={"One option per line"}
+                    className="min-h-[96px] w-full rounded-2xl border border-border/60 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                  />
+                  <p className="text-xs text-muted-foreground">Enter one option per line or separate with commas.</p>
+                </div>
+              ) : null}
               <div className="flex items-center justify-end gap-3">
                 <Button type="button" variant="ghost" onClick={() => setIsAddColumnOpen(false)}>
                   Cancel
@@ -1150,6 +1304,11 @@ interface ColumnHeaderProps {
   editingName: string;
   onEditingNameChange: (value: string) => void;
   onCommit: (value: string) => void;
+  onChangeType: (next: ColumnKind) => void;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
 }
 
 interface SortableColumnHeaderProps {
@@ -1189,7 +1348,12 @@ function ColumnHeader({
   isEditing,
   editingName,
   onEditingNameChange,
-  onCommit
+  onCommit,
+  onChangeType,
+  onMoveLeft,
+  onMoveRight,
+  canMoveLeft,
+  canMoveRight
 }: ColumnHeaderProps) {
   return (
     <div className="flex items-center justify-between gap-2">
@@ -1224,6 +1388,11 @@ function ColumnHeader({
         onToggleVisibility={onToggleVisibility}
         onDelete={onDelete}
         isHidden={!columnVisibility[column.id]}
+        onChangeType={onChangeType}
+        onMoveLeft={onMoveLeft}
+        onMoveRight={onMoveRight}
+        canMoveLeft={canMoveLeft}
+        canMoveRight={canMoveRight}
       />
     </div>
   );

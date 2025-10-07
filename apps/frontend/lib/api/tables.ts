@@ -98,7 +98,7 @@ async function createColumn(tableId: string, payload: Omit<CreateColumnDto, "tab
   });
 }
 
-async function updateColumn(id: string, payload: UpdateColumnDto) {
+async function updateColumn(id: string, payload: UpdateColumnDto & { type?: TableColumnDto["type"] }) {
   return request<TableColumnDto>(`${TABLES_API_PATH}/columns/${id}`, {
     method: "PATCH",
     body: JSON.stringify(payload)
@@ -261,7 +261,13 @@ export function useCreateColumnMutation(tableId: string) {
 export function useUpdateColumnMutation(tableId: string) {
   const invalidate = useInvalidateTableDetail();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateColumnDto }) => updateColumn(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: UpdateColumnDto & { type?: TableColumnDto["type"] };
+    }) => updateColumn(id, payload),
     onSuccess: (_, variables) => invalidate(tableId)
   });
 }

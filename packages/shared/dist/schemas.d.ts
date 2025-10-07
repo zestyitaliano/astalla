@@ -1535,21 +1535,26 @@ export declare const createColumnDtoSchema: z.ZodObject<{
 export declare const updateColumnDtoSchema: z.ZodEffects<z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     position: z.ZodOptional<z.ZodNumber>;
+    type: z.ZodOptional<z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>>;
     config: z.ZodOptional<z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
+    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
     config?: unknown;
     position?: number | undefined;
 }, {
     name?: string | undefined;
+    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
     config?: unknown;
     position?: number | undefined;
 }>, {
     name?: string | undefined;
+    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
     config?: unknown;
     position?: number | undefined;
 }, {
     name?: string | undefined;
+    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
     config?: unknown;
     position?: number | undefined;
 }>;

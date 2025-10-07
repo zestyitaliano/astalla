@@ -136,6 +136,13 @@ export class TablesService {
         data.config = dto.config;
       }
 
+      if (dto.type && dto.type !== column.type) {
+        data.type = dto.type as PrismaColumnType;
+        if (dto.type !== PrismaColumnType.SELECT && dto.config === undefined) {
+          data.config = null;
+        }
+      }
+
       if (dto.position !== undefined && dto.position !== column.position) {
         if (dto.position < 1) {
           throw new BadRequestException("Position must be greater than 0");
