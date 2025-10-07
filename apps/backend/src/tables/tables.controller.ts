@@ -13,6 +13,7 @@ import {
   UseInterceptors
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import type { Buffer } from "node:buffer";
 import {
   CreateColumnDto,
   CreateRowDto,
@@ -24,6 +25,10 @@ import {
   UpdateViewDto
 } from "@shared/api";
 import type { Response } from "express";
+
+type UploadedCsvFile = {
+  buffer: Buffer;
+};
 
 import { TablesService } from "./tables.service";
 
@@ -132,7 +137,7 @@ export class TablesController {
 
   @Post(":id/import.csv")
   @UseInterceptors(FileInterceptor("file"))
-  async importCsv(@Param("id") id: string, @UploadedFile() file: Express.Multer.File) {
+  async importCsv(@Param("id") id: string, @UploadedFile() file: UploadedCsvFile) {
     if (!file) {
       throw new BadRequestException("file is required");
     }
