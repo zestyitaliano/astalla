@@ -404,6 +404,7 @@ export const updateColumnDtoSchema = z
   .object({
     name: z.string().optional(),
     position: z.number().int().optional(),
+    type: columnTypeSchema.optional(),
     config: z.unknown().optional()
   })
   .refine((payload) => Object.keys(payload).length > 0, {
