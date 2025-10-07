@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "nest start --watch",
     "start": "nest start",
+    "prebuild": "pnpm prisma generate",
     "build": "nest build",
     "lint": "eslint ./src --ext .ts",
     "pretypecheck": "pnpm prisma generate",
