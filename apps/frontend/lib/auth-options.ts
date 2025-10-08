@@ -13,7 +13,7 @@ type Account = {
 type EnvironmentAccount = Account;
 
 const isMockMode =
-  process.env.NEXT_PUBLIC_MOCK_MODE === "true" || process.env.MOCK_MODE === "true";
+  process.env.DEV_MOCKS === "true" || process.env.NEXT_PUBLIC_DEV_MOCKS === "true";
 
 const fallbackUser = {
   id: "demo-user",

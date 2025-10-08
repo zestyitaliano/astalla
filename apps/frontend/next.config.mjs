@@ -9,6 +9,9 @@ const nextConfig = {
   experimental: {
     typedRoutes: true,
     outputFileTracingRoot: path.join(__dirname, "../..")
+  },
+  env: {
+    DEV_MOCKS: process.env.DEV_MOCKS ?? "false"
   }
 };
 

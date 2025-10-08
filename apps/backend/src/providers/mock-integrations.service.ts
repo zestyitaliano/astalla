@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { WeeklyReportResponse } from "@shared/api";
 
@@ -16,12 +16,20 @@ import {
 @Injectable()
 export class MockIntegrationsService {
   private readonly logger = new Logger(MockIntegrationsService.name);
+  private readonly devMocksEnabled: boolean;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
+  }
 
   private ensureMockMode() {
-    if (!this.configService.get<boolean>("mockMode")) {
-      this.logger.warn("Mock integrations used while MOCK_MODE is disabled. Configure real providers for production use.");
+    if (!this.devMocksEnabled) {
+      this.logger.error(
+        "Mock integrations attempted while DEV_MOCKS is disabled. Configure real providers for production use."
+      );
+      throw new ServiceUnavailableException(
+        "Developer mock integrations are disabled. Set DEV_MOCKS=true to enable mock data paths."
+      );
     }
   }
 

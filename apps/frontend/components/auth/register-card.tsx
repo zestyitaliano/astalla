@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { apiBaseUrl } from "@/lib/utils";
 import { registerBasicAuthResponseSchema } from "@shared/api";
 
-const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === "true";
+const isMockMode =
+  process.env.DEV_MOCKS === "true" || process.env.NEXT_PUBLIC_DEV_MOCKS === "true";
 
 function toErrorMessage(input: unknown): string {
   if (!input) {

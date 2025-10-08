@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   ApplicationStatus,
@@ -113,8 +119,10 @@ interface ExecutionContextOptions {
 export class DevProvidersService {
   private readonly logger = new Logger(DevProvidersService.name);
   private readonly encryptionKey?: Buffer;
+  private readonly devMocksEnabled: boolean;
 
   constructor(private readonly prisma: PrismaService, private readonly configService: ConfigService) {
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
     const configuredKey = this.configService.get<string>("ENCRYPTION_KEY") ?? process.env.ENCRYPTION_KEY;
     if (configuredKey && configuredKey.trim().length > 0) {
       this.encryptionKey = createHash("sha256").update(configuredKey).digest();
@@ -122,6 +130,7 @@ export class DevProvidersService {
   }
 
   async getScriptBySource(sourceId: string) {
+    this.ensureDevMocksEnabled();
     const script = await this.prisma.providerScript.findUnique({ where: { sourceId } });
     if (!script) {
       return {
@@ -154,6 +163,7 @@ export class DevProvidersService {
   }
 
   async saveDraft(sourceId: string, code: string, readme?: string, createdBy?: string) {
+    this.ensureDevMocksEnabled();
     const existing = await this.prisma.providerScript.findUnique({ where: { sourceId } });
     const nextVersion = existing ? (existing.code === code ? existing.version : existing.version + 1) : 1;
 
@@ -172,6 +182,7 @@ export class DevProvidersService {
   }
 
   async publish(sourceId: string, publishedBy?: string) {
+    this.ensureDevMocksEnabled();
     const script = await this.prisma.providerScript.findUnique({ where: { sourceId } });
     if (!script) {
       throw new NotFoundException("No script to publish");
@@ -190,6 +201,7 @@ export class DevProvidersService {
   }
 
   async runValidate(sourceId: string) {
+    this.ensureDevMocksEnabled();
     const { source, script } = await this.loadSourceAndScript(sourceId);
     if (!script) {
       throw new NotFoundException("No script available");
@@ -226,6 +238,7 @@ export class DevProvidersService {
   }
 
   async run(sourceId: string, createdBy?: string) {
+    this.ensureDevMocksEnabled();
     const { source, script } = await this.loadSourceAndScript(sourceId);
     if (!script) {
       throw new NotFoundException("No script available");
@@ -290,6 +303,7 @@ export class DevProvidersService {
   }
 
   async listLogs(sourceId: string, limit?: number, cursor?: string) {
+    this.ensureDevMocksEnabled();
     const take = limit && Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 100) : 20;
     return this.prisma.sourceActionLog.findMany({
       where: { sourceId },
@@ -1024,5 +1038,13 @@ export class DevProvidersService {
     }
 
     throw new Error("Unsupported fetch input type");
+  }
+
+  private ensureDevMocksEnabled() {
+    if (!this.devMocksEnabled) {
+      throw new ServiceUnavailableException(
+        "Provider studio mocks are disabled. Set DEV_MOCKS=true to enable developer mock data."
+      );
+    }
   }
 }

@@ -25,7 +25,7 @@ import { TablesModule } from "./tables/tables.module";
           app: {
             port: Number(process.env.PORT || 3001)
           },
-          mockMode: process.env.MOCK_MODE === "true",
+          devMocks: process.env.DEV_MOCKS === "true",
           frontend: {
             origin: process.env.FRONTEND_ORIGIN
           },

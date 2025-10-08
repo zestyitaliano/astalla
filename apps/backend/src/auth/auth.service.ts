@@ -16,6 +16,7 @@ import { RegisterDto } from "./dto/register.dto";
 @Injectable()
 export class AuthService {
   private readonly hasDatabase: boolean;
+  private readonly devMocksEnabled: boolean;
 
   constructor(
     private readonly integrations: MockIntegrationsService,
@@ -23,10 +24,17 @@ export class AuthService {
     private readonly configService: ConfigService
   ) {
     this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
   }
 
   async getCurrentUser(useMock = false) {
-    if (useMock || !this.hasDatabase) {
+    if (useMock) {
+      this.ensureDevMocksEnabled("Account profile");
+      return this.integrations.getCurrentUser();
+    }
+
+    if (!this.hasDatabase) {
+      this.ensureDevMocksEnabled("Account profile");
       return this.integrations.getCurrentUser();
     }
 
@@ -42,6 +50,11 @@ export class AuthService {
     });
 
     if (!user) {
+      if (!this.devMocksEnabled) {
+        throw new ServiceUnavailableException(
+          "No user accounts found. Seed the database or enable DEV_MOCKS=true to use mock identities."
+        );
+      }
       return this.integrations.getCurrentUser();
     }
 
@@ -202,6 +215,14 @@ export class AuthService {
       username: envUsername || undefined,
       orgId: undefined
     };
+  }
+
+  private ensureDevMocksEnabled(context: string) {
+    if (!this.devMocksEnabled) {
+      throw new ServiceUnavailableException(
+        `${context} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
+      );
+    }
   }
 }
 type UserWithCredentials = User & {
