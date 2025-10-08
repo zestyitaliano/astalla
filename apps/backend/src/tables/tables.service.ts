@@ -10,6 +10,7 @@ import {
   UpdateColumnDto,
   UpdateViewDto
 } from "@shared/api";
+
 import { PrismaService } from "../prisma/prisma.service";
 
 const SAMPLE_ROW_LIMIT = 50;
@@ -401,11 +402,13 @@ export class TablesService {
       throw new NotFoundException("Table not found");
     }
 
+    const sanitizedConfig = this.sanitizeViewConfig(dto.config);
+
     const view = await this.prisma.tableView.create({
       data: {
         tableId: dto.tableId,
         name: dto.name,
-        config: this.serializeJson(dto.config),
+        config: this.serializeJson(sanitizedConfig),
         createdBy: actorId ?? undefined
       }
     });
@@ -429,7 +432,8 @@ export class TablesService {
     };
 
     if (dto.config !== undefined) {
-      data.config = this.serializeJson(dto.config);
+      const sanitizedConfig = this.sanitizeViewConfig(dto.config);
+      data.config = this.serializeJson(sanitizedConfig);
     }
 
     const updated = await this.prisma.tableView.update({
@@ -927,16 +931,52 @@ export class TablesService {
 
     const columnOrder = Array.isArray((config as Record<string, unknown>).columnOrder)
       ? ((config as Record<string, unknown>).columnOrder as unknown[])
-          .filter((value) => typeof value === "string")
-          .map((value) => value as string)
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : undefined;
 
     const hidden = Array.isArray((config as Record<string, unknown>).hidden)
       ? ((config as Record<string, unknown>).hidden as unknown[])
-          .filter((value) => typeof value === "string")
-          .map((value) => value as string)
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       : undefined;
 
     return { columnOrder, hidden };
+  }
+
+  private sanitizeViewConfig(config: unknown) {
+    if (!config || typeof config !== "object") {
+      return {} as Record<string, unknown>;
+    }
+
+    const record = { ...(config as Record<string, unknown>) };
+
+    if ("columnOrder" in record) {
+      const order = Array.isArray(record.columnOrder)
+        ? (record.columnOrder as unknown[]).filter(
+            (value): value is string => typeof value === "string" && value.trim().length > 0
+          )
+        : [];
+
+      if (order.length) {
+        record.columnOrder = order;
+      } else {
+        delete record.columnOrder;
+      }
+    }
+
+    if ("hidden" in record) {
+      const hidden = Array.isArray(record.hidden)
+        ? (record.hidden as unknown[]).filter(
+            (value): value is string => typeof value === "string" && value.trim().length > 0
+          )
+        : [];
+
+      if (hidden.length) {
+        record.hidden = hidden;
+      } else {
+        delete record.hidden;
+      }
+    }
+
+    return record;
   }
 }
