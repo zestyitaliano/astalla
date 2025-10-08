@@ -21,6 +21,12 @@ import {
 
 import { apiBaseUrl, isMockMode } from "../utils";
 
+function ensureDevMocksEnabled() {
+  if (!isMockMode()) {
+    throw new Error("Developer mock APIs are disabled. Set DEV_MOCKS=true to enable provider studio requests.");
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   data?: unknown;
@@ -123,6 +129,7 @@ export async function getSourceDetail(id: string): Promise<SourceDetail> {
 }
 
 export async function getProviderScript(sourceId: string): Promise<ProviderScriptResponse> {
+  ensureDevMocksEnabled();
   return request<ProviderScriptResponse>(
     `/admin/dev/providers/${sourceId}/script`,
     { method: "GET" },
@@ -134,6 +141,7 @@ export async function saveProviderScript(
   sourceId: string,
   payload: { code: string; readme?: string }
 ): Promise<ProviderScriptResponse> {
+  ensureDevMocksEnabled();
   const body = JSON.stringify(payload);
   return request<ProviderScriptResponse>(
     `/admin/dev/providers/${sourceId}/script`,
@@ -149,6 +157,7 @@ export async function publishProviderScript(
   sourceId: string,
   publishedBy?: string
 ): Promise<ProviderScriptResponse> {
+  ensureDevMocksEnabled();
   const body = publishedBy ? JSON.stringify({ publishedBy }) : undefined;
   return request<ProviderScriptResponse>(
     `/admin/dev/providers/${sourceId}/publish`,
@@ -161,6 +170,7 @@ export async function publishProviderScript(
 }
 
 export async function validateProviderScript(sourceId: string): Promise<ProviderValidateResponse> {
+  ensureDevMocksEnabled();
   return request<ProviderValidateResponse>(
     `/admin/dev/providers/${sourceId}/validate`,
     { method: "POST" },
@@ -169,6 +179,7 @@ export async function validateProviderScript(sourceId: string): Promise<Provider
 }
 
 export async function runProviderScript(sourceId: string, createdBy?: string): Promise<ProviderRunResponse> {
+  ensureDevMocksEnabled();
   const body = createdBy ? JSON.stringify({ createdBy }) : undefined;
   return request<ProviderRunResponse>(
     `/admin/dev/providers/${sourceId}/run`,
@@ -186,6 +197,7 @@ export interface ProviderLogPage {
 }
 
 export async function listProviderLogs(sourceId: string, cursor?: string): Promise<ProviderLogPage> {
+  ensureDevMocksEnabled();
   const search = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
   const response = await fetch(`${apiBaseUrl}/admin/dev/providers/${sourceId}/logs${search}`, {
     method: "GET",

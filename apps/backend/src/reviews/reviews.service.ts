@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { LatestReviewsResponse } from "@shared/api";
 
@@ -9,6 +9,7 @@ import { MockIntegrationsService } from "../providers/mock-integrations.service"
 export class ReviewsService {
   private readonly logger = new Logger(ReviewsService.name);
   private readonly hasDatabase: boolean;
+  private readonly devMocksEnabled: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -16,6 +17,7 @@ export class ReviewsService {
     private readonly integrations: MockIntegrationsService
   ) {
     this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
   }
 
   async getLatest(propertyId?: string, useMock = false): Promise<LatestReviewsResponse> {
@@ -23,7 +25,13 @@ export class ReviewsService {
       throw new BadRequestException("propertyId is required to fetch reviews");
     }
 
-    if (useMock || !this.hasDatabase) {
+    if (useMock) {
+      this.ensureDevMocksEnabled("Reviews");
+      return this.integrations.getLatestReviews(propertyId);
+    }
+
+    if (!this.hasDatabase) {
+      this.ensureDevMocksEnabled("Reviews");
       return this.integrations.getLatestReviews(propertyId);
     }
 
@@ -75,7 +83,18 @@ export class ReviewsService {
       };
     } catch (error) {
       this.logger.warn(`Falling back to mock reviews: ${(error as Error).message}`);
+      if (!this.devMocksEnabled) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       return this.integrations.getLatestReviews(propertyId);
+    }
+  }
+
+  private ensureDevMocksEnabled(feature: string) {
+    if (!this.devMocksEnabled) {
+      throw new ServiceUnavailableException(
+        `${feature} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
+      );
     }
   }
 }

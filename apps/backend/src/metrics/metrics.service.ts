@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { CostMetricsResponse, OccupancyMetricsResponse, PipelineMetricsResponse } from "@shared/api";
 import { addDays, startOfDay, subDays } from "date-fns";
@@ -10,6 +16,7 @@ import { MockIntegrationsService } from "../providers/mock-integrations.service"
 export class MetricsService {
   private readonly logger = new Logger(MetricsService.name);
   private readonly hasDatabase: boolean;
+  private readonly devMocksEnabled: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -17,6 +24,7 @@ export class MetricsService {
     private readonly integrations: MockIntegrationsService
   ) {
     this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
   }
 
   async getOccupancy(propertyId?: string, windowParam?: string, useMock = false): Promise<OccupancyMetricsResponse> {
@@ -26,7 +34,13 @@ export class MetricsService {
 
     const windowDays = this.resolveWindow(windowParam);
 
-    if (useMock || !this.hasDatabase) {
+    if (useMock) {
+      this.ensureDevMocksEnabled("Occupancy metrics");
+      return this.integrations.getOccupancyMetrics(propertyId, String(windowDays));
+    }
+
+    if (!this.hasDatabase) {
+      this.ensureDevMocksEnabled("Occupancy metrics");
       return this.integrations.getOccupancyMetrics(propertyId, String(windowDays));
     }
 
@@ -34,6 +48,9 @@ export class MetricsService {
       return await this.computeOccupancy(propertyId, windowDays);
     } catch (error) {
       this.logger.warn(`Falling back to mock occupancy metrics: ${(error as Error).message}`);
+      if (!this.devMocksEnabled) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       return this.integrations.getOccupancyMetrics(propertyId, String(windowDays));
     }
   }
@@ -45,7 +62,13 @@ export class MetricsService {
 
     const windowDays = this.resolveWindow(windowParam);
 
-    if (useMock || !this.hasDatabase) {
+    if (useMock) {
+      this.ensureDevMocksEnabled("Pipeline metrics");
+      return this.integrations.getPipelineMetrics(propertyId, String(windowDays));
+    }
+
+    if (!this.hasDatabase) {
+      this.ensureDevMocksEnabled("Pipeline metrics");
       return this.integrations.getPipelineMetrics(propertyId, String(windowDays));
     }
 
@@ -53,6 +76,9 @@ export class MetricsService {
       return await this.computePipeline(propertyId, windowDays);
     } catch (error) {
       this.logger.warn(`Falling back to mock pipeline metrics: ${(error as Error).message}`);
+      if (!this.devMocksEnabled) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       return this.integrations.getPipelineMetrics(propertyId, String(windowDays));
     }
   }
@@ -64,7 +90,13 @@ export class MetricsService {
 
     const windowDays = this.resolveWindow(windowParam);
 
-    if (useMock || !this.hasDatabase) {
+    if (useMock) {
+      this.ensureDevMocksEnabled("Cost metrics");
+      return this.integrations.getCostMetrics(propertyId, String(windowDays));
+    }
+
+    if (!this.hasDatabase) {
+      this.ensureDevMocksEnabled("Cost metrics");
       return this.integrations.getCostMetrics(propertyId, String(windowDays));
     }
 
@@ -72,6 +104,9 @@ export class MetricsService {
       return await this.computeCost(propertyId, windowDays);
     } catch (error) {
       this.logger.warn(`Falling back to mock cost metrics: ${(error as Error).message}`);
+      if (!this.devMocksEnabled) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       return this.integrations.getCostMetrics(propertyId, String(windowDays));
     }
   }
@@ -298,5 +333,13 @@ export class MetricsService {
       spendChange: Number(spendChange.toFixed(4)),
       trend
     };
+  }
+
+  private ensureDevMocksEnabled(feature: string) {
+    if (!this.devMocksEnabled) {
+      throw new ServiceUnavailableException(
+        `${feature} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
+      );
+    }
   }
 }

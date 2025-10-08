@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, SourceAccountType } from "@prisma/client";
 import type { SourceAccount } from "@prisma/client";
@@ -93,6 +93,7 @@ const MOCK_SOURCES: SourceSummary[] = [
 export class SourcesService {
   private readonly logger = new Logger(SourcesService.name);
   private readonly encryptionKey?: Buffer;
+  private readonly devMocksEnabled: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -103,6 +104,7 @@ export class SourcesService {
     private readonly googleAdsProvider: GoogleAdsProvider,
     private readonly gbpProvider: GoogleBusinessProvider
   ) {
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
     const configuredKey = this.configService.get<string>("ENCRYPTION_KEY") ?? process.env.ENCRYPTION_KEY;
     if (configuredKey && configuredKey.trim().length > 0) {
       this.encryptionKey = createHash("sha256").update(configuredKey).digest();
@@ -132,6 +134,7 @@ export class SourcesService {
       });
 
       if (sources.length === 0 && useMockFallback) {
+        this.ensureDevMocksEnabled("Source listings");
         return { sources: MOCK_SOURCES };
       }
 
@@ -139,6 +142,7 @@ export class SourcesService {
     } catch (error) {
       this.logger.error("Unable to load sources", error as Error);
       if (useMockFallback) {
+        this.ensureDevMocksEnabled("Source listings");
         return { sources: MOCK_SOURCES };
       }
       throw error;
@@ -400,6 +404,14 @@ export class SourcesService {
       return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
     } catch {
       return String(value) as Prisma.InputJsonValue;
+    }
+  }
+
+  private ensureDevMocksEnabled(feature: string) {
+    if (!this.devMocksEnabled) {
+      throw new ServiceUnavailableException(
+        `${feature} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
+      );
     }
   }
 }

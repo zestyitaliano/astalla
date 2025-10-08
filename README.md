@@ -20,23 +20,28 @@ packages/
 
 ## Environment variables
 
- codex/update-apibaseurl-for-production-cx751h
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and must always be set in hosted environments. During local development the browser can fall back to `window.location.origin`, but only when the app is loaded from a localhost hostname; the Next.js server process still requires an explicit value. Hosted builds automatically refuse localhost targets and fall back to `NEXTAUTH_URL`/`VERCEL_URL` so requests remain reachable, but you should still configure a deployable backend URL. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+Copy `.env.example` to `.env` in the repo root and adjust the placeholders as needed. All traffic between the apps flows through `NEXT_PUBLIC_API_BASE_URL`, so make sure it always points at a reachable backend URL (Render in production, `http://localhost:3001` in local development). The value is consumed by both browser and server components in the Next.js app, so leaving it unset will break sign-in flows and server-side rendering.
 
- codex/update-apibaseurl-for-production-2i1kks
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and must always be set in hosted environments. During local development the browser can fall back to `window.location.origin`, but only when the app is loaded from a localhost hostname; the Next.js server process still requires an explicit value. Hosted builds automatically refuse localhost targets and fall back to `NEXTAUTH_URL`/`VERCEL_URL` so requests remain reachable, but you should still configure a deployable backend URL. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+### Shared
 
- codex/update-apibaseurl-for-production-tp1cuq
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and must always be set in hosted environments. During local development the browser can fall back to `window.location.origin`, but only when the app is loaded from a localhost hostname; the Next.js server process still requires an explicit value. Deployed builds refuse localhost targets and instead fall back to the deployed origin so requests remain reachable. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+- `NEXT_PUBLIC_API_BASE_URL` – Base URL for the Nest API. Required in every environment (including local dev when running via `pnpm dev`).
+- `DEV_MOCKS` – Opt-in flag for developer mocks. Defaults to `false`; set to `true` only when you intentionally want MSW/sample data.
 
- codex/update-apibaseurl-for-production-xixhcs
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. When a deployed build runs in the browser with a `NEXT_PUBLIC_API_BASE_URL` that targets `localhost`, the helper falls back to the deployed origin to avoid unreachable requests. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+### Frontend (`apps/frontend`)
 
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. Configure `DATABASE_URL` so the backend can persist accounts created through the UI. When deploying, share the deployed frontend origin(s) with the backend via `FRONTEND_ORIGIN`. The value supports comma-separated origins so you can allow production and preview URLs (for example `FRONTEND_ORIGIN="https://app.astalla.com,https://*.vercel.app"`).
- main
- main
- main
- main
+- `NEXTAUTH_URL` – Public URL for the Next.js app (used by NextAuth callbacks).
+- `NEXTAUTH_SECRET` – Secret for NextAuth session encryption.
+- `BASIC_AUTH_USERNAME`/`BASIC_AUTH_EMAIL`/`BASIC_AUTH_PASSWORD`/`BASIC_AUTH_NAME` – Optional legacy basic-auth credentials.
+- `NEXT_PUBLIC_MAIN_HOST` – Optional marketing host override (defaults to `astalla.com`).
+- `NEXT_PUBLIC_DATA_PERSISTENCE` – Set to `false` to disable client-side persistence for tables.
+
+### Backend (`apps/backend`)
+
+- `PORT` – API port (defaults to `3001`).
+- `DATABASE_URL` – Postgres connection string for Prisma.
+- `REDIS_URL` – Redis connection for BullMQ jobs (optional in local dev when Docker Compose is running).
+- `FRONTEND_ORIGIN` – Comma-separated list of allowed web origins. Include production and preview URLs, for example `https://app.astalla.com,https://*.vercel.app`.
+- `DEV_MOCKS` – Matches the shared flag; enables sample data providers when `true`.
 
 ## Local development
 
@@ -67,9 +72,9 @@ Copy `.env.example` to `.env` in the repo root and adjust the basic auth credent
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:3001
 
-## Mock mode
+## Developer mocks
 
-Mock integrations are disabled by default so preview and production environments always talk to real providers. For local development you can still flip the switch by setting `MOCK_MODE=true` (and `NEXT_PUBLIC_MOCK_MODE=true` for the frontend), which activates MSW-powered mocks in the UI and sample data providers in the API.
+Mock integrations are disabled by default so preview and production environments always talk to real providers. For local development you can still flip the switch by setting `DEV_MOCKS=true` (the Next.js build picks this up automatically). That activates MSW-powered mocks in the UI and the sample data providers in the API. Leave the flag unset or `false` in any hosted environment.
 
 ## Theming & contrast
 
@@ -110,7 +115,7 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
    - `BASIC_AUTH_PASSWORD=<optional legacy basic-auth password>`
    - `BASIC_AUTH_NAME=<optional display name>`
    - `NEXT_PUBLIC_API_BASE_URL=https://api.astalla.com` (point at the Render backend; update preview environments with their API URL)
-   - Leave `MOCK_MODE`/`NEXT_PUBLIC_MOCK_MODE` unset (or `false`) outside of local development so real integrations stay active.
+   - Leave `DEV_MOCKS` unset (or `false`) outside of local development so real integrations stay active.
 4. Trigger a build—Vercel will install dependencies with pnpm automatically.
 
 ### Backend (Render)

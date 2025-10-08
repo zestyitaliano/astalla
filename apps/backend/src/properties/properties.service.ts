@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { PropertiesResponse } from "@shared/api";
 
@@ -9,6 +9,7 @@ import { MockIntegrationsService } from "../providers/mock-integrations.service"
 export class PropertiesService {
   private readonly logger = new Logger(PropertiesService.name);
   private readonly hasDatabase: boolean;
+  private readonly devMocksEnabled: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -16,10 +17,17 @@ export class PropertiesService {
     private readonly integrations: MockIntegrationsService
   ) {
     this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
+    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
   }
 
   async list(useMock = false): Promise<PropertiesResponse> {
-    if (useMock || !this.hasDatabase) {
+    if (useMock) {
+      this.ensureDevMocksEnabled("Property catalog");
+      return this.integrations.getProperties();
+    }
+
+    if (!this.hasDatabase) {
+      this.ensureDevMocksEnabled("Property catalog");
       return this.integrations.getProperties();
     }
 
@@ -48,7 +56,18 @@ export class PropertiesService {
       };
     } catch (error) {
       this.logger.warn(`Falling back to mock property catalog: ${(error as Error).message}`);
+      if (!this.devMocksEnabled) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       return this.integrations.getProperties();
+    }
+  }
+
+  private ensureDevMocksEnabled(feature: string) {
+    if (!this.devMocksEnabled) {
+      throw new ServiceUnavailableException(
+        `${feature} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
+      );
     }
   }
 }
