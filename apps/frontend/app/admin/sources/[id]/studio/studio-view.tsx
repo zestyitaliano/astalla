@@ -20,7 +20,7 @@ import {
   Save,
   UploadCloud
 } from "lucide-react";
-import type { editor as MonacoEditorType } from "monaco-editor";
+import type { editor as MonacoEditorType, IDisposable } from "monaco-editor";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -150,7 +150,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
   const persistDraftRef = useRef<
     ((options?: { silent?: boolean; force?: boolean }) => Promise<ProviderScriptResponse | undefined>) | null
   >(null);
-  const editorBlurDisposableRef = useRef<MonacoEditorType.IDisposable | null>(null);
+  const editorBlurDisposableRef = useRef<IDisposable | null>(null);
 
   const scriptQuery = useQuery({
     queryKey: ["provider-script", sourceId],
