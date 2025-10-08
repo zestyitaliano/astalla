@@ -32,7 +32,7 @@ Copy `.env.example` to `.env` in the repo root and adjust the basic auth credent
  codex/update-apibaseurl-for-production-xixhcs
 Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. When a deployed build runs in the browser with a `NEXT_PUBLIC_API_BASE_URL` that targets `localhost`, the helper falls back to the deployed origin to avoid unreachable requests. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
 
-Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. Configure `DATABASE_URL` so the backend can persist accounts created through the UI.
+Copy `.env.example` to `.env` in the repo root and adjust the basic auth credentials as needed. The frontend's basic-auth flow accepts either the configured credentials or accounts created through the `/register` page backed by the Nest API. `NEXT_PUBLIC_API_BASE_URL` must point to the backend API for server-side flows (such as NextAuth) and should always be set in hosted environments. During local development, browser-only code falls back to `window.location.origin`, but the server process still requires an explicit value. Configure `DATABASE_URL` so the backend can persist accounts created through the UI. When deploying, share the deployed frontend origin(s) with the backend via `FRONTEND_ORIGIN`. The value supports comma-separated origins so you can allow production and preview URLs (for example `FRONTEND_ORIGIN="https://app.astalla.com,https://*.vercel.app"`).
  main
  main
  main
@@ -102,7 +102,15 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 
 1. Connect the repository to Vercel.
 2. Set the project root to `apps/frontend`.
-3. Configure environment variables (`NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_EMAIL`, `BASIC_AUTH_PASSWORD`, optional `BASIC_AUTH_NAME`, **required** `NEXT_PUBLIC_API_BASE_URL`). Leave `MOCK_MODE`/`NEXT_PUBLIC_MOCK_MODE` unset (or `false`) outside of local development so real integrations stay active.
+3. Configure environment variables. Example production values:
+   - `NEXTAUTH_URL=https://app.astalla.com`
+   - `NEXTAUTH_SECRET=<generate a strong secret>`
+   - `BASIC_AUTH_USERNAME=<optional legacy basic-auth username>`
+   - `BASIC_AUTH_EMAIL=<optional legacy basic-auth email>`
+   - `BASIC_AUTH_PASSWORD=<optional legacy basic-auth password>`
+   - `BASIC_AUTH_NAME=<optional display name>`
+   - `NEXT_PUBLIC_API_BASE_URL=https://api.astalla.com` (point at the Render backend; update preview environments with their API URL)
+   - Leave `MOCK_MODE`/`NEXT_PUBLIC_MOCK_MODE` unset (or `false`) outside of local development so real integrations stay active.
 4. Trigger a build—Vercel will install dependencies with pnpm automatically.
 
 ### Backend (Render)
@@ -110,7 +118,7 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 1. Create a new Render Web Service pointing to `apps/backend`.
 2. Set the build command to `pnpm install && pnpm --filter apps-backend build`.
 3. Set the start command to `pnpm --filter apps-backend start`.
-4. Provision a Postgres instance and Redis (or supply external connection strings) and expose them via `DATABASE_URL` and `REDIS_URL` env vars. Include `FRONTEND_ORIGIN` so CORS is configured correctly.
+4. Provision a Postgres instance and Redis (or supply external connection strings) and expose them via `DATABASE_URL` and `REDIS_URL` env vars. Set `FRONTEND_ORIGIN` to the comma-separated list of allowed web origins—for production use `FRONTEND_ORIGIN="https://app.astalla.com,https://*.vercel.app"` so the API accepts both the primary app and Vercel preview deployments.
 
 > For preview environments, be sure to share the backend URL with the frontend via `NEXT_PUBLIC_API_BASE_URL` and `NEXTAUTH_URL`. Without `NEXT_PUBLIC_API_BASE_URL`, server-side code in the frontend cannot contact the API.
 

@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { apiBaseUrl } from "@/lib/utils";
+
 export async function GET(req: NextRequest) {
   const host = req.nextUrl.searchParams.get("host");
   if (!host) {
     return NextResponse.json({ error: "missing host" }, { status: 400 });
-  }
-
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL ?? process.env.BACKEND_URL;
-
-  if (!apiBaseUrl) {
-    return NextResponse.json({ error: "API base url not configured" }, { status: 500 });
   }
 
   try {
