@@ -15,10 +15,17 @@ async function bootstrap() {
 
   const frontendOrigin = configService.get<string>("frontend.origin");
   if (frontendOrigin) {
-    app.enableCors({
-      origin: frontendOrigin.split(",").map((origin) => origin.trim()),
-      credentials: true
-    });
+    const allowedOrigins = frontendOrigin
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0);
+
+    if (allowedOrigins.length > 0) {
+      app.enableCors({
+        origin: allowedOrigins,
+        credentials: true
+      });
+    }
   }
 
   const port = configService.get<number>("app.port", 3001);

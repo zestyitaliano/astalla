@@ -2,6 +2,8 @@ import { Share2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
 
+import { apiBaseUrl } from "@/lib/utils";
+
 interface PublicDashboardProps {
   searchParams: Record<string, string | string[] | undefined>;
 }
@@ -41,13 +43,6 @@ export const metadata: Metadata = {
 
 async function loadDashboard(host: string): Promise<PublicDashboardResponse | null> {
   if (!host) {
-    return null;
-  }
-
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL ?? process.env.BACKEND_URL;
-
-  if (!apiBaseUrl) {
     return null;
   }
 
