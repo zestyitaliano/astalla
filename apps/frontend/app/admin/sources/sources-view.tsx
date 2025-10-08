@@ -1,9 +1,10 @@
 
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Play, Plus, Trash } from "lucide-react";
+import { Code2, Loader2, Pencil, Play, Plus, Trash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -579,6 +580,11 @@ export function SourcesAdminView() {
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/admin/sources/${source.id}/studio`}>
+                  <Code2 className="mr-2 h-4 w-4" /> Open in Studio
+                </Link>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"

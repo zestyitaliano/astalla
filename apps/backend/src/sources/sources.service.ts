@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, SourceAccountType } from "@prisma/client";
 import type { SourceAccount } from "@prisma/client";
@@ -143,6 +143,33 @@ export class SourcesService {
       }
       throw error;
     }
+  }
+
+  async getDetail(id: string) {
+    const source = await this.prisma.sourceAccount.findUnique({
+      where: { id },
+      include: {
+        property: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!source) {
+      throw new NotFoundException("Source not found");
+    }
+
+    const summary = this.toSummary(source);
+    const credential = this.decryptCredential(source.credential);
+
+    return {
+      ...summary,
+      propertyName: source.property?.name ?? null,
+      credentialSummary: this.summarizeCredential(credential)
+    };
   }
 
   async create(dto: CreateSourceDto & { credential: CredentialPayload }) {
@@ -304,6 +331,40 @@ export class SourcesService {
       return { ok: result };
     }
     return result;
+  }
+
+  private summarizeCredential(value: Record<string, unknown> | null | undefined) {
+    if (!value) {
+      return [];
+    }
+
+    return Object.entries(value).map(([key, raw]) => {
+      const present =
+        raw !== null &&
+        raw !== undefined &&
+        !(typeof raw === "string" && raw.trim().length === 0);
+
+      let preview: string | undefined;
+      if (!present) {
+        preview = undefined;
+      } else if (typeof raw === "string") {
+        preview = "••••";
+      } else if (Array.isArray(raw)) {
+        preview = `${raw.length} item${raw.length === 1 ? "" : "s"}`;
+      } else if (typeof raw === "number" || typeof raw === "boolean") {
+        preview = typeof raw;
+      } else if (typeof raw === "object") {
+        preview = "object";
+      } else {
+        preview = "set";
+      }
+
+      return {
+        key,
+        present,
+        preview
+      };
+    });
   }
 
   private toSummary(source: SourceAccount): SourceSummary {
