@@ -11,13 +11,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api-client";
-import { createSource, deleteSource, listSources, runSource, updateSource } from "@/lib/api/sources";
+import { ApiError, createSource, deleteSource, listSources, runSource, updateSource } from "@/lib/api/sources";
 import { cn } from "@/lib/utils";
 import type {
   CreateSourceRequest,
+  ListSourcesResponse,
   PropertiesResponse,
   SourceAccount,
   SourceMutationResponse,
+  SourceRunResponse,
   SourceType,
   UpdateSourceRequest
 } from "@shared/api";
@@ -459,12 +461,54 @@ export function SourcesAdminView() {
 
   const runMutation = useMutation({
     mutationFn: (id: string) => runSource(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-sources"] });
-      setBanner({ tone: "success", message: "Sync triggered. Check back in a moment." });
+    onSuccess: (data: SourceRunResponse, id) => {
+      if (data?.source) {
+        queryClient.setQueryData<ListSourcesResponse | undefined>(["admin-sources"], (current) => {
+          if (!current) {
+            return current;
+          }
+          return {
+            sources: current.sources.map((source) => (source.id === data.source?.id ? data.source : source))
+          };
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["admin-sources"] });
+      }
+
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ["source-detail", id] });
+      }
+
+      const message = data.mode === "queued"
+        ? "Sync queued. We'll process shortly."
+        : "Sync completed successfully.";
+      setBanner({ tone: "success", message });
     },
-    onError: (error: unknown) => {
-      setBanner({ tone: "error", message: (error as Error).message ?? "Unable to run sync." });
+    onError: (error: unknown, id) => {
+      if (error instanceof ApiError) {
+        const payload = error.data as { source?: SourceAccount; message?: string } | undefined;
+        if (payload?.source) {
+          queryClient.setQueryData<ListSourcesResponse | undefined>(["admin-sources"], (current) => {
+            if (!current) {
+              return current;
+            }
+            return {
+              sources: current.sources.map((source) => (source.id === payload.source?.id ? payload.source : source))
+            };
+          });
+        }
+        const message = typeof payload?.message === "string" && payload.message.trim().length > 0
+          ? payload.message
+          : error.message;
+        setBanner({ tone: "error", message });
+      } else {
+        setBanner({ tone: "error", message: (error as Error).message ?? "Unable to run sync." });
+      }
+
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ["source-detail", id] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-sources"] });
     }
   });
 
@@ -590,6 +634,7 @@ export function SourcesAdminView() {
               </div>
               <p className="text-sm text-muted-foreground">{TYPE_LABELS[source.type]}</p>
               <p className="text-xs text-muted-foreground">Last success: {formatTimestamp(source.lastSuccessAt)}</p>
+              <p className="text-xs text-muted-foreground">Last error: {formatTimestamp(source.lastErrorAt)}</p>
               {source.status === "ERROR" ? (
                 <p className="text-xs text-red-600">Validation failed. Update credentials and try again.</p>
               ) : null}

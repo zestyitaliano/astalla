@@ -246,7 +246,10 @@ var sourceActionLogSchema = z.object({
   createdBy: z.string().nullable().optional(),
   createdAt: z.string().datetime({ offset: true })
 });
-var sourceActionLogListSchema = z.array(sourceActionLogSchema);
+var sourceActionLogListSchema = z.object({
+  entries: z.array(sourceActionLogSchema),
+  nextCursor: z.string().nullable()
+});
 var listSourcesResponseSchema = z.object({
   sources: z.array(sourceAccountSchema)
 });
@@ -266,6 +269,11 @@ var updateSourceRequestSchema = z.object({
 var sourceMutationResponseSchema = z.object({
   source: sourceAccountSchema,
   validationMessage: z.string().optional()
+});
+var sourceRunResponseSchema = z.object({
+  ok: z.boolean(),
+  mode: z.enum(["queued", "immediate"]),
+  source: sourceAccountSchema.optional()
 });
 var propertiesResponseSchema = z.object({
   properties: z.array(
@@ -410,14 +418,18 @@ var reorderRowsDtoSchema = z.object({
     })
   )
 });
+var viewConfigSchema = z.object({
+  hidden: z.array(z.string()).optional(),
+  columnOrder: z.array(z.string()).optional()
+}).passthrough();
 var createViewDtoSchema = z.object({
   tableId: z.string(),
   name: z.string().min(1),
-  config: z.unknown()
+  config: viewConfigSchema
 });
 var updateViewDtoSchema = z.object({
   name: z.string().optional(),
-  config: z.unknown().optional()
+  config: viewConfigSchema.optional()
 }).refine((payload) => Object.keys(payload).length > 0, {
   message: "Update payload cannot be empty"
 });
@@ -487,11 +499,11 @@ var ReorderRowsDto = z.object({
 var CreateViewDto = z.object({
   tableId: z.string(),
   name: z.string(),
-  config: z.any()
+  config: viewConfigSchema
 });
 var UpdateViewDto = z.object({
   name: z.string().optional(),
-  config: z.any().optional()
+  config: viewConfigSchema.optional()
 });
 export {
   ColumnType,
@@ -554,6 +566,7 @@ export {
   sourceActionLogSchema,
   sourceDetailSchema,
   sourceMutationResponseSchema,
+  sourceRunResponseSchema,
   sourceStatusSchema,
   sourceTypeSchema,
   tableAuditDtoSchema,

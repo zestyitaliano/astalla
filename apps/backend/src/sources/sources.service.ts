@@ -1,18 +1,16 @@
-import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, SourceAccountType } from "@prisma/client";
 import type { SourceAccount } from "@prisma/client";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
-
 import { CreateSourceDto, CredentialPayload, SourceTypeDto, UpdateSourceDto } from "./sources.dto";
 import { configureEtlProcessor, processEtlJob } from "../jobs/etl.processor";
 import { JobsService } from "../jobs/jobs.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { JSON_NULL } from "../util/json";
 import { EntrataProvider } from "../providers/entrata.provider";
 import { Ga4Provider } from "../providers/ga4.provider";
 import { GoogleBusinessProvider } from "../providers/gbp.provider";
 import { GoogleAdsProvider } from "../providers/google-ads.provider";
+import { buildCredentialCipher, CredentialCipher } from "../util/credential-cipher";
 
 export type SourceStatus = "CONNECTED" | "ERROR" | "UNVERIFIED";
 
@@ -92,8 +90,8 @@ const MOCK_SOURCES: SourceSummary[] = [
 @Injectable()
 export class SourcesService {
   private readonly logger = new Logger(SourcesService.name);
-  private readonly encryptionKey?: Buffer;
   private readonly devMocksEnabled: boolean;
+  private readonly credentialCipher: CredentialCipher;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -106,13 +104,7 @@ export class SourcesService {
   ) {
     this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
     const configuredKey = this.configService.get<string>("ENCRYPTION_KEY") ?? process.env.ENCRYPTION_KEY;
-    if (configuredKey && configuredKey.trim().length > 0) {
-      this.encryptionKey = createHash("sha256").update(configuredKey).digest();
-    } else {
-      this.logger.warn(
-        "ENCRYPTION_KEY not configured. Source credentials will be stored unencrypted. Configure this in production environments."
-      );
-    }
+    this.credentialCipher = buildCredentialCipher(this.logger, configuredKey, "Source credential");
 
     configureEtlProcessor({
       prisma: this.prisma,
@@ -241,56 +233,33 @@ export class SourcesService {
   async run(id: string) {
     const queued = await this.jobsService.enqueueEtlRun(id, "manual-sync");
     if (queued) {
-      return { ok: true, mode: "queued" };
+      const source = await this.prisma.sourceAccount.findUniqueOrThrow({ where: { id } });
+      return { ok: true, mode: "queued" as const, source: this.toSummary(source) };
     }
 
-    await processEtlJob({ sourceId: id, job: "manual-sync" });
-    return { ok: true, mode: "immediate" };
+    try {
+      await processEtlJob({ sourceId: id, job: "manual-sync" });
+    } catch (error) {
+      const failed = await this.prisma.sourceAccount.findUnique({ where: { id } });
+      if (failed) {
+        throw new BadRequestException({
+          message: (error as Error).message ?? "Manual sync failed",
+          source: this.toSummary(failed)
+        });
+      }
+      throw error;
+    }
+
+    const refreshed = await this.prisma.sourceAccount.findUniqueOrThrow({ where: { id } });
+    return { ok: true, mode: "immediate" as const, source: this.toSummary(refreshed) };
   }
 
   private encryptCredential(credential: CredentialPayload): Prisma.InputJsonValue {
-    if (!this.encryptionKey) {
-      return this.toJsonInput(credential);
-    }
-
-    const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", this.encryptionKey, iv);
-    const payload = JSON.stringify(credential);
-    const encrypted = Buffer.concat([cipher.update(payload, "utf8"), cipher.final()]);
-    const authTag = cipher.getAuthTag();
-
-    const packed = Buffer.concat([iv, authTag, encrypted]).toString("base64");
-    return { enc: packed } as Prisma.JsonObject;
+    return this.credentialCipher.encrypt(credential);
   }
 
   private decryptCredential(value: unknown): CredentialPayload {
-    if (!value || typeof value !== "object") {
-      return {};
-    }
-
-    if ("enc" in (value as Record<string, unknown>)) {
-      const encrypted = (value as Record<string, string>).enc;
-      if (!this.encryptionKey || !encrypted) {
-        return {};
-      }
-
-      const raw = Buffer.from(encrypted, "base64");
-      const iv = raw.subarray(0, 12);
-      const authTag = raw.subarray(12, 28);
-      const ciphertext = raw.subarray(28);
-
-      const decipher = createDecipheriv("aes-256-gcm", this.encryptionKey, iv);
-      decipher.setAuthTag(authTag);
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
-      try {
-        return JSON.parse(decrypted) as CredentialPayload;
-      } catch (error) {
-        this.logger.error("Failed to parse decrypted credential", error as Error);
-        return {};
-      }
-    }
-
-    return value as CredentialPayload;
+    return this.credentialCipher.decrypt(value) as CredentialPayload;
   }
 
   private async validateAndUpdate(id: string) {
@@ -389,22 +358,6 @@ export class SourcesService {
       createdAt: source.createdAt.toISOString(),
       updatedAt: source.updatedAt.toISOString()
     };
-  }
-
-  private toJsonInput(value: unknown): Prisma.InputJsonValue {
-    if (value === undefined || value === null) {
-      return JSON_NULL;
-    }
-
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      return value;
-    }
-
-    try {
-      return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
-    } catch {
-      return String(value) as Prisma.InputJsonValue;
-    }
   }
 
   private ensureDevMocksEnabled(feature: string) {

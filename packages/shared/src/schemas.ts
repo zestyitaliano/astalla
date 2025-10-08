@@ -293,7 +293,10 @@ export const sourceActionLogSchema = z.object({
   createdAt: z.string().datetime({ offset: true })
 });
 
-export const sourceActionLogListSchema = z.array(sourceActionLogSchema);
+export const sourceActionLogListSchema = z.object({
+  entries: z.array(sourceActionLogSchema),
+  nextCursor: z.string().nullable()
+});
 
 export const listSourcesResponseSchema = z.object({
   sources: z.array(sourceAccountSchema)
@@ -317,6 +320,12 @@ export const updateSourceRequestSchema = z.object({
 export const sourceMutationResponseSchema = z.object({
   source: sourceAccountSchema,
   validationMessage: z.string().optional()
+});
+
+export const sourceRunResponseSchema = z.object({
+  ok: z.boolean(),
+  mode: z.enum(["queued", "immediate"]),
+  source: sourceAccountSchema.optional()
 });
 
 export const propertiesResponseSchema = z.object({
@@ -538,10 +547,12 @@ export type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
 export type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
 export type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
 export type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;
+export type SourceRunResponse = z.infer<typeof sourceRunResponseSchema>;
 export type ProviderScriptResponse = z.infer<typeof providerScriptSchema>;
 export type ProviderValidateResponse = z.infer<typeof providerValidateResponseSchema>;
 export type ProviderRunResponse = z.infer<typeof providerRunResponseSchema>;
 export type SourceActionLogEntry = z.infer<typeof sourceActionLogSchema>;
+export type SourceActionLogPage = z.infer<typeof sourceActionLogListSchema>;
 export type PublicDashboard = z.infer<typeof publicDashboardSchema>;
 export type PublicDashboardListResponse = z.infer<typeof publicDashboardListResponseSchema>;
 export type CreatePublicDashboardRequest = z.infer<typeof createPublicDashboardRequestSchema>;

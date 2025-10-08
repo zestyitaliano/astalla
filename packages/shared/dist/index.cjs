@@ -80,6 +80,7 @@ __export(index_exports, {
   sourceActionLogSchema: () => sourceActionLogSchema,
   sourceDetailSchema: () => sourceDetailSchema,
   sourceMutationResponseSchema: () => sourceMutationResponseSchema,
+  sourceRunResponseSchema: () => sourceRunResponseSchema,
   sourceStatusSchema: () => sourceStatusSchema,
   sourceTypeSchema: () => sourceTypeSchema,
   tableAuditDtoSchema: () => tableAuditDtoSchema,
@@ -344,7 +345,10 @@ var sourceActionLogSchema = import_zod.z.object({
   createdBy: import_zod.z.string().nullable().optional(),
   createdAt: import_zod.z.string().datetime({ offset: true })
 });
-var sourceActionLogListSchema = import_zod.z.array(sourceActionLogSchema);
+var sourceActionLogListSchema = import_zod.z.object({
+  entries: import_zod.z.array(sourceActionLogSchema),
+  nextCursor: import_zod.z.string().nullable()
+});
 var listSourcesResponseSchema = import_zod.z.object({
   sources: import_zod.z.array(sourceAccountSchema)
 });
@@ -364,6 +368,11 @@ var updateSourceRequestSchema = import_zod.z.object({
 var sourceMutationResponseSchema = import_zod.z.object({
   source: sourceAccountSchema,
   validationMessage: import_zod.z.string().optional()
+});
+var sourceRunResponseSchema = import_zod.z.object({
+  ok: import_zod.z.boolean(),
+  mode: import_zod.z.enum(["queued", "immediate"]),
+  source: sourceAccountSchema.optional()
 });
 var propertiesResponseSchema = import_zod.z.object({
   properties: import_zod.z.array(
@@ -508,14 +517,18 @@ var reorderRowsDtoSchema = import_zod.z.object({
     })
   )
 });
+var viewConfigSchema = import_zod.z.object({
+  hidden: import_zod.z.array(import_zod.z.string()).optional(),
+  columnOrder: import_zod.z.array(import_zod.z.string()).optional()
+}).passthrough();
 var createViewDtoSchema = import_zod.z.object({
   tableId: import_zod.z.string(),
   name: import_zod.z.string().min(1),
-  config: import_zod.z.unknown()
+  config: viewConfigSchema
 });
 var updateViewDtoSchema = import_zod.z.object({
   name: import_zod.z.string().optional(),
-  config: import_zod.z.unknown().optional()
+  config: viewConfigSchema.optional()
 }).refine((payload) => Object.keys(payload).length > 0, {
   message: "Update payload cannot be empty"
 });
@@ -585,11 +598,11 @@ var ReorderRowsDto = import_zod.z.object({
 var CreateViewDto = import_zod.z.object({
   tableId: import_zod.z.string(),
   name: import_zod.z.string(),
-  config: import_zod.z.any()
+  config: viewConfigSchema
 });
 var UpdateViewDto = import_zod.z.object({
   name: import_zod.z.string().optional(),
-  config: import_zod.z.any().optional()
+  config: viewConfigSchema.optional()
 });
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
@@ -653,6 +666,7 @@ var UpdateViewDto = import_zod.z.object({
   sourceActionLogSchema,
   sourceDetailSchema,
   sourceMutationResponseSchema,
+  sourceRunResponseSchema,
   sourceStatusSchema,
   sourceTypeSchema,
   tableAuditDtoSchema,
