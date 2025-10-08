@@ -321,13 +321,23 @@ function applyFilters(rows: TableRowDto[], filters: FilterCondition[], columnMap
         return true;
       }
       const value = getCellValue(row, column.id);
+      const query = String(filter.value ?? "").trim().toLowerCase();
+
+      if (!query) {
+        return true;
+      }
+
       if (value === null || value === undefined) {
         return false;
       }
+
+      const normalized = stringifyValueForSearch(column, value).toLowerCase();
+
       if (column.type === "BOOLEAN") {
-        return String(value).toLowerCase() === filter.value.toLowerCase();
+        return normalized === query;
       }
-      return String(value).toLowerCase().includes(filter.value.toLowerCase());
+
+      return normalized.includes(query);
     })
   );
 }
@@ -590,10 +600,31 @@ export function TableGrid({ tableId }: TableGridProps) {
   }, [rows]);
 
   const orderedRows = useMemo(() => {
+    if (!rows.length) {
+      return [];
+    }
+
     const rowMap = new Map(rows.map((row) => [row.id, row] as const));
-    return rowOrder
-      .map((rowId) => rowMap.get(rowId))
-      .filter((row): row is TableRowDto => Boolean(row));
+    const seen = new Set<string>();
+    const ordered: TableRowDto[] = [];
+
+    for (const rowId of rowOrder) {
+      const row = rowMap.get(rowId);
+      if (row && !seen.has(row.id)) {
+        ordered.push(row);
+        seen.add(row.id);
+      }
+    }
+
+    if (ordered.length === rows.length) {
+      return ordered;
+    }
+
+    const fallback = [...rows]
+      .sort((a, b) => a.position - b.position)
+      .filter((row) => !seen.has(row.id));
+
+    return ordered.concat(fallback);
   }, [rowOrder, rows]);
 
   const filteredRows = useMemo(() => applyFilters(orderedRows, filters, columnMap), [orderedRows, filters, columnMap]);
