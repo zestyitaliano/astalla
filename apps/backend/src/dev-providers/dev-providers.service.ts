@@ -1,9 +1,16 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Prisma, ScriptStatus, SourceAccountType } from "@prisma/client";
+import {
+  ApplicationStatus,
+  LeaseStatus,
+  Prisma,
+  ReviewProvider,
+  ScriptStatus,
+  SourceAccountType
+} from "@prisma/client";
 import { transform } from "esbuild";
 import { VM } from "vm2";
-import { createDecipheriv, createHash } from "crypto";
+import { createDecipheriv, createHash, randomUUID } from "crypto";
 
 import type { ProviderManifest } from "@shared/api";
 import { ProviderManifest as ProviderManifestSchema } from "@shared/api";
@@ -11,14 +18,67 @@ import { ProviderManifest as ProviderManifestSchema } from "@shared/api";
 import { PrismaService } from "../prisma/prisma.service";
 import { JSON_NULL } from "../util/json";
 
-const EXECUTION_TIMEOUT_MS = 5_000;
+const EXECUTION_TIMEOUT_MS = 15_000;
 const RESPONSE_SIZE_LIMIT = 10 * 1024 * 1024;
 const REQUEST_COOLDOWN_MS = 1_000;
+const MAX_RUN_ROWS = 1_000;
+
+const DEFAULT_SCRIPT_TEMPLATE = `import type { ProviderManifest } from "@shared/api";
+
+export const manifest: ProviderManifest = {
+  name: "Sample Provider",
+  actions: []
+};
+
+export async function validate(creds: Record<string, unknown>, ctx: ProviderContext) {
+  ctx.log("Validating credentials for", manifest.name);
+  await ctx.fetchJson("https://example.com/status");
+  return { ok: true };
+}
+
+export async function run(creds: Record<string, unknown>, ctx: ProviderContext) {
+  ctx.log("Running", manifest.name);
+
+  const rows = await ctx.fetchJson("https://example.com/data");
+
+  if (Array.isArray(rows)) {
+    await ctx.upsertRows("leads", rows.map((row) => ({
+      externalId: String(row.id),
+      source: row.source ?? "Demo",
+      createdAt: row.createdAt
+    })));
+  }
+
+  return { inserted: Array.isArray(rows) ? rows.length : 0 };
+}
+
+interface ProviderContext {
+  fetchJson: typeof fetchJson;
+  log: (...args: unknown[]) => void;
+  upsertRows: (table: string, rows: unknown[]) => Promise<number>;
+}
+
+async function fetchJson(input: RequestInfo | URL, init?: RequestInit) {
+  const response = await fetch(input, init);
+  return response.json();
+}
+`;
+
+const DEFAULT_README = `# Pack Studio
+
+Use this studio to iterate on provider scripts. The runtime exposes:
+
+- ctx.fetchJson(url, init?) – validated network requests with JSON parsing
+- ctx.log(...args) – capture structured logs for validation and runs
+- ctx.upsertRows(table, rows) – persist data (limit 1k rows per run)
+
+Validate frequently and prefer small test runs.`;
 
 type ProviderModuleExports = {
   manifest?: ProviderManifest;
   validate?: (creds: Record<string, unknown>, ctx: ProviderExecutionContext) => unknown | Promise<unknown>;
   actions?: Record<string, ProviderActionHandler>;
+  run?: (creds: Record<string, unknown>, ctx: ProviderExecutionContext) => unknown | Promise<unknown>;
 };
 
 type ProviderActionHandler = (
@@ -29,6 +89,9 @@ type ProviderActionHandler = (
 
 interface ProviderExecutionContext {
   fetch: typeof fetch;
+  fetchJson: (input: Parameters<typeof fetch>[0], init?: RequestInit) => Promise<unknown>;
+  log: (...args: unknown[]) => void;
+  upsertRows: (table: string, rows: unknown[]) => Promise<number>;
 }
 
 interface SandboxResult {
@@ -37,6 +100,13 @@ interface SandboxResult {
     log: (...args: unknown[]) => void;
   };
   logs: string[];
+}
+
+interface ExecutionContextOptions {
+  allowWrites: boolean;
+  propertyId: string;
+  runId: string;
+  onRowsPersisted?: (total: number) => void;
 }
 
 @Injectable()
@@ -54,7 +124,13 @@ export class DevProvidersService {
   async getScriptBySource(sourceId: string) {
     const script = await this.prisma.providerScript.findUnique({ where: { sourceId } });
     if (!script) {
-      return { code: "", status: ScriptStatus.DRAFT, version: 1, manifest: null };
+      return {
+        code: DEFAULT_SCRIPT_TEMPLATE,
+        readme: DEFAULT_README,
+        status: ScriptStatus.DRAFT,
+        version: 1,
+        manifest: null
+      };
     }
 
     let manifest: ProviderManifest | null = null;
@@ -70,24 +146,26 @@ export class DevProvidersService {
 
     return {
       code: script.code,
+      readme: script.readme ?? DEFAULT_README,
       status: script.status,
       version: script.version,
       manifest
     };
   }
 
-  async saveDraft(sourceId: string, code: string, createdBy?: string) {
+  async saveDraft(sourceId: string, code: string, readme?: string, createdBy?: string) {
     const existing = await this.prisma.providerScript.findUnique({ where: { sourceId } });
     const nextVersion = existing ? (existing.code === code ? existing.version : existing.version + 1) : 1;
 
     const saved = await this.prisma.providerScript.upsert({
       where: { sourceId },
-      update: { code, status: ScriptStatus.DRAFT, version: nextVersion },
-      create: { sourceId, code, status: ScriptStatus.DRAFT, version: 1, createdBy }
+      update: { code, readme, status: ScriptStatus.DRAFT, version: nextVersion },
+      create: { sourceId, code, readme, status: ScriptStatus.DRAFT, version: 1, createdBy }
     });
 
     return {
       code: saved.code,
+      readme: saved.readme ?? DEFAULT_README,
       status: saved.status,
       version: saved.version
     };
@@ -126,7 +204,11 @@ export class DevProvidersService {
     }
 
     const credential = this.decryptCredential(source.credential);
-    const ctx: ProviderExecutionContext = { fetch: sandbox.fetch };
+    const ctx = this.createExecutionContext(sandbox, {
+      allowWrites: false,
+      propertyId: source.propertyId,
+      runId: randomUUID()
+    });
 
     const started = Date.now();
     try {
@@ -139,12 +221,12 @@ export class DevProvidersService {
       };
     } catch (error) {
       this.logger.warn(`Validation failed for ${sourceId}: ${(error as Error).message}`);
-      throw error;
+      this.wrapScriptError(error, sandbox.logs);
     }
   }
 
-  async runAction(sourceId: string, actionKey: string, params: unknown, createdBy?: string) {
-    const { source, script } = await this.loadSourceAndScript(sourceId, true);
+  async run(sourceId: string, createdBy?: string) {
+    const { source, script } = await this.loadSourceAndScript(sourceId);
     if (!script) {
       throw new NotFoundException("No script available");
     }
@@ -153,13 +235,22 @@ export class DevProvidersService {
     const sandbox = this.makeSandbox(source.type);
     const module = this.instantiateModule(compiled, sandbox.console);
 
-    if (!module.actions || typeof module.actions[actionKey] !== "function") {
-      throw new BadRequestException(`Action ${actionKey} not found in script`);
+    if (typeof module.run !== "function") {
+      throw new BadRequestException("Script does not export a run function");
     }
 
-    const handler = module.actions[actionKey] as ProviderActionHandler;
     const credential = this.decryptCredential(source.credential);
-    const ctx: ProviderExecutionContext = { fetch: sandbox.fetch };
+    const runId = randomUUID();
+    let rowsPersisted = 0;
+
+    const ctx = this.createExecutionContext(sandbox, {
+      allowWrites: true,
+      propertyId: source.propertyId,
+      runId,
+      onRowsPersisted: (total) => {
+        rowsPersisted = total;
+      }
+    });
 
     const started = Date.now();
     let ok = false;
@@ -167,27 +258,29 @@ export class DevProvidersService {
     let errorMessage: string | undefined;
 
     try {
-      const rawResult = await this.runWithTimeout(handler(credential, params, ctx), EXECUTION_TIMEOUT_MS);
+      const rawResult = await this.runWithTimeout(module.run(credential, ctx), EXECUTION_TIMEOUT_MS);
       ok = true;
-      responseJson = this.asJson({ result: rawResult, logs: sandbox.logs });
+      responseJson = this.asJson({ result: rawResult, logs: sandbox.logs, rowsPersisted });
       return {
         ok: true,
         result: rawResult,
+        rowsPersisted,
         logs: sandbox.logs,
         latencyMs: Date.now() - started
       };
     } catch (error) {
       errorMessage = (error as Error).message;
-      responseJson = this.asJson({ logs: sandbox.logs });
-      throw error;
+      responseJson = this.asJson({ logs: sandbox.logs, rowsPersisted });
+      this.logger.error(`Run failed for ${sourceId}: ${(error as Error).message}`);
+      this.wrapScriptError(error, sandbox.logs);
     } finally {
       await this.prisma.sourceActionLog.create({
         data: {
           sourceId,
-          action: actionKey,
+          action: "run",
           ok,
           latencyMs: ok ? Date.now() - started : null,
-          request: this.asJson({ params }),
+          request: this.asJson({ runId }),
           response: responseJson,
           error: errorMessage,
           createdBy
@@ -282,6 +375,59 @@ export class DevProvidersService {
     };
   }
 
+  private createExecutionContext(sandbox: SandboxResult, options: ExecutionContextOptions): ProviderExecutionContext {
+    let totalRows = 0;
+
+    const fetchJson: ProviderExecutionContext["fetchJson"] = async (input, init) => {
+      const response = await sandbox.fetch(input, init);
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status} ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.toLowerCase().includes("json")) {
+        throw new Error("Expected JSON response");
+      }
+
+      try {
+        return await response.json();
+      } catch (error) {
+        throw new Error(`Failed to parse JSON response: ${(error as Error).message}`);
+      }
+    };
+
+    const log: ProviderExecutionContext["log"] = (...args) => {
+      sandbox.console.log(...args);
+    };
+
+    const upsertRows: ProviderExecutionContext["upsertRows"] = async (table, rows) => {
+      if (!options.allowWrites) {
+        throw new Error("upsertRows is not available during validation");
+      }
+      if (!Array.isArray(rows)) {
+        throw new Error("rows must be an array");
+      }
+      if (rows.length === 0) {
+        return 0;
+      }
+      if (totalRows + rows.length > MAX_RUN_ROWS) {
+        throw new Error(`Row limit exceeded. Only ${MAX_RUN_ROWS} rows are allowed per run.`);
+      }
+
+      const processed = await this.persistRows(table, rows, options.propertyId, options.runId);
+      totalRows += processed;
+      options.onRowsPersisted?.(totalRows);
+      return processed;
+    };
+
+    return {
+      fetch: sandbox.fetch,
+      fetchJson,
+      log,
+      upsertRows
+    };
+  }
+
   private allowedDomainsForSource(type: SourceAccountType): string[] {
     switch (type) {
       case SourceAccountType.ENTRATA:
@@ -295,6 +441,463 @@ export class DevProvidersService {
       default:
         return [];
     }
+  }
+
+  private async persistRows(table: string, rows: unknown[], propertyId: string, runId: string) {
+    switch (table) {
+      case "leads":
+        return this.persistLeads(rows, propertyId);
+      case "leadEvents":
+      case "lead_events":
+        return this.persistLeadEvents(rows, propertyId);
+      case "applications":
+        return this.persistApplications(rows, propertyId);
+      case "leases":
+        return this.persistLeases(rows, propertyId);
+      case "conversionEvents":
+      case "conversion_events":
+        return this.persistConversionEvents(rows, propertyId, runId);
+      case "channelSpend":
+      case "channel_spend":
+        return this.persistChannelSpend(rows, propertyId, runId);
+      case "reviews":
+        return this.persistReviews(rows, propertyId, runId);
+      default:
+        throw new Error(`Unsupported table '${table}'. Allowed tables: leads, leadEvents, applications, leases, conversionEvents, channelSpend, reviews.`);
+    }
+  }
+
+  private async persistLeads(rows: unknown[], propertyId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "lead");
+      const externalId = this.ensureString(record.externalId, "lead.externalId");
+      const source = this.optionalString(record.source) ?? "Custom";
+      const createdAt = this.parseOptionalDate(record.createdAt, "lead.createdAt");
+      const cost = this.toDecimal(record.cost, "lead.cost");
+
+      const updateData: Prisma.LeadUpdateInput = {
+        source
+      };
+      if (cost !== undefined) {
+        updateData.cost = cost;
+      }
+      const gclid = this.optionalString(record.gclid);
+      if (gclid !== undefined) {
+        updateData.gclid = gclid;
+      }
+      const gbraid = this.optionalString(record.gbraid);
+      if (gbraid !== undefined) {
+        updateData.gbraid = gbraid;
+      }
+      const wbraid = this.optionalString(record.wbraid);
+      if (wbraid !== undefined) {
+        updateData.wbraid = wbraid;
+      }
+
+      const createData: Prisma.LeadCreateInput = {
+        propertyId,
+        externalId,
+        source,
+        createdAt: createdAt ?? new Date()
+      };
+      if (cost !== undefined) {
+        createData.cost = cost;
+      }
+      if (gclid !== undefined) {
+        createData.gclid = gclid;
+      }
+      if (gbraid !== undefined) {
+        createData.gbraid = gbraid;
+      }
+      if (wbraid !== undefined) {
+        createData.wbraid = wbraid;
+      }
+
+      await this.prisma.lead.upsert({
+        where: {
+          propertyId_externalId: {
+            propertyId,
+            externalId
+          }
+        },
+        update: updateData,
+        create: createData
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private async persistLeadEvents(rows: unknown[], propertyId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "leadEvent");
+      const id = this.optionalString(record.id) ?? this.deterministicId("leadEvent", propertyId, record.leadId, record.leadExternalId, record.type, record.occurredAt);
+      const type = this.ensureString(record.type, "leadEvent.type");
+      const occurredAt = this.parseDate(record.occurredAt ?? record.occurred_at ?? record.timestamp, "leadEvent.occurredAt");
+      const meta = record.meta !== undefined ? this.asJson(record.meta) : undefined;
+
+      const leadId = await this.resolveLeadId(propertyId, record);
+
+      await this.prisma.leadEvent.upsert({
+        where: { id },
+        update: {
+          leadId,
+          type,
+          occurredAt,
+          ...(meta !== undefined ? { meta } : {})
+        },
+        create: {
+          id,
+          leadId,
+          propertyId,
+          type,
+          occurredAt,
+          ...(meta !== undefined ? { meta } : {})
+        }
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private async persistApplications(rows: unknown[], propertyId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "application");
+      const leadId = await this.resolveLeadId(propertyId, record);
+      const status = this.parseEnum(ApplicationStatus, record.status, "application.status");
+      const submittedAt = this.parseDate(record.submittedAt ?? record.submitted_at, "application.submittedAt");
+      const approvedAt = this.parseOptionalDate(record.approvedAt ?? record.approved_at, "application.approvedAt");
+
+      await this.prisma.application.upsert({
+        where: { leadId },
+        update: {
+          status,
+          submittedAt,
+          approvedAt: approvedAt ?? null
+        },
+        create: {
+          propertyId,
+          leadId,
+          status,
+          submittedAt,
+          ...(approvedAt ? { approvedAt } : {})
+        }
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private async persistLeases(rows: unknown[], propertyId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "lease");
+      const leadId = await this.resolveLeadId(propertyId, record);
+      const status = this.parseEnum(LeaseStatus, record.status, "lease.status");
+      const startDate = this.parseDate(record.startDate ?? record.start_date, "lease.startDate");
+      const endDate = this.parseOptionalDate(record.endDate ?? record.end_date, "lease.endDate");
+      const moveOutAt = this.parseOptionalDate(record.moveOutAt ?? record.move_out_at, "lease.moveOutAt");
+      const unitId = this.optionalString(record.unitId ?? record.unit_id);
+      const applicationId = this.optionalString(record.applicationId ?? record.application_id);
+
+      await this.prisma.lease.upsert({
+        where: { leadId },
+        update: {
+          status,
+          startDate,
+          endDate: endDate ?? null,
+          moveOutAt: moveOutAt ?? null,
+          unitId: unitId ?? null,
+          applicationId: applicationId ?? null
+        },
+        create: {
+          propertyId,
+          leadId,
+          status,
+          startDate,
+          ...(endDate ? { endDate } : {}),
+          ...(moveOutAt ? { moveOutAt } : {}),
+          ...(unitId ? { unitId } : {}),
+          ...(applicationId ? { applicationId } : {})
+        }
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private async persistConversionEvents(rows: unknown[], propertyId: string, runId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "conversionEvent");
+      const id = this.optionalString(record.id) ?? this.deterministicId("conversion", propertyId, record.type, record.day, runId, processed);
+      const type = this.ensureString(record.type, "conversionEvent.type");
+      const day = this.parseDate(record.day ?? record.date, "conversionEvent.day");
+      const count = this.parseInteger(record.count ?? record.value, "conversionEvent.count");
+      const leadId = record.leadId ? this.optionalString(record.leadId) : undefined;
+      const leadExternalId = this.optionalString(record.leadExternalId ?? record.lead_external_id);
+      const resolvedLeadId = leadId ?? (leadExternalId ? await this.lookupLeadId(propertyId, leadExternalId) : undefined);
+      const gclid = this.optionalString(record.gclid);
+      const gbraid = this.optionalString(record.gbraid);
+      const wbraid = this.optionalString(record.wbraid);
+
+      await this.prisma.conversionEvent.upsert({
+        where: { id },
+        update: {
+          type,
+          day,
+          count,
+          leadId: resolvedLeadId ?? null,
+          gclid: gclid ?? null,
+          gbraid: gbraid ?? null,
+          wbraid: wbraid ?? null
+        },
+        create: {
+          id,
+          propertyId,
+          type,
+          day,
+          count,
+          ...(resolvedLeadId ? { leadId: resolvedLeadId } : {}),
+          ...(gclid ? { gclid } : {}),
+          ...(gbraid ? { gbraid } : {}),
+          ...(wbraid ? { wbraid } : {})
+        }
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private async persistChannelSpend(rows: unknown[], propertyId: string, runId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "channelSpend");
+      const id = this.optionalString(record.id) ?? this.deterministicId("channelSpend", propertyId, record.channel, record.day, runId, processed);
+      const channel = this.ensureString(record.channel, "channelSpend.channel");
+      const day = this.parseDate(record.day ?? record.date, "channelSpend.day");
+      const campaignId = this.optionalString(record.campaignId ?? record.campaign_id);
+      const cost = this.toDecimal(record.cost, "channelSpend.cost");
+      if (cost === undefined) {
+        throw new Error("channelSpend.cost is required");
+      }
+      const currency = this.optionalString(record.currency);
+
+      await this.prisma.channelSpend.upsert({
+        where: { id },
+        update: {
+          channel,
+          day,
+          campaignId: campaignId ?? null,
+          cost,
+          currency: currency ?? "USD"
+        },
+        create: {
+          id,
+          propertyId,
+          channel,
+          day,
+          cost,
+          ...(campaignId ? { campaignId } : {}),
+          ...(currency ? { currency } : {})
+        }
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private async persistReviews(rows: unknown[], propertyId: string, runId: string) {
+    let processed = 0;
+    for (const row of rows) {
+      const record = this.ensureRecord(row, "review");
+      const id = this.optionalString(record.id) ?? this.deterministicId("review", propertyId, record.at, record.authorName ?? record.author ?? record.text, runId, processed);
+      const rating = this.parseInteger(record.rating, "review.rating");
+      const text = this.ensureString(record.text ?? record.body, "review.text");
+      const at = this.parseDate(record.at ?? record.timestamp, "review.at");
+      const provider = record.provider ? this.parseEnum(ReviewProvider, record.provider, "review.provider") : ReviewProvider.GBP;
+      const authorName = this.optionalString(record.authorName ?? record.author);
+      const reviewerEmail = this.optionalString(record.reviewerEmail ?? record.email);
+      const reviewerPhoto = this.optionalString(record.reviewerPhoto ?? record.photoUrl);
+      const responseText = this.optionalString(record.responseText ?? record.response_text);
+      const respondedAt = this.parseOptionalDate(record.respondedAt ?? record.responded_at, "review.respondedAt");
+      const rawPayload = record.rawPayload !== undefined ? this.asJson(record.rawPayload) : undefined;
+
+      await this.prisma.review.upsert({
+        where: { id },
+        update: {
+          provider,
+          rating,
+          text,
+          at,
+          authorName: authorName ?? null,
+          reviewerEmail: reviewerEmail ?? null,
+          reviewerPhoto: reviewerPhoto ?? null,
+          responseText: responseText ?? null,
+          respondedAt: respondedAt ?? null,
+          ...(rawPayload !== undefined ? { rawPayload } : {})
+        },
+        create: {
+          id,
+          propertyId,
+          provider,
+          rating,
+          text,
+          at,
+          ...(authorName ? { authorName } : {}),
+          ...(reviewerEmail ? { reviewerEmail } : {}),
+          ...(reviewerPhoto ? { reviewerPhoto } : {}),
+          ...(responseText ? { responseText } : {}),
+          ...(respondedAt ? { respondedAt } : {}),
+          ...(rawPayload !== undefined ? { rawPayload } : {})
+        }
+      });
+      processed += 1;
+    }
+    return processed;
+  }
+
+  private ensureRecord(value: unknown, context: string): Record<string, unknown> {
+    if (!value || typeof value !== "object") {
+      throw new Error(`${context} row must be an object`);
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private ensureString(value: unknown, field: string): string {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new Error(`${field} must be a non-empty string`);
+    }
+    return value.trim();
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }
+    return undefined;
+  }
+
+  private parseDate(value: unknown, field: string): Date {
+    const date = this.parseOptionalDate(value, field);
+    if (!date) {
+      throw new Error(`${field} is required and must be a valid date or ISO string`);
+    }
+    return date;
+  }
+
+  private parseOptionalDate(value: unknown, field: string): Date | undefined {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) {
+        throw new Error(`${field} is not a valid date`);
+      }
+      return value;
+    }
+    if (typeof value === "string") {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        throw new Error(`${field} is not a valid ISO date string`);
+      }
+      return date;
+    }
+    if (typeof value === "number") {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        throw new Error(`${field} is not a valid timestamp`);
+      }
+      return date;
+    }
+    throw new Error(`${field} must be a Date, ISO string, or timestamp`);
+  }
+
+  private parseEnum<T extends Record<string, string>>(enumObject: T, value: unknown, field: string): T[keyof T] {
+    if (typeof value !== "string") {
+      throw new Error(`${field} must be a string`);
+    }
+    const normalized = value.toUpperCase();
+    const match = Object.values(enumObject).find((item) => item.toUpperCase() === normalized);
+    if (!match) {
+      throw new Error(`${field} must be one of: ${Object.values(enumObject).join(", ")}`);
+    }
+    return match as T[keyof T];
+  }
+
+  private parseInteger(value: unknown, field: string): number {
+    if (value === undefined || value === null) {
+      throw new Error(`${field} is required`);
+    }
+    const parsed = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(`${field} must be a finite number`);
+    }
+    return Math.trunc(parsed);
+  }
+
+  private toDecimal(value: unknown, field: string): Prisma.Decimal | undefined {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    const numeric = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(numeric)) {
+      throw new Error(`${field} must be a finite number`);
+    }
+    return new Prisma.Decimal(numeric);
+  }
+
+  private async resolveLeadId(propertyId: string, record: Record<string, unknown>) {
+    const explicitLeadId = this.optionalString(record.leadId ?? record.lead_id);
+    if (explicitLeadId) {
+      return explicitLeadId;
+    }
+    const leadExternalId = this.ensureString(record.leadExternalId ?? record.lead_external_id, "lead.leadExternalId");
+    const lead = await this.prisma.lead.findUnique({
+      where: {
+        propertyId_externalId: {
+          propertyId,
+          externalId: leadExternalId
+        }
+      }
+    });
+    if (!lead) {
+      throw new Error(`Lead with externalId ${leadExternalId} not found for property ${propertyId}`);
+    }
+    return lead.id;
+  }
+
+  private async lookupLeadId(propertyId: string, externalId: string) {
+    const lead = await this.prisma.lead.findUnique({
+      where: {
+        propertyId_externalId: {
+          propertyId,
+          externalId
+        }
+      }
+    });
+    return lead?.id;
+  }
+
+  private deterministicId(...parts: unknown[]) {
+    const hash = createHash("sha256");
+    for (const part of parts) {
+      hash.update(String(part ?? ""));
+      hash.update("|");
+    }
+    return hash.digest("hex").slice(0, 32);
+  }
+
+  private wrapScriptError(error: unknown, logs: string[]): never {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    throw new BadRequestException({ message, logs });
   }
 
   private instantiateModule(code: string, consoleOverride?: SandboxResult["console"]): ProviderModuleExports {

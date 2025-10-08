@@ -4,6 +4,7 @@ import { DevProvidersService } from "./dev-providers.service";
 
 interface SaveScriptDto {
   code: string;
+  readme?: string;
   createdBy?: string;
 }
 
@@ -11,9 +12,7 @@ interface PublishDto {
   publishedBy?: string;
 }
 
-interface RunActionDto {
-  actionKey: string;
-  params?: unknown;
+interface RunDto {
   createdBy?: string;
 }
 
@@ -31,7 +30,7 @@ export class DevProvidersController {
     if (!body?.code) {
       throw new BadRequestException("Code is required");
     }
-    return this.devProvidersService.saveDraft(sourceId, body.code, body.createdBy);
+    return this.devProvidersService.saveDraft(sourceId, body.code, body.readme, body.createdBy);
   }
 
   @Post(":sourceId/publish")
@@ -45,11 +44,8 @@ export class DevProvidersController {
   }
 
   @Post(":sourceId/run")
-  runAction(@Param("sourceId") sourceId: string, @Body() body: RunActionDto) {
-    if (!body?.actionKey) {
-      throw new BadRequestException("actionKey is required");
-    }
-    return this.devProvidersService.runAction(sourceId, body.actionKey, body.params, body.createdBy);
+  run(@Param("sourceId") sourceId: string, @Body() body: RunDto) {
+    return this.devProvidersService.run(sourceId, body?.createdBy);
   }
 
   @Get(":sourceId/logs")

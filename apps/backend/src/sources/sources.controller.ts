@@ -12,6 +12,11 @@ export class SourcesController {
     return this.sourcesService.list(this.shouldUseMock(mockHeader));
   }
 
+  @Get(":id")
+  get(@Param("id") id: string) {
+    return this.sourcesService.getDetail(id);
+  }
+
   @Post()
   create(@Body() dto: CreateSourceDto) {
     return this.sourcesService.create({

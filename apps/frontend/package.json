@@ -26,6 +26,7 @@
     "@tanstack/react-query-devtools": "^5.59.8",
     "@tanstack/react-table": "^8.20.5",
     "@tanstack/react-virtual": "^3.8.7",
+    "@monaco-editor/react": "^4.6.0",
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -40,7 +41,8 @@
     "react-dom": "18.3.1",
     "tailwind-merge": "^2.5.3",
     "tailwindcss": "^3.4.13",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "monaco-editor": "^0.50.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.2",
