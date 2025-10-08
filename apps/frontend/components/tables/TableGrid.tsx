@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Key } from "react";
 import {
   DndContext,
@@ -25,7 +25,7 @@ import {
   useReactTable
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import {
   ArrowDown,
   ArrowUp,
@@ -51,7 +51,8 @@ import {
   useReorderRowsMutation,
   useTable,
   useUpdateColumnMutation,
-  useUpdateViewMutation
+  useUpdateViewMutation,
+  type TableDetail
 } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -213,6 +214,28 @@ function getCellValue(row: TableRowDto, columnId: string) {
     (entry: TableRowDto["cells"][number]) => entry.columnId === columnId
   );
   return cell?.value ?? null;
+}
+
+type ReferenceConfig = {
+  tableId: string;
+  labelColumnId?: string | null;
+};
+
+function parseReferenceConfig(value: unknown): ReferenceConfig | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const config = value as Record<string, unknown>;
+  const tableId = typeof config.tableId === "string" ? config.tableId : undefined;
+  const labelColumnId =
+    typeof config.labelColumnId === "string" ? config.labelColumnId : undefined;
+
+  if (!tableId) {
+    return null;
+  }
+
+  return { tableId, labelColumnId };
 }
 
 function normalizeValue(type: ColumnKind, value: unknown) {
@@ -915,9 +938,17 @@ export function TableGrid({ tableId }: TableGridProps) {
     if (!data?.updatedAt) {
       return null;
     }
+
     const actor = data.updatedBy ?? "system";
-    return `Last updated by ${actor} ${formatDistanceToNow(new Date(data.updatedAt), { addSuffix: true })}`;
-  }, [data]);
+    const updatedAt = new Date(data.updatedAt);
+
+    if (Number.isNaN(updatedAt.getTime())) {
+      return `Last updated by ${actor}`;
+    }
+
+    const timestamp = format(updatedAt, "MMM d, yyyy h:mm a");
+    return `Last updated by ${actor} at ${timestamp}`;
+  }, [data?.updatedAt, data?.updatedBy]);
 
   const hasColumns = columns.length > 0;
   const hasRows = gridRows.length > 0;
@@ -1406,6 +1437,14 @@ interface CellEditorProps {
 }
 
 function CellEditor({ column, value, onCommit }: CellEditorProps) {
+  if (column.type === "REFERENCE") {
+    return <ReferenceCellEditor column={column} value={value} onCommit={onCommit} />;
+  }
+
+  return <PrimitiveCellEditor column={column} value={value} onCommit={onCommit} />;
+}
+
+function PrimitiveCellEditor({ column, value, onCommit }: Omit<CellEditorProps, "row">) {
   const [draft, setDraft] = useState(normalizeValue(column.type, value));
 
   useEffect(() => {
@@ -1500,9 +1539,196 @@ function CellEditor({ column, value, onCommit }: CellEditorProps) {
           onCommit(draft);
         }
       }}
-      placeholder={column.type === "REFERENCE" ? "Search records" : undefined}
       className="h-8"
     />
+  );
+}
+
+interface ReferenceCellEditorProps {
+  column: TableColumnDto;
+  value: unknown;
+  onCommit: (value: unknown) => void;
+}
+
+type ReferenceOption = { rowId: string; label: string };
+
+type ReferenceValue = {
+  tableId?: string | null;
+  rowId?: string | null;
+  label?: string | null;
+};
+
+function parseReferenceValue(value: unknown): ReferenceValue {
+  if (!value || typeof value !== "object") {
+    if (typeof value === "string") {
+      return { label: value };
+    }
+    return {};
+  }
+
+  const record = value as Record<string, unknown>;
+  const tableId = typeof record.tableId === "string" ? record.tableId : null;
+  const rowId = typeof record.rowId === "string" ? record.rowId : null;
+  const label =
+    typeof record.label === "string"
+      ? record.label
+      : typeof record.name === "string"
+        ? record.name
+        : typeof record.value === "string"
+          ? record.value
+          : null;
+
+  return { tableId, rowId, label };
+}
+
+function buildReferenceOptions(
+  table: TableDetail | undefined,
+  labelColumnId?: string | null
+): ReferenceOption[] {
+  if (!table) {
+    return [];
+  }
+
+  const columns = table.columns ?? [];
+  let referenceColumn = columns.find((column) => column.id === labelColumnId);
+
+  if (!referenceColumn) {
+    referenceColumn = columns.find((column) => column.type === COLUMN_TYPE_ENUM.TEXT);
+  }
+
+  if (!referenceColumn) {
+    referenceColumn = columns[0];
+  }
+
+  const labelColumn = referenceColumn;
+
+  return (table.rows ?? []).map((row, index) => {
+    const rawValue = labelColumn ? getCellValue(row, labelColumn.id) : null;
+    const label = rawValue === null || rawValue === undefined || rawValue === ""
+      ? `Row ${index + 1}`
+      : String(rawValue);
+    return { rowId: row.id, label };
+  });
+}
+
+function ReferenceCellEditor({ column, value, onCommit }: ReferenceCellEditorProps) {
+  const referenceConfig = parseReferenceConfig(column.config);
+  const parsedValue = parseReferenceValue(value);
+  const datalistId = useId();
+
+  const [draft, setDraft] = useState(parsedValue.label ?? "");
+  const [selectedRowId, setSelectedRowId] = useState(parsedValue.rowId ?? null);
+
+  useEffect(() => {
+    setDraft(parsedValue.label ?? "");
+    setSelectedRowId(parsedValue.rowId ?? null);
+  }, [parsedValue.label, parsedValue.rowId, referenceConfig?.tableId]);
+
+  const { data: referenceTable } = useTable(referenceConfig?.tableId);
+
+  const options = useMemo(
+    () => buildReferenceOptions(referenceTable, referenceConfig?.labelColumnId),
+    [referenceConfig?.labelColumnId, referenceTable]
+  );
+
+  const filteredOptions = useMemo(() => {
+    const query = draft.trim().toLowerCase();
+    if (!query) {
+      return options;
+    }
+    return options.filter((option) => option.label.toLowerCase().includes(query));
+  }, [draft, options]);
+
+  const commitSelection = useCallback(
+    (option: ReferenceOption | null) => {
+      if (!option) {
+        setSelectedRowId(null);
+        onCommit(null);
+        return;
+      }
+
+      setSelectedRowId(option.rowId);
+      onCommit({
+        tableId: referenceConfig?.tableId ?? parsedValue.tableId ?? null,
+        rowId: option.rowId,
+        label: option.label
+      });
+    },
+    [onCommit, parsedValue.tableId, referenceConfig?.tableId]
+  );
+
+  const handleCommit = useCallback(() => {
+    const trimmed = draft.trim();
+
+    if (!trimmed) {
+      commitSelection(null);
+      setDraft("");
+      return;
+    }
+
+    const exactMatch = options.find((option) => option.label === trimmed);
+    const fallback =
+      selectedRowId ? options.find((option) => option.rowId === selectedRowId) : null;
+
+    if (exactMatch) {
+      commitSelection(exactMatch);
+      setDraft(exactMatch.label);
+      return;
+    }
+
+    if (fallback) {
+      commitSelection(fallback);
+      setDraft(fallback.label);
+      return;
+    }
+
+    if (selectedRowId && parsedValue.label && trimmed === parsedValue.label) {
+      commitSelection({ rowId: selectedRowId, label: parsedValue.label });
+      setDraft(parsedValue.label);
+      return;
+    }
+
+    commitSelection(null);
+  }, [commitSelection, draft, options, parsedValue.label, selectedRowId]);
+
+  if (!referenceConfig?.tableId) {
+    return (
+      <Input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => onCommit(draft)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            onCommit(draft);
+          }
+        }}
+        className="h-8"
+      />
+    );
+  }
+
+  return (
+    <div className="relative flex-1">
+      <Input
+        list={datalistId}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={handleCommit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            handleCommit();
+          }
+        }}
+        placeholder={referenceTable ? `Search ${referenceTable.name}` : "Search records"}
+        className="h-8"
+      />
+      <datalist id={datalistId}>
+        {filteredOptions.map((option) => (
+          <option key={option.rowId} value={option.label} />
+        ))}
+      </datalist>
+    </div>
   );
 }
 
