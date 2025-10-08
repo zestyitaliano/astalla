@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 
-import {
-  useCreateTableMutation,
-  useTables
-} from "@/lib/api/tables";
+import { useTables } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableGrid } from "@/components/tables/TableGrid";
+import { TablesCreateModal } from "@/components/tables/TablesCreateModal";
 
 interface TablesClientProps {
   canManage: boolean;
@@ -17,12 +15,9 @@ interface TablesClientProps {
 
 export function TablesClient({ canManage }: TablesClientProps) {
   const { data, isLoading } = useTables();
-  const createTableMutation = useCreateTableMutation();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
 
   useEffect(() => {
     if (!selectedTableId && data && data.length) {
@@ -40,18 +35,6 @@ export function TablesClient({ canManage }: TablesClientProps) {
     }
     return data.filter((table) => table.name.toLowerCase().includes(query));
   }, [data, search]);
-
-  const handleCreateTable = async () => {
-    if (!name.trim()) {
-      return;
-    }
-    const payload = { name: name.trim(), description: description.trim() || undefined };
-    const table = await createTableMutation.mutateAsync(payload);
-    setIsModalOpen(false);
-    setName("");
-    setDescription("");
-    setSelectedTableId(table.id);
-  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,60 +114,11 @@ export function TablesClient({ canManage }: TablesClientProps) {
           )}
         </div>
       </div>
-      {isModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 px-4 backdrop-blur">
-          <div className="w-full max-w-md rounded-3xl border border-border bg-card/95 p-6 shadow-xl">
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-foreground">Create table</h3>
-              <p className="text-sm text-muted-foreground">Name your table and add an optional description.</p>
-            </div>
-            <div className="mt-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground" htmlFor="table-name">
-                  Name
-                </label>
-                <Input
-                  id="table-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="e.g. Leasing pipeline"
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground" htmlFor="table-description">
-                  Description
-                </label>
-                <Input
-                  id="table-description"
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  placeholder="How your team will use this table"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-3">
-                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={createTableMutation.isPending}>
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCreateTable}
-                  disabled={!name.trim() || createTableMutation.isPending}
-                  className="gap-2"
-                >
-                  {createTableMutation.isPending ? (
-                    "Creating…"
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4" /> Create
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <TablesCreateModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        onCreated={(tableId) => setSelectedTableId(tableId)}
+      />
     </div>
   );
 }
