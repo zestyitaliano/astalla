@@ -180,10 +180,54 @@ export async function runProviderScript(sourceId: string, createdBy?: string): P
   ) as Promise<ProviderRunResponse>;
 }
 
-export async function listProviderLogs(sourceId: string): Promise<SourceActionLogEntry[]> {
-  return request<SourceActionLogEntry[]>(
-    `/admin/dev/providers/${sourceId}/logs`,
-    { method: "GET" },
-    sourceActionLogListSchema
-  ) as Promise<SourceActionLogEntry[]>;
+export interface ProviderLogPage {
+  entries: SourceActionLogEntry[];
+  nextCursor: string | null;
+}
+
+export async function listProviderLogs(sourceId: string, cursor?: string): Promise<ProviderLogPage> {
+  const search = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const response = await fetch(`${apiBaseUrl}/admin/dev/providers/${sourceId}/logs${search}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "x-mock-mode": isMockMode() ? "true" : "false"
+    }
+  });
+
+  const rawBody = await response.text();
+  let parsedBody: unknown = undefined;
+
+  if (rawBody) {
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch {
+      parsedBody = rawBody;
+    }
+  }
+
+  if (!response.ok) {
+    const message = typeof parsedBody === "object" && parsedBody && "message" in parsedBody
+      ? String((parsedBody as { message?: unknown }).message)
+      : `Request failed for /admin/dev/providers/${sourceId}/logs: ${response.status}`;
+    throw new ApiError(message, response.status, parsedBody);
+  }
+
+  let entries: SourceActionLogEntry[] = [];
+  let nextCursor: string | null = null;
+
+  if (Array.isArray(parsedBody)) {
+    entries = sourceActionLogListSchema.parse(parsedBody ?? []);
+  } else if (parsedBody && typeof parsedBody === "object") {
+    const raw = parsedBody as { entries?: unknown; nextCursor?: unknown };
+    entries = sourceActionLogListSchema.parse(raw.entries ?? []);
+    if (typeof raw.nextCursor === "string" && raw.nextCursor.trim() !== "") {
+      nextCursor = raw.nextCursor;
+    }
+  }
+
+  return {
+    entries,
+    nextCursor
+  };
 }
