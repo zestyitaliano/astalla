@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Code2, Loader2, Pencil, Play, Plus, Trash } from "lucide-react";
 
@@ -407,6 +407,7 @@ export function SourcesAdminView() {
   const [banner, setBanner] = useState<BannerState | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [formValues, setFormValues] = useState<SourceFormValues>(buildInitialValues("ENTRATA"));
+  const [lastCreatedSourceId, setLastCreatedSourceId] = useState<string | null>(null);
 
   const sourcesQuery = useQuery({ queryKey: ["admin-sources"], queryFn: listSources });
   const propertiesQuery = useQuery({ queryKey: ["properties"], queryFn: api.properties });
@@ -422,6 +423,9 @@ export function SourcesAdminView() {
           : "Changes saved.";
       setBanner({ tone, message: validationMessage });
       setModal(null);
+      if (action === "created") {
+        setLastCreatedSourceId(response.source.id);
+      }
     },
     [queryClient]
   );
@@ -465,6 +469,12 @@ export function SourcesAdminView() {
   });
 
   const sources = sourcesQuery.data?.sources ?? [];
+
+  useEffect(() => {
+    if (sources.length > 0 && lastCreatedSourceId) {
+      setLastCreatedSourceId(null);
+    }
+  }, [sources.length, lastCreatedSourceId]);
 
   const openModal = (type: SourceType, source?: SourceAccount) => {
     if (source) {
@@ -556,6 +566,11 @@ export function SourcesAdminView() {
           <Button className="mt-4" variant="outline" onClick={() => openModal("ENTRATA")}>
             <Plus className="mr-2 h-4 w-4" /> Add connection
           </Button>
+          {lastCreatedSourceId ? (
+            <Button className="mt-3" asChild>
+              <Link href={`/admin/sources/${lastCreatedSourceId}/studio`}>Open Studio for this source</Link>
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -580,9 +595,9 @@ export function SourcesAdminView() {
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button asChild variant="outline" size="sm">
+              <Button asChild size="sm">
                 <Link href={`/admin/sources/${source.id}/studio`}>
-                  <Code2 className="mr-2 h-4 w-4" /> Open in Studio
+                  <Code2 className="mr-2 h-4 w-4" /> Open Studio
                 </Link>
               </Button>
               <Button
