@@ -1003,40 +1003,71 @@ declare const sourceActionLogSchema: z.ZodObject<{
     error?: string | null | undefined;
     createdBy?: string | null | undefined;
 }>;
-declare const sourceActionLogListSchema: z.ZodArray<z.ZodObject<{
-    id: z.ZodString;
-    sourceId: z.ZodString;
-    action: z.ZodString;
-    ok: z.ZodBoolean;
-    latencyMs: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-    request: z.ZodOptional<z.ZodNullable<z.ZodUnknown>>;
-    response: z.ZodOptional<z.ZodNullable<z.ZodUnknown>>;
-    error: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    createdBy: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    createdAt: z.ZodString;
+declare const sourceActionLogListSchema: z.ZodObject<{
+    entries: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        sourceId: z.ZodString;
+        action: z.ZodString;
+        ok: z.ZodBoolean;
+        latencyMs: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        request: z.ZodOptional<z.ZodNullable<z.ZodUnknown>>;
+        response: z.ZodOptional<z.ZodNullable<z.ZodUnknown>>;
+        error: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        createdBy: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        createdAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        createdAt: string;
+        ok: boolean;
+        sourceId: string;
+        action: string;
+        latencyMs?: number | null | undefined;
+        request?: unknown;
+        response?: unknown;
+        error?: string | null | undefined;
+        createdBy?: string | null | undefined;
+    }, {
+        id: string;
+        createdAt: string;
+        ok: boolean;
+        sourceId: string;
+        action: string;
+        latencyMs?: number | null | undefined;
+        request?: unknown;
+        response?: unknown;
+        error?: string | null | undefined;
+        createdBy?: string | null | undefined;
+    }>, "many">;
+    nextCursor: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    id: string;
-    createdAt: string;
-    ok: boolean;
-    sourceId: string;
-    action: string;
-    latencyMs?: number | null | undefined;
-    request?: unknown;
-    response?: unknown;
-    error?: string | null | undefined;
-    createdBy?: string | null | undefined;
+    entries: {
+        id: string;
+        createdAt: string;
+        ok: boolean;
+        sourceId: string;
+        action: string;
+        latencyMs?: number | null | undefined;
+        request?: unknown;
+        response?: unknown;
+        error?: string | null | undefined;
+        createdBy?: string | null | undefined;
+    }[];
+    nextCursor: string | null;
 }, {
-    id: string;
-    createdAt: string;
-    ok: boolean;
-    sourceId: string;
-    action: string;
-    latencyMs?: number | null | undefined;
-    request?: unknown;
-    response?: unknown;
-    error?: string | null | undefined;
-    createdBy?: string | null | undefined;
-}>, "many">;
+    entries: {
+        id: string;
+        createdAt: string;
+        ok: boolean;
+        sourceId: string;
+        action: string;
+        latencyMs?: number | null | undefined;
+        request?: unknown;
+        response?: unknown;
+        error?: string | null | undefined;
+        createdBy?: string | null | undefined;
+    }[];
+    nextCursor: string | null;
+}>;
 declare const listSourcesResponseSchema: z.ZodObject<{
     sources: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
@@ -1198,6 +1229,74 @@ declare const sourceMutationResponseSchema: z.ZodObject<{
         lastErrorAt?: string | null | undefined;
     };
     validationMessage?: string | undefined;
+}>;
+declare const sourceRunResponseSchema: z.ZodObject<{
+    ok: z.ZodBoolean;
+    mode: z.ZodEnum<["queued", "immediate"]>;
+    source: z.ZodOptional<z.ZodObject<{
+        id: z.ZodString;
+        name: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        propertyId: z.ZodOptional<z.ZodString>;
+        type: z.ZodEnum<["ENTRATA", "GA4", "ADS", "GBP"]>;
+        status: z.ZodOptional<z.ZodNullable<z.ZodEnum<["CONNECTED", "ERROR", "UNVERIFIED"]>>>;
+        lastSuccessAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        lastErrorAt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        enabled: z.ZodBoolean;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }, {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    ok: boolean;
+    mode: "queued" | "immediate";
+    source?: {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    } | undefined;
+}, {
+    ok: boolean;
+    mode: "queued" | "immediate";
+    source?: {
+        type: "ENTRATA" | "GA4" | "ADS" | "GBP";
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        enabled: boolean;
+        name?: string | null | undefined;
+        status?: "CONNECTED" | "ERROR" | "UNVERIFIED" | null | undefined;
+        propertyId?: string | undefined;
+        lastSuccessAt?: string | null | undefined;
+        lastErrorAt?: string | null | undefined;
+    } | undefined;
 }>;
 declare const propertiesResponseSchema: z.ZodObject<{
     properties: z.ZodArray<z.ZodObject<Pick<{
@@ -1894,31 +1993,71 @@ declare const reorderRowsDtoSchema: z.ZodObject<{
 declare const createViewDtoSchema: z.ZodObject<{
     tableId: z.ZodString;
     name: z.ZodString;
-    config: z.ZodUnknown;
+    config: z.ZodObject<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">>;
 }, "strip", z.ZodTypeAny, {
     name: string;
+    config: {
+        hidden?: string[] | undefined;
+        columnOrder?: string[] | undefined;
+    } & {
+        [k: string]: unknown;
+    };
     tableId: string;
-    config?: unknown;
 }, {
     name: string;
+    config: {
+        hidden?: string[] | undefined;
+        columnOrder?: string[] | undefined;
+    } & {
+        [k: string]: unknown;
+    };
     tableId: string;
-    config?: unknown;
 }>;
 declare const updateViewDtoSchema: z.ZodEffects<z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
-    config: z.ZodOptional<z.ZodUnknown>;
+    config: z.ZodOptional<z.ZodObject<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">>>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
-    config?: unknown;
+    config?: z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough"> | undefined;
 }, {
     name?: string | undefined;
-    config?: unknown;
+    config?: z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough"> | undefined;
 }>, {
     name?: string | undefined;
-    config?: unknown;
+    config?: z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough"> | undefined;
 }, {
     name?: string | undefined;
-    config?: unknown;
+    config?: z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough"> | undefined;
 }>;
 type Org = z.infer<typeof orgSchema>;
 type Property = z.infer<typeof propertySchema>;
@@ -1952,10 +2091,12 @@ type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
 type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
 type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
 type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;
+type SourceRunResponse = z.infer<typeof sourceRunResponseSchema>;
 type ProviderScriptResponse = z.infer<typeof providerScriptSchema>;
 type ProviderValidateResponse = z.infer<typeof providerValidateResponseSchema>;
 type ProviderRunResponse = z.infer<typeof providerRunResponseSchema>;
 type SourceActionLogEntry = z.infer<typeof sourceActionLogSchema>;
+type SourceActionLogPage = z.infer<typeof sourceActionLogListSchema>;
 type PublicDashboard = z.infer<typeof publicDashboardSchema>;
 type PublicDashboardListResponse = z.infer<typeof publicDashboardListResponseSchema>;
 type CreatePublicDashboardRequest = z.infer<typeof createPublicDashboardRequestSchema>;
@@ -2239,28 +2380,62 @@ type CreateViewDto = z.infer<typeof createViewDtoSchema>;
 declare const CreateViewDto: z.ZodObject<{
     tableId: z.ZodString;
     name: z.ZodString;
-    config: z.ZodAny;
+    config: z.ZodObject<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">>;
 }, "strip", z.ZodTypeAny, {
     name: string;
+    config: {
+        hidden?: string[] | undefined;
+        columnOrder?: string[] | undefined;
+    } & {
+        [k: string]: unknown;
+    };
     tableId: string;
-    config?: any;
 }, {
     name: string;
+    config: {
+        hidden?: string[] | undefined;
+        columnOrder?: string[] | undefined;
+    } & {
+        [k: string]: unknown;
+    };
     tableId: string;
-    config?: any;
 }>;
 type UpdateViewDto = z.infer<typeof updateViewDtoSchema>;
 declare const UpdateViewDto: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
-    config: z.ZodOptional<z.ZodAny>;
+    config: z.ZodOptional<z.ZodObject<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough">>>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
-    config?: any;
+    config?: z.objectOutputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough"> | undefined;
 }, {
     name?: string | undefined;
-    config?: any;
+    config?: z.objectInputType<{
+        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, z.ZodTypeAny, "passthrough"> | undefined;
 }>;
 type TColumnType = z.infer<typeof ColumnType>;
 type TDataTable = z.infer<typeof DataTableSchema>;
 
-export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, type ColumnTypeValue, type CostMetricsResponse, CreateColumnDto, type CreatePublicDashboardRequest, CreateRowDto, type CreateSourceRequest, CreateTableDto, CreateViewDto, type CredentialSummaryItem, type DataTableDto, DataTableSchema, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type MeResponse, type OccupancyMetricsResponse, type Org, PatchCellsDto, type PipelineMetricsResponse, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, ReorderRowsDto, type ReportSnapshot, type Review, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceDetail, type SourceMutationResponse, type SourceStatus, type SourceType, type TColumnType, type TDataTable, type TableAuditDto, type TableCellDto, TableCellSchema, type TableColumnDto, TableColumnSchema, type TableRowDto, TableRowSchema, type TableViewDto, TableViewSchema, UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, UpdateViewDto, type User, type WeeklyReportResponse, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };
+export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, type ColumnTypeValue, type CostMetricsResponse, CreateColumnDto, type CreatePublicDashboardRequest, CreateRowDto, type CreateSourceRequest, CreateTableDto, CreateViewDto, type CredentialSummaryItem, type DataTableDto, DataTableSchema, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type MeResponse, type OccupancyMetricsResponse, type Org, PatchCellsDto, type PipelineMetricsResponse, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, ReorderRowsDto, type ReportSnapshot, type Review, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRunResponse, type SourceStatus, type SourceType, type TColumnType, type TDataTable, type TableAuditDto, type TableCellDto, TableCellSchema, type TableColumnDto, TableColumnSchema, type TableRowDto, TableRowSchema, type TableViewDto, TableViewSchema, UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, UpdateViewDto, type User, type WeeklyReportResponse, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };

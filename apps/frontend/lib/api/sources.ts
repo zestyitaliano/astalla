@@ -7,6 +7,7 @@ import {
   sourceActionLogListSchema,
   sourceDetailSchema,
   sourceMutationResponseSchema,
+  sourceRunResponseSchema,
   updateSourceRequestSchema,
   type CreateSourceRequest,
   type ListSourcesResponse,
@@ -16,6 +17,7 @@ import {
   type SourceActionLogEntry,
   type SourceDetail,
   type SourceMutationResponse,
+  type SourceRunResponse,
   type UpdateSourceRequest
 } from "@shared/api";
 
@@ -120,8 +122,12 @@ export async function deleteSource(id: string): Promise<void> {
   await request(`/admin/sources/${id}`, { method: "DELETE" });
 }
 
-export async function runSource(id: string): Promise<void> {
-  await request(`/admin/sources/${id}/run`, { method: "POST" });
+export async function runSource(id: string): Promise<SourceRunResponse> {
+  return request<SourceRunResponse>(
+    `/admin/sources/${id}/run`,
+    { method: "POST" },
+    sourceRunResponseSchema
+  ) as Promise<SourceRunResponse>;
 }
 
 export async function getSourceDetail(id: string): Promise<SourceDetail> {
@@ -198,48 +204,10 @@ export interface ProviderLogPage {
 
 export async function listProviderLogs(sourceId: string, cursor?: string): Promise<ProviderLogPage> {
   ensureDevMocksEnabled();
-  const search = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  const response = await fetch(`${apiBaseUrl}/admin/dev/providers/${sourceId}/logs${search}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "x-mock-mode": isMockMode() ? "true" : "false"
-    }
-  });
-
-  const rawBody = await response.text();
-  let parsedBody: unknown = undefined;
-
-  if (rawBody) {
-    try {
-      parsedBody = JSON.parse(rawBody);
-    } catch {
-      parsedBody = rawBody;
-    }
+  const params = new URLSearchParams();
+  if (cursor) {
+    params.set("cursor", cursor);
   }
-
-  if (!response.ok) {
-    const message = typeof parsedBody === "object" && parsedBody && "message" in parsedBody
-      ? String((parsedBody as { message?: unknown }).message)
-      : `Request failed for /admin/dev/providers/${sourceId}/logs: ${response.status}`;
-    throw new ApiError(message, response.status, parsedBody);
-  }
-
-  let entries: SourceActionLogEntry[] = [];
-  let nextCursor: string | null = null;
-
-  if (Array.isArray(parsedBody)) {
-    entries = sourceActionLogListSchema.parse(parsedBody ?? []);
-  } else if (parsedBody && typeof parsedBody === "object") {
-    const raw = parsedBody as { entries?: unknown; nextCursor?: unknown };
-    entries = sourceActionLogListSchema.parse(raw.entries ?? []);
-    if (typeof raw.nextCursor === "string" && raw.nextCursor.trim() !== "") {
-      nextCursor = raw.nextCursor;
-    }
-  }
-
-  return {
-    entries,
-    nextCursor
-  };
+  const path = params.size > 0 ? `/admin/dev/providers/${sourceId}/logs?${params.toString()}` : `/admin/dev/providers/${sourceId}/logs`;
+  return request<ProviderLogPage>(path, { method: "GET" }, sourceActionLogListSchema) as Promise<ProviderLogPage>;
 }

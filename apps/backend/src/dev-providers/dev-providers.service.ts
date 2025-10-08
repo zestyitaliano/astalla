@@ -16,13 +16,15 @@ import {
 } from "@prisma/client";
 import { transform } from "esbuild";
 import { VM } from "vm2";
-import { createDecipheriv, createHash, randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 import type { ProviderManifest } from "@shared/api";
 import { ProviderManifest as ProviderManifestSchema } from "@shared/api";
 
 import { PrismaService } from "../prisma/prisma.service";
 import { JSON_NULL } from "../util/json";
+import { buildCredentialCipher, CredentialCipher } from "../util/credential-cipher";
+import { redactSensitive } from "../util/redact";
 
 const EXECUTION_TIMEOUT_MS = 15_000;
 const RESPONSE_SIZE_LIMIT = 10 * 1024 * 1024;
@@ -118,15 +120,13 @@ interface ExecutionContextOptions {
 @Injectable()
 export class DevProvidersService {
   private readonly logger = new Logger(DevProvidersService.name);
-  private readonly encryptionKey?: Buffer;
   private readonly devMocksEnabled: boolean;
+  private readonly credentialCipher: CredentialCipher;
 
   constructor(private readonly prisma: PrismaService, private readonly configService: ConfigService) {
     this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
     const configuredKey = this.configService.get<string>("ENCRYPTION_KEY") ?? process.env.ENCRYPTION_KEY;
-    if (configuredKey && configuredKey.trim().length > 0) {
-      this.encryptionKey = createHash("sha256").update(configuredKey).digest();
-    }
+    this.credentialCipher = buildCredentialCipher(this.logger, configuredKey, "Provider credential");
   }
 
   async getScriptBySource(sourceId: string) {
@@ -227,9 +227,9 @@ export class DevProvidersService {
       const result = await this.runWithTimeout(module.validate(credential, ctx), EXECUTION_TIMEOUT_MS);
       return {
         ok: true,
-        result,
+        result: redactSensitive(result),
         latencyMs: Date.now() - started,
-        logs: sandbox.logs
+        logs: sandbox.logs.map((line) => String(redactSensitive(line)))
       };
     } catch (error) {
       this.logger.warn(`Validation failed for ${sourceId}: ${(error as Error).message}`);
@@ -273,17 +273,18 @@ export class DevProvidersService {
     try {
       const rawResult = await this.runWithTimeout(module.run(credential, ctx), EXECUTION_TIMEOUT_MS);
       ok = true;
-      responseJson = this.asJson({ result: rawResult, logs: sandbox.logs, rowsPersisted });
+      const redactedResponse = redactSensitive({ result: rawResult, logs: sandbox.logs, rowsPersisted });
+      responseJson = this.asJson(redactedResponse);
       return {
         ok: true,
-        result: rawResult,
+        result: redactSensitive(rawResult),
         rowsPersisted,
-        logs: sandbox.logs,
+        logs: sandbox.logs.map((line) => String(redactSensitive(line))),
         latencyMs: Date.now() - started
       };
     } catch (error) {
       errorMessage = (error as Error).message;
-      responseJson = this.asJson({ logs: sandbox.logs, rowsPersisted });
+      responseJson = this.asJson(redactSensitive({ logs: sandbox.logs, rowsPersisted }));
       this.logger.error(`Run failed for ${sourceId}: ${(error as Error).message}`);
       this.wrapScriptError(error, sandbox.logs);
     } finally {
@@ -293,7 +294,7 @@ export class DevProvidersService {
           action: "run",
           ok,
           latencyMs: ok ? Date.now() - started : null,
-          request: this.asJson({ runId }),
+          request: this.asJson(redactSensitive({ runId })),
           response: responseJson,
           error: errorMessage,
           createdBy
@@ -305,10 +306,10 @@ export class DevProvidersService {
   async listLogs(sourceId: string, limit?: number, cursor?: string) {
     this.ensureDevMocksEnabled();
     const take = limit && Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 100) : 20;
-    return this.prisma.sourceActionLog.findMany({
+    const entries = await this.prisma.sourceActionLog.findMany({
       where: { sourceId },
       orderBy: { createdAt: "desc" },
-      take,
+      take: take + 1,
       ...(cursor
         ? {
             skip: 1,
@@ -316,6 +317,17 @@ export class DevProvidersService {
           }
         : {})
     });
+
+    let nextCursor: string | null = null;
+    if (entries.length > take) {
+      const next = entries.pop();
+      nextCursor = next ? next.id : null;
+    }
+
+    return {
+      entries: entries.map((entry) => this.redactLogEntry(entry)),
+      nextCursor
+    };
   }
 
   private async loadSourceAndScript(sourceId: string, preferPublished = false) {
@@ -911,7 +923,8 @@ export class DevProvidersService {
       throw error;
     }
     const message = error instanceof Error ? error.message : String(error);
-    throw new BadRequestException({ message, logs });
+    const sanitizedLogs = logs.map((line) => String(redactSensitive(line)));
+    throw new BadRequestException({ message, logs: sanitizedLogs });
   }
 
   private instantiateModule(code: string, consoleOverride?: SandboxResult["console"]): ProviderModuleExports {
@@ -921,7 +934,15 @@ export class DevProvidersService {
       exports: moduleReference.exports,
       console: consoleOverride ?? console,
       setTimeout,
-      clearTimeout
+      clearTimeout,
+      setInterval,
+      clearInterval,
+      require: () => {
+        throw new Error("require is not available in the provider sandbox");
+      },
+      process: undefined,
+      global: undefined,
+      globalThis: undefined
     };
 
     const vm = new VM({
@@ -964,36 +985,17 @@ export class DevProvidersService {
   }
 
   private decryptCredential(value: unknown): Record<string, unknown> {
-    if (!value || typeof value !== "object") {
-      return {};
-    }
+    return this.credentialCipher.decrypt(value);
+  }
 
-    if ("enc" in (value as Record<string, unknown>)) {
-      if (!this.encryptionKey) {
-        return {};
-      }
-
-      const encrypted = (value as Record<string, string>).enc;
-      if (!encrypted) {
-        return {};
-      }
-
-      const raw = Buffer.from(encrypted, "base64");
-      const iv = raw.subarray(0, 12);
-      const authTag = raw.subarray(12, 28);
-      const ciphertext = raw.subarray(28);
-
-      const decipher = createDecipheriv("aes-256-gcm", this.encryptionKey, iv);
-      decipher.setAuthTag(authTag);
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
-      try {
-        return JSON.parse(decrypted) as Record<string, unknown>;
-      } catch {
-        return {};
-      }
-    }
-
-    return value as Record<string, unknown>;
+  private redactLogEntry(entry: Prisma.SourceActionLog) {
+    const sanitizedRequest = entry.request === null ? null : this.asJson(redactSensitive(entry.request));
+    const sanitizedResponse = entry.response === null ? null : this.asJson(redactSensitive(entry.response));
+    return {
+      ...entry,
+      request: sanitizedRequest,
+      response: sanitizedResponse
+    };
   }
 
   private asJson(value: unknown): Prisma.InputJsonValue {
