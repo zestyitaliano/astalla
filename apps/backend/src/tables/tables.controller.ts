@@ -13,7 +13,6 @@ import {
   UseInterceptors
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import type { Buffer } from "node:buffer";
 import {
   CreateColumnDto,
   CreateRowDto,
@@ -25,6 +24,7 @@ import {
   UpdateViewDto
 } from "@shared/api";
 import type { Response } from "express";
+import type { Buffer } from "node:buffer";
 
 type UploadedCsvFile = {
   buffer: Buffer;
