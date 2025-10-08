@@ -479,8 +479,8 @@ export class TablesService {
       throw new NotFoundException("Table not found");
     }
 
-    let columns = [...table.columns];
-    let hiddenColumns = new Set<string>();
+    const columns = [...table.columns];
+    const hiddenColumns = new Set<string>();
 
     if (viewId) {
       const view = table.views.find((item) => item.id === viewId);
@@ -504,7 +504,9 @@ export class TablesService {
       }
 
       if (config.hidden?.length) {
-        hiddenColumns = new Set(config.hidden);
+        for (const columnId of config.hidden) {
+          hiddenColumns.add(columnId);
+        }
       }
     }
 
