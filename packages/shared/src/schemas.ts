@@ -246,6 +246,55 @@ export const sourceAccountSchema = z.object({
   updatedAt: z.string().datetime({ offset: true })
 });
 
+export const credentialSummaryItemSchema = z.object({
+  key: z.string(),
+  present: z.boolean(),
+  preview: z.string().optional()
+});
+
+export const sourceDetailSchema = sourceAccountSchema.extend({
+  propertyName: z.string().nullable().optional(),
+  credentialSummary: z.array(credentialSummaryItemSchema)
+});
+
+export const providerScriptSchema = z.object({
+  code: z.string(),
+  readme: z.string().optional(),
+  status: ScriptStatusEnum,
+  version: z.number(),
+  manifest: ProviderManifest.nullable().optional()
+});
+
+export const providerValidateResponseSchema = z.object({
+  ok: z.boolean(),
+  result: z.unknown().optional(),
+  latencyMs: z.number().optional(),
+  logs: z.array(z.string()).optional()
+});
+
+export const providerRunResponseSchema = z.object({
+  ok: z.boolean(),
+  result: z.unknown().optional(),
+  rowsPersisted: z.number().optional(),
+  latencyMs: z.number().optional(),
+  logs: z.array(z.string()).optional()
+});
+
+export const sourceActionLogSchema = z.object({
+  id: z.string(),
+  sourceId: z.string(),
+  action: z.string(),
+  ok: z.boolean(),
+  latencyMs: z.number().nullable().optional(),
+  request: z.unknown().nullable().optional(),
+  response: z.unknown().nullable().optional(),
+  error: z.string().nullable().optional(),
+  createdBy: z.string().nullable().optional(),
+  createdAt: z.string().datetime({ offset: true })
+});
+
+export const sourceActionLogListSchema = z.array(sourceActionLogSchema);
+
 export const listSourcesResponseSchema = z.object({
   sources: z.array(sourceAccountSchema)
 });
@@ -476,10 +525,16 @@ export type PropertiesResponse = z.infer<typeof propertiesResponseSchema>;
 export type SourceType = z.infer<typeof sourceTypeSchema>;
 export type SourceStatus = z.infer<typeof sourceStatusSchema>;
 export type SourceAccount = z.infer<typeof sourceAccountSchema>;
+export type CredentialSummaryItem = z.infer<typeof credentialSummaryItemSchema>;
+export type SourceDetail = z.infer<typeof sourceDetailSchema>;
 export type ListSourcesResponse = z.infer<typeof listSourcesResponseSchema>;
 export type CreateSourceRequest = z.infer<typeof createSourceRequestSchema>;
 export type UpdateSourceRequest = z.infer<typeof updateSourceRequestSchema>;
 export type SourceMutationResponse = z.infer<typeof sourceMutationResponseSchema>;
+export type ProviderScriptResponse = z.infer<typeof providerScriptSchema>;
+export type ProviderValidateResponse = z.infer<typeof providerValidateResponseSchema>;
+export type ProviderRunResponse = z.infer<typeof providerRunResponseSchema>;
+export type SourceActionLogEntry = z.infer<typeof sourceActionLogSchema>;
 export type PublicDashboard = z.infer<typeof publicDashboardSchema>;
 export type PublicDashboardListResponse = z.infer<typeof publicDashboardListResponseSchema>;
 export type CreatePublicDashboardRequest = z.infer<typeof createPublicDashboardRequestSchema>;
