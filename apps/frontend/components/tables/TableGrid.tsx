@@ -20,8 +20,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   ColumnDef,
+  FilterFn,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   useReactTable
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -34,6 +36,7 @@ import {
   FolderPlus,
   Plus,
   Rows,
+  Search,
   Trash2
 } from "lucide-react";
 
@@ -91,6 +94,13 @@ interface TableGridProps {
 }
 
 const COLUMN_TYPE_ENUM = ColumnType.enum;
+
+const SEARCHABLE_COLUMN_TYPES = new Set<ColumnKind>([
+  COLUMN_TYPE_ENUM.TEXT,
+  COLUMN_TYPE_ENUM.NUMBER,
+  COLUMN_TYPE_ENUM.BOOLEAN,
+  COLUMN_TYPE_ENUM.DATE
+]);
 
 const COLUMN_TYPE_OPTIONS: Array<{ label: string; value: ColumnKind }> = [
   { label: "Text", value: COLUMN_TYPE_ENUM.TEXT },
@@ -214,6 +224,51 @@ function getCellValue(row: TableRowDto, columnId: string) {
     (entry: TableRowDto["cells"][number]) => entry.columnId === columnId
   );
   return cell?.value ?? null;
+}
+
+function stringifyValueForSearch(column: TableColumnDto, value: unknown) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (column.type === COLUMN_TYPE_ENUM.BOOLEAN) {
+    if (typeof value === "boolean") {
+      return value ? "true" : "false";
+    }
+    if (typeof value === "number") {
+      return value !== 0 ? "true" : "false";
+    }
+    if (typeof value === "string") {
+      const normalized = value.toLowerCase();
+      if (["true", "1", "yes", "y", "on"].includes(normalized)) {
+        return "true";
+      }
+      if (["false", "0", "no", "n", "off"].includes(normalized)) {
+        return "false";
+      }
+    }
+  }
+
+  if (column.type === COLUMN_TYPE_ENUM.NUMBER) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value.toString();
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed.toString();
+    }
+  }
+
+  if (column.type === COLUMN_TYPE_ENUM.DATE) {
+    const date = value instanceof Date ? value : new Date(String(value));
+    if (!Number.isNaN(date.getTime())) {
+      const iso = date.toISOString();
+      const locale = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`.trim();
+      return `${iso} ${locale}`.trim();
+    }
+  }
+
+  return String(value);
 }
 
 type ReferenceConfig = {
@@ -424,8 +479,35 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [importSummary, setImportSummary] = useState<{ createdColumns: number; createdRows: number } | null>(null);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
+  const [globalQuery, setGlobalQuery] = useState("");
+  const [debouncedGlobalQuery, setDebouncedGlobalQuery] = useState("");
 
   const reorderDisabled = Boolean(filters.length || sorts.length);
+
+  const orderedViewColumns = useMemo(() => {
+    const byId = new Map(columns.map((column: TableColumnDto) => [column.id, column] as const));
+    const seen = new Set<string>();
+    const ordered: TableColumnDto[] = [];
+
+    for (const columnId of columnOrder) {
+      const column = byId.get(columnId);
+      if (column && !seen.has(column.id)) {
+        ordered.push(column);
+        seen.add(column.id);
+      }
+    }
+
+    if (seen.size < columns.length) {
+      for (const column of columns) {
+        if (!seen.has(column.id)) {
+          ordered.push(column);
+          seen.add(column.id);
+        }
+      }
+    }
+
+    return ordered;
+  }, [columns, columnOrder]);
 
   useEffect(() => {
     setColumnOrder(baseColumnOrder);
@@ -438,6 +520,14 @@ export function TableGrid({ tableId }: TableGridProps) {
       setNewColumnOptions("");
     }
   }, [isAddColumnOpen]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedGlobalQuery(globalQuery);
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [globalQuery]);
 
   useEffect(() => {
     setColumnVisibility((prev) => {
@@ -519,6 +609,38 @@ export function TableGrid({ tableId }: TableGridProps) {
     });
   }, [sortedRows, columns]);
 
+  const searchableColumns = useMemo(() => {
+    return columns.filter(
+      (column) => (columnVisibility[column.id] ?? true) && SEARCHABLE_COLUMN_TYPES.has(column.type)
+    );
+  }, [columns, columnVisibility]);
+
+  const globalFilterFn = useMemo<FilterFn<GridRow>>(
+    () =>
+      (row, _columnId, filterValue) => {
+        const query = String(filterValue ?? "").trim().toLowerCase();
+
+        if (!query) {
+          return true;
+        }
+
+        if (!searchableColumns.length) {
+          return false;
+        }
+
+        for (const column of searchableColumns) {
+          const rawValue = row.original[column.id];
+          const text = stringifyValueForSearch(column, rawValue).toLowerCase();
+          if (text && text.includes(query)) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+    [searchableColumns]
+  );
+
   const handleRowDragEnd = useCallback(
     (event: DragEndEvent) => {
       if (reorderDisabled) {
@@ -544,9 +666,16 @@ export function TableGrid({ tableId }: TableGridProps) {
   );
 
   const handleToggleColumnVisibility = useCallback(
-    (columnId: string) => {
+    (columnId: string, nextVisible?: boolean) => {
       setColumnVisibility((prev) => {
-        const next = { ...prev, [columnId]: !prev[columnId] };
+        const current = prev[columnId] ?? true;
+        const resolved = typeof nextVisible === "boolean" ? nextVisible : !current;
+
+        if (resolved === current) {
+          return prev;
+        }
+
+        const next = { ...prev, [columnId]: resolved };
         if (activeViewId) {
           const config = buildConfig({ filters, sorts, columnVisibility: next, columnOrder });
           updateViewMutation.mutate({ id: activeViewId, payload: { config } });
@@ -776,14 +905,17 @@ export function TableGrid({ tableId }: TableGridProps) {
     columns: columnDefs,
     state: {
       columnOrder: tableColumnOrder,
-      columnVisibility
+      columnVisibility,
+      globalFilter: debouncedGlobalQuery
     },
     onColumnOrderChange: (updater) => {
       const nextOrder = typeof updater === "function" ? (updater as (old: string[]) => string[])(tableColumnOrder) : updater;
       const filtered = nextOrder.filter((id) => id !== "__select__" && id !== "__position__");
       setColumnOrder(filtered);
     },
-    getCoreRowModel: getCoreRowModel()
+    globalFilterFn,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel()
   });
 
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -976,7 +1108,23 @@ export function TableGrid({ tableId }: TableGridProps) {
           onRename={handleRenameView}
           onDelete={handleDeleteView}
           isSaving={createViewMutation.isPending}
+          columns={orderedViewColumns}
+          columnVisibility={columnVisibility}
+          onToggleColumnVisibility={(columnId, visible) =>
+            handleToggleColumnVisibility(columnId, visible)
+          }
         />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={globalQuery}
+            onChange={(event) => setGlobalQuery(event.target.value)}
+            placeholder="Quick search"
+            aria-label="Quick search"
+            className="h-8 w-56 rounded-full border border-border/60 bg-white/70 pl-8 pr-3 text-sm focus-visible:ring-0"
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/60 bg-white/70 px-3 py-1">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs font-medium text-muted-foreground">Filters</span>

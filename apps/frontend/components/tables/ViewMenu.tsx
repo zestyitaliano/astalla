@@ -3,10 +3,11 @@
 import { useMemo } from "react";
 import { Check, ChevronDown, PlusCircle, Trash2 } from "lucide-react";
 
-import { type TableViewDto } from "@/lib/api/tables";
+import { type TableColumnDto, type TableViewDto } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -22,6 +23,9 @@ interface ViewMenuProps {
   onRename: (viewId: string) => void;
   onDelete: (viewId: string) => void;
   isSaving?: boolean;
+  columns: TableColumnDto[];
+  columnVisibility: Record<string, boolean>;
+  onToggleColumnVisibility: (columnId: string, visible: boolean) => void;
 }
 
 export function ViewMenu({
@@ -31,7 +35,10 @@ export function ViewMenu({
   onSaveCurrent,
   onRename,
   onDelete,
-  isSaving
+  isSaving,
+  columns,
+  columnVisibility,
+  onToggleColumnVisibility
 }: ViewMenuProps) {
   const activeView = useMemo(() => views.find((view) => view.id === activeViewId), [views, activeViewId]);
   const label = activeView ? activeView.name : "Default view";
@@ -79,6 +86,23 @@ export function ViewMenu({
             </DropdownMenuItem>
           </>
         ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+          Columns
+        </DropdownMenuLabel>
+        {columns.length ? (
+          columns.map((column) => (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              checked={columnVisibility[column.id] ?? true}
+              onCheckedChange={(value) => onToggleColumnVisibility(column.id, value === true)}
+            >
+              {column.name}
+            </DropdownMenuCheckboxItem>
+          ))
+        ) : (
+          <DropdownMenuItem disabled>No columns</DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -484,16 +484,23 @@ export const reorderRowsDtoSchema = z.object({
   )
 });
 
+const viewConfigSchema = z
+  .object({
+    hidden: z.array(z.string()).optional(),
+    columnOrder: z.array(z.string()).optional()
+  })
+  .passthrough();
+
 export const createViewDtoSchema = z.object({
   tableId: z.string(),
   name: z.string().min(1),
-  config: z.unknown()
+  config: viewConfigSchema
 });
 
 export const updateViewDtoSchema = z
   .object({
     name: z.string().optional(),
-    config: z.unknown().optional()
+    config: viewConfigSchema.optional()
   })
   .refine((payload) => Object.keys(payload).length > 0, {
     message: "Update payload cannot be empty"
@@ -626,11 +633,11 @@ export const ReorderRowsDto = z.object({
 export const CreateViewDto = z.object({
   tableId: z.string(),
   name: z.string(),
-  config: z.any(),
+  config: viewConfigSchema,
 });
 export const UpdateViewDto = z.object({
   name: z.string().optional(),
-  config: z.any().optional(),
+  config: viewConfigSchema.optional(),
 });
 
 export type TColumnType = z.infer<typeof ColumnType>;
