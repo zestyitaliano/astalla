@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -51,14 +51,6 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
-  const resetState = () => {
-    clearPendingAbort();
-    setIsSubmitting(false);
-    setName("");
-    setDescription("");
-    setToastMessage(null);
-  };
-
   const clearPendingAbort = (reason: "cleanup" | "cancelled" = "cleanup") => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort(reason);
@@ -70,9 +62,110 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
     }
   };
 
-  const showToast = (message: string) => {
+  const showToast = useCallback((message: string) => {
     setToastMessage(message);
-  };
+  }, []);
+
+  const pollForCompletion = useCallback(
+    async (opId: string, controller: AbortController) => {
+      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
+        if (controller.signal.aborted) {
+          throw new DOMException("Operation aborted", "AbortError");
+        }
+
+        if (attempt > 0) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+        }
+
+        const response = await fetch(`/api/ops/${opId}`, { signal: controller.signal });
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || "Unable to fetch operation status");
+        }
+
+        const data = (await response.json()) as OperationStatus;
+
+        if (data.status === "done") {
+          return data.result?.tableId ?? null;
+        }
+
+        if (data.status === "error") {
+          throw new Error(data.error || "Table creation failed");
+        }
+      }
+
+      throw new Error("Timed out waiting for table creation");
+    },
+    []
+  );
+
+  const createTable = useCallback(
+    async (payload: { name: string; description?: string }, controller: AbortController) => {
+      const timeoutId = setTimeout(() => controller.abort("timeout"), CREATION_TIMEOUT_MS);
+      timeoutRef.current = timeoutId;
+
+      try {
+        setIsSubmitting(true);
+
+        const response = await fetch("/api/tables", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || "Failed to create table");
+        }
+
+        const { tableId, opId } = (await response.json()) as {
+          tableId?: string;
+          opId?: string;
+        };
+
+        if (!opId) {
+          throw new Error("Operation id missing from response");
+        }
+
+        const finalTableId = tableId ?? (await pollForCompletion(opId, controller));
+
+        if (!finalTableId) {
+          throw new Error("Operation completed without a table id");
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ["tables"] });
+        onCreated?.(finalTableId);
+        onOpenChange(false);
+        setName("");
+        setDescription("");
+        setToastMessage(null);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          const reason = controller.signal.reason;
+          if (reason === "timeout") {
+            showToast("Table creation timed out. Please try again.");
+          }
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : "Failed to create table";
+        showToast(message);
+      } finally {
+        if (timeoutRef.current === timeoutId) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+
+        setIsSubmitting(false);
+      }
+    },
+    [onCreated, onOpenChange, pollForCompletion, queryClient, showToast]
+  );
 
   const handleCancel = () => {
     clearPendingAbort("cancelled");
@@ -92,95 +185,13 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    const timeoutId = setTimeout(() => controller.abort("timeout"), CREATION_TIMEOUT_MS);
-    timeoutRef.current = timeoutId;
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch("/api/tables", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: trimmedName,
-          description: trimmedDescription ? trimmedDescription : undefined
-        }),
-        signal: controller.signal
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || "Failed to create table");
-      }
-
-      const { tableId, opId } = (await response.json()) as {
-        tableId?: string;
-        opId: string;
-      };
-
-      if (!opId) {
-        throw new Error("Operation id missing from response");
-      }
-
-      const finalTableId = tableId ?? (await pollForCompletion(opId, controller));
-
-      if (!finalTableId) {
-        throw new Error("Operation completed without a table id");
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ["tables"] });
-      onCreated?.(finalTableId);
-      onOpenChange(false);
-      resetState();
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        const reason = controller.signal.reason;
-        if (reason === "timeout") {
-          showToast("Table creation timed out. Please try again.");
-        }
-        return;
-      }
-
-      const message = error instanceof Error ? error.message : "Failed to create table";
-      showToast(message);
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      abortControllerRef.current = null;
-      setIsSubmitting(false);
-    }
-  };
-
-  const pollForCompletion = async (opId: string, controller: AbortController) => {
-    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
-      if (controller.signal.aborted) {
-        throw new DOMException("Operation aborted", "AbortError");
-      }
-
-      if (attempt > 0) {
-        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-      }
-
-      const response = await fetch(`/api/ops/${opId}`, { signal: controller.signal });
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || "Unable to fetch operation status");
-      }
-
-      const data = (await response.json()) as OperationStatus;
-
-      if (data.status === "done") {
-        return data.result?.tableId ?? null;
-      }
-
-      if (data.status === "error") {
-        throw new Error(data.error || "Table creation failed");
-      }
-    }
-
-    throw new Error("Timed out waiting for table creation");
+    await createTable(
+      {
+        name: trimmedName,
+        description: trimmedDescription ? trimmedDescription : undefined
+      },
+      controller
+    );
   };
 
   if (!open) {

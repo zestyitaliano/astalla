@@ -59,7 +59,7 @@ export class TableOperationsService {
 
         await tx.$executeRawUnsafe(`
           CREATE TABLE IF NOT EXISTS app.${tableName} (
-            id UUID PRIMARY KEY,
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           )
@@ -93,9 +93,13 @@ export class TableOperationsService {
 
       await this.prisma.$executeRaw`
         UPDATE app.ops
-        SET status = ${"error"}, error_message = ${message}, updated_at = NOW()
+        SET status = ${"error"}, result_json = NULL, error_message = ${message}, updated_at = NOW()
         WHERE id = ${opId}::uuid
       `;
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException("A table with that name already exists");
+      }
 
       if (message.includes("duplicate")) {
         throw new ConflictException("A table with that name already exists");
@@ -128,6 +132,7 @@ export class TableOperationsService {
     if (!this.infrastructureReady) {
       this.infrastructureReady = this.prisma
         .$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
           await tx.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS app`);
           await tx.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS app.ops (
