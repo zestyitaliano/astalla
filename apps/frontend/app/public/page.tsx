@@ -1,14 +1,38 @@
 import { Share2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { Metadata } from "next";
 
 interface PublicDashboardProps {
   searchParams: Record<string, string | string[] | undefined>;
 }
 
+interface PublicDashboardWidget {
+  id?: string;
+  label?: string;
+  value?: string | number | null;
+  description?: string | null;
+  type?: string | null;
+  media?: { src: string; alt?: string } | null;
+  chart?: {
+    type?: string | null;
+    points?: Array<number> | null;
+    color?: string | null;
+  } | null;
+}
+
 interface PublicDashboardResponse {
   title?: string;
-  widgets?: Array<{ id?: string; label?: string; value?: string }>;
+  widgets?: PublicDashboardWidget[];
 }
+
+const PublicWidgetCard = dynamic(() => import("./widgets/widget-card"), {
+  loading: () => (
+    <div className="content-visibility-auto contain-intrinsic-size-[320px] rounded-3xl border border-border/60 bg-white/80 p-5 shadow-sm supports-[backdrop-filter]:bg-white/60">
+      <div className="h-4 w-20 rounded-full bg-slate-200/90" />
+      <div className="mt-6 h-8 w-32 rounded-full bg-slate-200/90" />
+    </div>
+  )
+});
 
 export const metadata: Metadata = {
   title: "Astalla Live Dashboard",
@@ -47,7 +71,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
 
   if (!host) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-[1200px] flex-col items-center justify-center px-4 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground sm:px-6 lg:px-8">
+      <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col items-center justify-center px-4 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground sm:px-6 lg:px-8">
         Provide a host via the <code className="rounded bg-slate-100 px-2 py-1 text-foreground">x-host</code> query parameter to view a live dashboard.
       </main>
     );
@@ -55,7 +79,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
 
   if (!data) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-[1200px] flex-col items-center justify-center px-4 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground sm:px-6 lg:px-8">
+      <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col items-center justify-center px-4 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground sm:px-6 lg:px-8">
         Dashboard unavailable. Please confirm the share link or try again later.
       </main>
     );
@@ -64,7 +88,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
   const widgets = Array.isArray(data.widgets) ? data.widgets : [];
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1200px] px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+    <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 border-b border-border/60 pb-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
         <div className="space-y-2">
           <p className="text-[clamp(.8rem,1.4vw,.95rem)] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
@@ -87,25 +111,18 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
 
       <section
         aria-label="Dashboard widgets"
-        className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4"
+        className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {widgets.length === 0 ? (
-          <div className="md:col-span-6 rounded-3xl border border-dashed border-border/70 bg-white/70 p-10 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground shadow-sm">
+          <div className="col-span-1 rounded-3xl border border-dashed border-border/70 bg-white/70 p-10 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground shadow-sm sm:col-span-2 lg:col-span-3 xl:col-span-4">
             Dashboard widgets will appear here once the owner publishes a layout.
           </div>
         ) : (
           widgets.map((widget) => (
-            <article
-              key={widget.id ?? widget.label ?? crypto.randomUUID()}
-              className="flex min-h-[120px] flex-col justify-between rounded-3xl border border-border/60 bg-white/85 p-5 text-left shadow-sm supports-[backdrop-filter]:bg-white/70"
-            >
-              <p className="text-[clamp(.9rem,1.5vw,1rem)] font-medium text-muted-foreground">
-                {widget.label ?? widget.id ?? "Widget"}
-              </p>
-              <p className="text-[clamp(1.5rem,3vw,2.25rem)] font-semibold text-foreground">
-                {widget.value ?? "—"}
-              </p>
-            </article>
+            <PublicWidgetCard
+              key={widget?.id ?? widget?.label ?? crypto.randomUUID()}
+              widget={widget ?? {}}
+            />
           ))
         )}
       </section>
