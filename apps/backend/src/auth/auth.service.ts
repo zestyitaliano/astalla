@@ -101,11 +101,28 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.validateUser(dto.identifier, dto.password);
-    const authUser = this.toAuthUser(user);
-    const token = this.signJwt({ sub: user.id, email: user.email, role: user.role });
+    const identifier = dto.identifier.trim().toLowerCase();
+    this.logger.log(`AuthService: login attempt for ${identifier}`);
 
-    return { user: authUser, token };
+    try {
+      const user = await this.validateUser(dto.identifier, dto.password);
+      const authUser = this.toAuthUser(user);
+      const token = this.signJwt({ sub: user.id, email: user.email, role: user.role });
+
+      this.logger.log(`AuthService: login success for ${authUser.email}`);
+
+      return { user: authUser, token };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.logger.warn(`AuthService: login failed for ${identifier}`);
+      } else if (error instanceof Error) {
+        this.logger.error(`AuthService: unexpected error for ${identifier}: ${error.message}`);
+      } else {
+        this.logger.error(`AuthService: unexpected throwable for ${identifier}`);
+      }
+
+      throw error;
+    }
   }
 
   async register(dto: RegisterDto) {

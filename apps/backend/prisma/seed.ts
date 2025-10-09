@@ -8,7 +8,9 @@ const ADMIN_PASSWORD = "Astalla2025!";
 
 async function main() {
   const email = ADMIN_EMAIL.toLowerCase();
+  const existing = await prisma.user.findUnique({ where: { email } });
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  const bcryptRounds = bcrypt.getRounds(passwordHash);
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -23,7 +25,11 @@ async function main() {
     }
   });
 
-  console.log(`Seeded admin user: ${user.email}`);
+  const isPasswordValid = await bcrypt.compare(ADMIN_PASSWORD, user.passwordHash);
+
+  console.log(
+    `Seeded admin user: ${user.email} (${existing ? "updated" : "created"}). bcryptRounds=${bcryptRounds}. passwordValid=${isPasswordValid}`
+  );
 }
 
 main()
