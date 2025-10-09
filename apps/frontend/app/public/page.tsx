@@ -84,7 +84,7 @@ function extractHostname(origin: string | null): string {
   }
 }
 
-export async function loadDashboard(host: string): Promise<DashboardLoadResult> {
+async function loadDashboard(host: string): Promise<DashboardLoadResult> {
   const normalizedHost = normalizeHost(host);
 
   if (!normalizedHost) {
