@@ -526,7 +526,7 @@ export class DevProvidersService {
       }
 
       const createData: Prisma.LeadCreateInput = {
-        // propertyId,
+        property: { connect: { id: propertyId } },
         externalId,
         source,
         createdAt: createdAt ?? new Date()
