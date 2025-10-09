@@ -8,7 +8,7 @@ export default async function TablesPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login");
+    redirect("/auth/signin");
   }
 
   const canManage = session.user?.role !== "viewer";

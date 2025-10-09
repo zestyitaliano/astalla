@@ -27,8 +27,13 @@ export function LoginCard() {
         password
       });
 
-      if (result?.error) {
-        setError("Invalid credentials. Please try again.");
+      if (!result) {
+        setError("Unable to sign in. Please try again.");
+        return;
+      }
+
+      if (result.error) {
+        setError(result.error);
         return;
       }
 

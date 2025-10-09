@@ -8,7 +8,7 @@ export default async function ReportsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login");
+    redirect("/auth/signin");
   }
 
   if (session.user?.role !== "admin") {
