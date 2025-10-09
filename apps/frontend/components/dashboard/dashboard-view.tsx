@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ShieldOff, Sparkles } from "lucide-react";
 
@@ -139,7 +139,8 @@ export function DashboardView({ role }: DashboardViewProps) {
     occupancyQuery.isLoading ||
     pipelineQuery.isLoading ||
     costQuery.isLoading ||
-    reviewsQuery.isLoading;
+    reviewsQuery.isLoading ||
+    alertsQuery.isLoading;
 
   const fallbackUser = {
     id: "dashboard-user",
@@ -148,9 +149,26 @@ export function DashboardView({ role }: DashboardViewProps) {
     orgId: "internal"
   } as const;
 
-  const selectedPropertyName = propertyOptions.find((option) => option.id === selectedProperty)?.name;
   const hasProperties = propertyOptions.length > 0;
-  const shouldShowEmptyState = !selectedProperty || !hasProperties;
+  const selectedPropertyName = propertyOptions.find((option) => option.id === selectedProperty)?.name;
+  const shouldShowEmptyState = !hasProperties && !propertiesQuery.isLoading && !propertiesQuery.isFetching;
+
+  useEffect(() => {
+    if (!hasProperties) {
+      if (selectedProperty !== null) {
+        setSelectedProperty(null);
+      }
+      return;
+    }
+
+    const selectedStillExists = selectedProperty
+      ? propertyOptions.some((option) => option.id === selectedProperty)
+      : false;
+
+    if (!selectedStillExists) {
+      setSelectedProperty(propertyOptions[0]?.id ?? null);
+    }
+  }, [hasProperties, propertyOptions, selectedProperty]);
 
   return (
     <DashboardShell user={meQuery.data ?? fallbackUser} role={role}>
@@ -379,9 +397,10 @@ export function DashboardView({ role }: DashboardViewProps) {
         </DashboardCard>
       </section>
 
-      {isAnyLoading && !selectedProperty ? (
+      {isAnyLoading && selectedProperty ? (
         <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" /> Preparing your dashboard...
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          Refreshing live metrics…
         </div>
       ) : null}
     </DashboardShell>
