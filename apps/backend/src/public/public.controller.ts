@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { BadRequestException, Controller, Get, NotFoundException, Query } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -19,20 +19,26 @@ export class PublicController {
 
   @Get("resolve")
   async resolve(@Query("host") host: string) {
-    const sanitizedHost = (host ?? "").toLowerCase().split(":")[0];
-    const parts = sanitizedHost.split(".");
-    const subdomain = parts.length > 2 ? parts[0] : null;
+    const sanitizedHost = (host ?? "").toLowerCase().split("/")[0]?.split("?")[0]?.split(":")[0]?.trim();
 
-    if (!subdomain) {
-      return { error: "no subdomain" };
+    if (!sanitizedHost) {
+      throw new BadRequestException("host is required");
     }
+
+    const segments = sanitizedHost.split(".").filter(Boolean);
+    const isLocalhost = segments[segments.length - 1] === "localhost";
+    if (segments.length < 2 || (!isLocalhost && segments.length < 3)) {
+      throw new BadRequestException("host must include a subdomain");
+    }
+
+    const subdomain = segments[0];
 
     const publicDashboard = await this.prisma.publicDashboard.findUnique({
       where: { subdomain }
     });
 
     if (!publicDashboard || !publicDashboard.isActive) {
-      return { error: "not found" };
+      throw new NotFoundException("dashboard not found");
     }
 
     const config = (publicDashboard.config as PublicDashboardConfig) ?? {};
@@ -41,7 +47,9 @@ export class PublicController {
     return {
       title: publicDashboard.title,
       config,
-      widgets
+      widgets,
+      propertyId: publicDashboard.propertyId ?? null,
+      updatedAt: publicDashboard.updatedAt.toISOString()
     };
   }
 }
