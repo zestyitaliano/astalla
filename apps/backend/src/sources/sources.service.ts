@@ -1,7 +1,14 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, SourceAccountType } from "@prisma/client";
 import type { SourceAccount } from "@prisma/client";
+
 import { CreateSourceDto, CredentialPayload, SourceTypeDto, UpdateSourceDto } from "./sources.dto";
 import { configureEtlProcessor, processEtlJob } from "../jobs/etl.processor";
 import { JobsService } from "../jobs/jobs.service";
@@ -174,13 +181,18 @@ export class SourcesService {
       throw new Error(`Unsupported source type: ${dto.type}`);
     }
 
+    const credential = this.sanitizeCredential(dto.credential);
+    if (Object.keys(credential).length === 0) {
+      throw new BadRequestException("Credential cannot be empty");
+    }
+
     const now = new Date();
     const source = await this.prisma.sourceAccount.create({
       data: {
         propertyId: dto.propertyId,
         type: prismaType,
         name: dto.name,
-        credential: this.encryptCredential(dto.credential),
+        credential: this.encryptCredential(credential),
         enabled: dto.enabled ?? true,
         status: "UNVERIFIED",
         lastSuccessAt: null,
@@ -210,7 +222,11 @@ export class SourcesService {
       data.enabled = dto.enabled;
     }
     if (dto.credential) {
-      data.credential = this.encryptCredential(dto.credential);
+      const credential = this.sanitizeCredential(dto.credential);
+      if (Object.keys(credential).length === 0) {
+        throw new BadRequestException("Credential cannot be empty");
+      }
+      data.credential = this.encryptCredential(credential);
     }
 
     const updated = await this.prisma.sourceAccount.update({
@@ -366,5 +382,31 @@ export class SourcesService {
         `${feature} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
       );
     }
+  }
+
+  private sanitizeCredential(payload: CredentialPayload | null | undefined): CredentialPayload {
+    if (!payload || typeof payload !== "object") {
+      return {};
+    }
+
+    const sanitizedEntries = Object.entries(payload).reduce<Record<string, unknown>>((acc, [key, value]) => {
+      if (value === null || value === undefined) {
+        return acc;
+      }
+
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          return acc;
+        }
+        acc[key] = trimmed;
+        return acc;
+      }
+
+      acc[key] = value;
+      return acc;
+    }, {});
+
+    return sanitizedEntries;
   }
 }
