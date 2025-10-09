@@ -1,3 +1,5 @@
+import { getSession } from "next-auth/react";
+
 import { isMockMode, apiBaseUrl } from "@/lib/utils";
 import {
   alertsResponseSchema,
@@ -20,13 +22,38 @@ import type {
   WeeklyReportResponse
 } from "@shared/api";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
+async function resolveAccessToken() {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  try {
+    const session = await getSession();
+    return session?.accessToken ?? undefined;
+  } catch (error) {
+    if (isDevelopment) {
+      console.warn("Failed to read session before API request", error);
+    }
+    return undefined;
+  }
+}
+
 async function fetchJson<T>(path: string, schema: { parse: (data: unknown) => T }): Promise<T> {
   const url = `${apiBaseUrl}${path}`;
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    "x-mock-mode": isMockMode() ? "true" : "false"
+  };
+
+  const accessToken = await resolveAccessToken();
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      "x-mock-mode": isMockMode() ? "true" : "false"
-    },
+    headers,
     cache: "no-store",
     credentials: "include"
   });

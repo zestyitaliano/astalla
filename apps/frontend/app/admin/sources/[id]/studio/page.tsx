@@ -12,7 +12,7 @@ export default async function SourceStudioPage({ params }: SourceStudioPageProps
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login");
+    redirect("/auth/signin");
   }
 
   if (session.user?.role !== "admin") {

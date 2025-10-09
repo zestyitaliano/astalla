@@ -239,7 +239,7 @@ export function RegisterCard() {
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link className="font-medium text-primary hover:underline" href="/login">
+        <Link className="font-medium text-primary hover:underline" href="/auth/signin">
           Sign in
         </Link>
       </p>
