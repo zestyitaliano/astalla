@@ -498,6 +498,7 @@ export class DevProvidersService {
   }
 
   private async persistLeads(rows: unknown[], _propertyId: string) {
+    const propertyId = _propertyId;
     let processed = 0;
     for (const row of rows) {
       const record = this.ensureRecord(row, "lead");
