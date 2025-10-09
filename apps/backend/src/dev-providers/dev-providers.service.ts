@@ -497,7 +497,7 @@ export class DevProvidersService {
     }
   }
 
-  private async persistLeads(rows: unknown[], propertyId: string) {
+  private async persistLeads(rows: unknown[], _propertyId: string) {
     let processed = 0;
     for (const row of rows) {
       const record = this.ensureRecord(row, "lead");
@@ -546,10 +546,11 @@ export class DevProvidersService {
 
       await this.prisma.lead.upsert({
         where: {
-          propertyId_externalId: {
-            propertyId,
-            externalId
-          }
+          // propertyId_externalId: {
+          //   propertyId,
+          //   externalId
+          // }
+          externalId
         },
         update: updateData,
         create: createData
