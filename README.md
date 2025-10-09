@@ -72,6 +72,16 @@ Copy `.env.example` to `.env` in the repo root and adjust the placeholders as ne
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:3001
 
+## Smoke test
+
+Run the workspace-wide smoke script to sanity check a running backend instance. The script retries for up to 30 seconds by default and exits with a non-zero status if any endpoint fails.
+
+```bash
+API_BASE=http://localhost:3001 pnpm smoke
+```
+
+Set `SMOKE_TIMEOUT` (milliseconds) to customise the retry window. For remote environments, point `API_BASE` at the deployed backend URL instead of localhost.
+
 ## Developer mocks
 
 Mock integrations are disabled by default so preview and production environments always talk to real providers. For local development you can still flip the switch by setting `DEV_MOCKS=true` (the Next.js build picks this up automatically). That activates MSW-powered mocks in the UI and the sample data providers in the API. Leave the flag unset or `false` in any hosted environment.
@@ -129,4 +139,14 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 
 ## CI
 
-GitHub Actions runs lint, typecheck, and placeholder test commands across all workspaces on every push and pull request.
+Pull requests trigger a GitHub Actions workflow that installs dependencies and runs:
+
+- `pnpm -w typecheck`
+- `pnpm -w lint`
+- `pnpm -w build`
+- `pnpm -C apps/backend prisma format`
+- `pnpm -C apps/backend prisma validate`
+- `pnpm -C apps/backend prisma generate`
+- `pnpm smoke` against a locally started backend (Postgres is provided via a service container)
+
+The pipeline fails on type errors, lint violations, Prisma schema issues, build regressions, or smoke check failures.
