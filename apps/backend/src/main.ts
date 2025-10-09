@@ -20,7 +20,13 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
 
-  const origins = configuredOrigins.length > 0 ? configuredOrigins : ["http://localhost:3000"];
+  const fallbackOrigins = new Set<string>(["https://app.astalla.com"]);
+
+  if (process.env.NODE_ENV !== "production") {
+    fallbackOrigins.add("http://localhost:3000");
+  }
+
+  const origins = configuredOrigins.length > 0 ? configuredOrigins : [...fallbackOrigins];
 
   app.enableCors({
     origin: origins,

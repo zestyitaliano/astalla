@@ -4,6 +4,11 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { apiBaseUrl } from "@/lib/utils";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+
+if (!nextAuthSecret && process.env.NODE_ENV === "production") {
+  throw new Error("NEXTAUTH_SECRET must be configured in production to sign authentication cookies.");
+}
 
 class CredentialsSigninError extends Error {
   constructor(message: string) {
@@ -130,7 +135,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt"
   },
-  secret: process.env.NEXTAUTH_SECRET || "development-secret",
+  secret: nextAuthSecret || "development-secret",
   pages: {
     signIn: "/auth/signin"
   },
