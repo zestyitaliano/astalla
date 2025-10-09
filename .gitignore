@@ -8,5 +8,4 @@ dist
 coverage
 *.log
 .DS_Store
-apps/backend/prisma/migrations
 tsconfig.tsbuildinfo

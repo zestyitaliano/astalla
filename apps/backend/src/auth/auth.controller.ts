@@ -1,16 +1,20 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from "@nestjs/common";
+import type { Request } from "express";
 
-import { AuthService } from "./auth.service";
-import { BasicLoginDto } from "./dto/basic-login.dto";
+import { AuthGuard } from "./auth.guard";
+import { AuthService, AuthUser } from "./auth.service";
+import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+
+type AuthenticatedRequest = Request & { user?: AuthUser };
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Get("me")
-  getCurrentUser(@Headers("x-mock-mode") mockHeader?: string) {
-    return this.authService.getCurrentUser(this.shouldUseMock(mockHeader));
+  @Get("health")
+  health() {
+    return { ok: true };
   }
 
   @Post("register")
@@ -20,11 +24,13 @@ export class AuthController {
 
   @Post("basic-login")
   @HttpCode(HttpStatus.OK)
-  basicLogin(@Body() dto: BasicLoginDto) {
-    return this.authService.basicLogin(dto);
+  basicLogin(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
   }
 
-  private shouldUseMock(header?: string) {
-    return header?.toLowerCase() === "true";
+  @Get("me")
+  @UseGuards(AuthGuard)
+  getCurrentUser(@Req() req: AuthenticatedRequest) {
+    return req.user;
   }
 }
