@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { User, UserRole } from "@prisma/client";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
 
 import { PrismaService } from "../prisma/prisma.service";
