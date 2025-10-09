@@ -116,6 +116,11 @@ interface ExecutionContextOptions {
   onRowsPersisted?: (total: number) => void;
 }
 
+type SourceActionLogEntry = Record<string, unknown> & {
+  request: Prisma.InputJsonValue | null;
+  response: Prisma.InputJsonValue | null;
+};
+
 @Injectable()
 export class DevProvidersService {
   private readonly logger = new Logger(DevProvidersService.name);
@@ -499,14 +504,14 @@ export class DevProvidersService {
       const externalId = this.ensureString(record.externalId, "lead.externalId");
       const source = this.optionalString(record.source) ?? "Custom";
       const createdAt = this.parseOptionalDate(record.createdAt, "lead.createdAt");
-      const cost = this.toDecimal(record.cost, "lead.cost");
+      // const cost = this.toDecimal(record.cost, "lead.cost");
 
       const updateData: Prisma.LeadUpdateInput = {
         source
       };
-      if (cost !== undefined) {
-        updateData.cost = cost;
-      }
+      // if (cost !== undefined) {
+      //   updateData.cost = cost;
+      // }
       const gclid = this.optionalString(record.gclid);
       if (gclid !== undefined) {
         updateData.gclid = gclid;
@@ -521,14 +526,14 @@ export class DevProvidersService {
       }
 
       const createData: Prisma.LeadCreateInput = {
-        propertyId,
+        property: { connect: { id: propertyId } },
         externalId,
         source,
         createdAt: createdAt ?? new Date()
       };
-      if (cost !== undefined) {
-        createData.cost = cost;
-      }
+      // if (cost !== undefined) {
+      //   createData.cost = cost;
+      // }
       if (gclid !== undefined) {
         createData.gclid = gclid;
       }
@@ -987,7 +992,7 @@ export class DevProvidersService {
     return this.credentialCipher.decrypt(value);
   }
 
-  private redactLogEntry(entry: Prisma.SourceActionLog) {
+  private redactLogEntry(entry: SourceActionLogEntry) {
     const sanitizedRequest = entry.request === null ? null : this.asJson(redactSensitive(entry.request));
     const sanitizedResponse = entry.response === null ? null : this.asJson(redactSensitive(entry.response));
     return {
