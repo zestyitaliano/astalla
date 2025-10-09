@@ -30,7 +30,13 @@ import { TablesModule } from "./tables/tables.module";
             origin: process.env.FRONTEND_ORIGIN
           },
           auth: {
-            jwtSecret: process.env.JWT_SECRET || "dev-secret"
+            jwtSecret: process.env.JWT_SECRET,
+            allowSelfSignup: process.env.ALLOW_SELF_SIGNUP === "true",
+            adminDevBypass: process.env.ADMIN_DEV_BYPASS === "true",
+            adminDevEmail: process.env.ADMIN_DEV_EMAIL
+          },
+          cors: {
+            origin: process.env.CORS_ORIGIN
           },
           database: {
             url: process.env.DATABASE_URL

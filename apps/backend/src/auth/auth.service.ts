@@ -1,86 +1,122 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
-  ServiceUnavailableException,
+  InternalServerErrorException,
+  Logger,
   UnauthorizedException
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import type { User } from "@prisma/client";
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { User, UserRole } from "@prisma/client";
+import * as bcrypt from "bcrypt";
+import { sign, verify } from "jsonwebtoken";
 
 import { PrismaService } from "../prisma/prisma.service";
-import { MockIntegrationsService } from "../providers/mock-integrations.service";
-import { BasicLoginDto } from "./dto/basic-login.dto";
+import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  username?: string;
+  role: UserRole;
+  createdAt: Date;
+}
+
+export interface JwtClaims {
+  sub: string;
+  email: string;
+  role: UserRole;
+  iat?: number;
+  exp?: number;
+}
 
 @Injectable()
 export class AuthService {
-  private readonly hasDatabase: boolean;
-  private readonly devMocksEnabled: boolean;
+  private readonly logger = new Logger(AuthService.name);
+  private readonly allowSelfSignup: boolean;
+  private readonly adminDevBypass: boolean;
+  private readonly adminDevEmail: string | null;
 
   constructor(
-    private readonly integrations: MockIntegrationsService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService
   ) {
-    this.hasDatabase = Boolean(this.configService.get<string>("database.url"));
-    this.devMocksEnabled = this.configService.get<boolean>("devMocks") ?? false;
+    this.allowSelfSignup = this.configService.get<boolean>("auth.allowSelfSignup") ?? false;
+    this.adminDevBypass = this.configService.get<boolean>("auth.adminDevBypass") ?? false;
+    this.adminDevEmail = this.configService.get<string>("auth.adminDevEmail")?.toLowerCase() ?? null;
   }
 
-  async getCurrentUser(useMock = false) {
-    if (useMock) {
-      this.ensureDevMocksEnabled("Account profile");
-      return this.integrations.getCurrentUser();
+  async validateUser(emailOrUsername: string, password: string): Promise<User> {
+    const identifier = emailOrUsername.trim().toLowerCase();
+
+    if (!identifier) {
+      throw new UnauthorizedException("Invalid credentials");
     }
 
-    if (!this.hasDatabase) {
-      this.ensureDevMocksEnabled("Account profile");
-      return this.integrations.getCurrentUser();
+    if (this.adminDevBypass && this.adminDevEmail && identifier === this.adminDevEmail) {
+      const adminUser = await this.prisma.user.findUnique({ where: { email: identifier } });
+      if (!adminUser) {
+        throw new UnauthorizedException("Invalid credentials");
+      }
+
+      this.logger.warn(
+        `ADMIN_DEV_BYPASS is enabled for ${identifier}. Password verification has been skipped.`
+      );
+
+      if (adminUser.role !== UserRole.ORG_ADMIN) {
+        const elevatedUser = await this.prisma.user.update({
+          where: { id: adminUser.id },
+          data: { role: UserRole.ORG_ADMIN }
+        });
+
+        this.logger.warn(`User ${identifier} role elevated to ORG_ADMIN due to bypass.`);
+        return elevatedUser;
+      }
+
+      return adminUser;
     }
 
     const user = await this.prisma.user.findFirst({
-      include: {
-        roles: {
-          include: {
-            org: { select: { id: true } },
-            property: { select: { id: true, propertyCode: true } }
-          }
-        }
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier }
+        ]
       }
     });
 
-    if (!user) {
-      if (!this.devMocksEnabled) {
-        throw new ServiceUnavailableException(
-          "No user accounts found. Seed the database or enable DEV_MOCKS=true to use mock identities."
-        );
-      }
-      return this.integrations.getCurrentUser();
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException("Invalid credentials");
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name ?? undefined,
-      orgId: user.roles[0]?.org?.id,
-      roles: user.roles.map((role) => ({
-        role: role.role,
-        orgId: role.orgId,
-        propertyId: role.propertyId ?? undefined,
-        propertyCode: role.property?.propertyCode
-      }))
-    };
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    return user;
+  }
+
+  async login(dto: LoginDto) {
+    const user = await this.validateUser(dto.identifier, dto.password);
+    const authUser = this.toAuthUser(user);
+    const token = this.signJwt({ sub: user.id, email: user.email, role: user.role });
+
+    return { user: authUser, token };
   }
 
   async register(dto: RegisterDto) {
-    if (!this.hasDatabase) {
-      throw new ServiceUnavailableException("User registration requires a configured database");
+    if (!this.allowSelfSignup) {
+      throw new ForbiddenException("Self sign-up is disabled");
     }
 
     const email = dto.email.trim().toLowerCase();
     const username = dto.username ? dto.username.trim().toLowerCase() : null;
-    const name = dto.name?.trim();
-    const orgName = dto.orgName?.trim();
+    const name = dto.name?.trim() ?? null;
+    const role = dto.role ?? UserRole.ORG_ADMIN;
 
     const existingByEmail = await this.prisma.user.findUnique({ where: { email } });
     if (existingByEmail) {
@@ -94,138 +130,74 @@ export class AuthService {
       }
     }
 
-    const passwordHash = this.hashPassword(dto.password);
-
-    const org = await this.prisma.org.create({
-      data: {
-        name: orgName || this.deriveOrgName(name, email)
-      }
-    });
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     const user = await this.prisma.user.create({
       data: {
         email,
-        name: name || null,
         username,
+        name,
         passwordHash,
-        orgId: org.id
+        role
       }
     });
 
-    return this.mapToAccount(user as UserWithCredentials);
+    const authUser = this.toAuthUser(user);
+    const token = this.signJwt({ sub: user.id, email: user.email, role: user.role });
+
+    return { user: authUser, token };
   }
 
-  async basicLogin(dto: BasicLoginDto) {
-    const identifier = dto.identifier.trim().toLowerCase();
-    const password = dto.password;
+  signJwt(payload: Omit<JwtClaims, "iat" | "exp">): string {
+    const secret = this.getJwtSecret();
 
-    const envAccount = this.validateEnvironmentAccount(identifier, password);
-    if (envAccount) {
-      return envAccount;
-    }
-
-    if (!this.hasDatabase) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    const user = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: identifier },
-          { username: identifier }
-        ]
-      }
+    return sign(payload, secret, {
+      algorithm: "HS256",
+      expiresIn: "7d"
     });
+  }
+
+  verifyToken(token: string): JwtClaims {
+    const secret = this.getJwtSecret();
+
+    try {
+      return verify(token, secret, { algorithms: ["HS256"] }) as JwtClaims;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to verify JWT: ${error instanceof Error ? error.message : "unknown error"}`
+      );
+      throw new UnauthorizedException("Invalid token");
+    }
+  }
+
+  async getUserFromClaims(claims: JwtClaims): Promise<AuthUser | null> {
+    const user = await this.prisma.user.findUnique({ where: { id: claims.sub } });
 
     if (!user) {
-      throw new UnauthorizedException("Invalid credentials");
+      return null;
     }
 
-    if (!user.passwordHash) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    const userWithCredentials = user as UserWithCredentials;
-
-    const isPasswordValid = this.verifyPassword(password, userWithCredentials.passwordHash);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    return this.mapToAccount(userWithCredentials);
+    return this.toAuthUser(user);
   }
 
-  private mapToAccount(user: UserWithCredentials) {
+  private toAuthUser(user: User): AuthUser {
     return {
       id: user.id,
       email: user.email,
       name: user.name ?? undefined,
       username: user.username ?? undefined,
-      orgId: user.orgId
+      role: user.role,
+      createdAt: user.createdAt
     };
   }
 
-  private hashPassword(password: string) {
-    const salt = randomBytes(16).toString("hex");
-    const hash = scryptSync(password, salt, 64).toString("hex");
-    return `${salt}:${hash}`;
-  }
+  private getJwtSecret(): string {
+    const secret = this.configService.get<string>("auth.jwtSecret") ?? process.env.JWT_SECRET;
 
-  private verifyPassword(password: string, storedHash: string) {
-    const [salt, hash] = storedHash.split(":");
-    if (!salt || !hash) {
-      return false;
+    if (!secret) {
+      throw new InternalServerErrorException("JWT_SECRET is not configured");
     }
 
-    const storedBuffer = Buffer.from(hash, "hex");
-    const derived = scryptSync(password, salt, storedBuffer.length);
-    return timingSafeEqual(storedBuffer, derived);
-  }
-
-  private deriveOrgName(name: string | undefined, email: string) {
-    if (name) {
-      return `${name}'s Portfolio`;
-    }
-
-    const [localPart] = email.split("@");
-    return `${localPart}'s Portfolio`;
-  }
-
-  private validateEnvironmentAccount(identifier: string, password: string) {
-    const envEmail = process.env.BASIC_AUTH_EMAIL?.toLowerCase();
-    const envUsername = process.env.BASIC_AUTH_USERNAME?.toLowerCase();
-    const envPassword = process.env.BASIC_AUTH_PASSWORD ?? "password";
-    const envName = process.env.BASIC_AUTH_NAME;
-
-    const matchesEmail = envEmail && identifier === envEmail;
-    const matchesUsername = envUsername && identifier === envUsername;
-
-    if (!matchesEmail && !matchesUsername) {
-      return null;
-    }
-
-    if (password !== envPassword) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    return {
-      id: matchesUsername && envUsername ? envUsername : matchesEmail && envEmail ? envEmail : "env-user",
-      email: envEmail || (matchesUsername && envUsername ? `${envUsername}@example.com` : identifier),
-      name: envName || undefined,
-      username: envUsername || undefined,
-      orgId: undefined
-    };
-  }
-
-  private ensureDevMocksEnabled(context: string) {
-    if (!this.devMocksEnabled) {
-      throw new ServiceUnavailableException(
-        `${context} mocks are disabled. Set DEV_MOCKS=true to enable developer mock data.`
-      );
-    }
+    return secret;
   }
 }
-type UserWithCredentials = User & {
-  username: string | null;
-  passwordHash: string;
-};
