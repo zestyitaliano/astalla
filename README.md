@@ -41,7 +41,20 @@ Copy `.env.example` to `.env` in the repo root and adjust the placeholders as ne
 - `DATABASE_URL` – Postgres connection string for Prisma.
 - `REDIS_URL` – Redis connection for BullMQ jobs (optional in local dev when Docker Compose is running).
 - `FRONTEND_ORIGIN` – Comma-separated list of allowed web origins. Include production and preview URLs, for example `https://app.astalla.com,https://*.vercel.app`.
+- `CORS_ORIGIN` – Authoritative CORS allow-list consumed by Nest at bootstrap. In production set this to `https://app.astalla.com` (add any preview hosts as a comma-separated list).
 - `DEV_MOCKS` – Matches the shared flag; enables sample data providers when `true`.
+- `ADMIN_DEV_BYPASS` – Defaults to `false`. When `true`, allows the configured admin email to bypass password verification (intended for emergency lockout recovery only).
+- `ADMIN_DEV_EMAIL` – Email address eligible for the admin bypass. Defaults to the seeded admin account (`admin@astalla.com`).
+- `JWT_SECRET` – Symmetric signing key for API-issued JWTs. Rotate regularly and never reuse between environments.
+
+## Hosted environment matrix
+
+| Platform | Scope | Required variables | Production values |
+| --- | --- | --- | --- |
+| Vercel | Next.js frontend (`apps/frontend`) | `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_MAIN_HOST`, `NEXT_PUBLIC_DATA_PERSISTENCE`, optional `BASIC_AUTH_*` | `NEXTAUTH_URL=https://app.astalla.com`, `NEXTAUTH_SECRET=<random 32+ char secret>`, `NEXT_PUBLIC_API_BASE_URL=https://api.astalla.com`, `NEXT_PUBLIC_MAIN_HOST=astalla.com`, `NEXT_PUBLIC_DATA_PERSISTENCE=true` |
+| Render | NestJS backend (`apps/backend`) | `PORT`, `DATABASE_URL`, `REDIS_URL`, `FRONTEND_ORIGIN`, `CORS_ORIGIN`, `JWT_SECRET`, optional `DEV_MOCKS`, `ADMIN_DEV_*` | `PORT=10000` (Render default), `DATABASE_URL=<managed postgres url>`, `REDIS_URL=<managed redis url>`, `FRONTEND_ORIGIN=https://app.astalla.com,https://*.vercel.app`, `CORS_ORIGIN=https://app.astalla.com`, `JWT_SECRET=<random 32+ char secret>` |
+
+> Preview builds should mirror these settings but use their respective preview URLs for `NEXTAUTH_URL`, `NEXT_PUBLIC_API_BASE_URL`, `FRONTEND_ORIGIN`, and `CORS_ORIGIN`. Keep `JWT_SECRET` and `NEXTAUTH_SECRET` unique per environment so tokens cannot be replayed between stacks.
 
 ## Local development
 
@@ -81,6 +94,24 @@ API_BASE=http://localhost:3001 pnpm smoke
 ```
 
 Set `SMOKE_TIMEOUT` (milliseconds) to customise the retry window. For remote environments, point `API_BASE` at the deployed backend URL instead of localhost.
+
+## Production verification checklist
+
+Run these commands after every deployment to ensure the managed infrastructure is wired correctly:
+
+```bash
+curl -i https://api.astalla.com/auth/health
+```
+
+The health endpoint should return `200` with a short JSON payload. If CORS is misconfigured you will see missing `access-control-allow-origin` headers in the response.
+
+```bash
+curl -i -X POST https://api.astalla.com/auth/basic-login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"<admin email>","password":"<admin password>"}'
+```
+
+Replace the identifier/password with a valid account. A successful response will include a JSON body with the signed token and a `set-cookie` header. To exercise the browser flow locally, append `-H "Origin: https://app.astalla.com"` and confirm the response echoes the origin.
 
 ## Developer mocks
 
@@ -134,8 +165,18 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 2. Set the build command to `pnpm install && pnpm --filter apps-backend build`.
 3. Set the start command to `pnpm --filter apps-backend start`.
 4. Provision a Postgres instance and Redis (or supply external connection strings) and expose them via `DATABASE_URL` and `REDIS_URL` env vars. Set `FRONTEND_ORIGIN` to the comma-separated list of allowed web origins—for production use `FRONTEND_ORIGIN="https://app.astalla.com,https://*.vercel.app"` so the API accepts both the primary app and Vercel preview deployments.
+5. Set `CORS_ORIGIN=https://app.astalla.com` so credentialed browser requests coming from the Vercel frontend are allowed. Render restarts the service automatically when the variable changes.
 
 > For preview environments, be sure to share the backend URL with the frontend via `NEXT_PUBLIC_API_BASE_URL` and `NEXTAUTH_URL`. Without `NEXT_PUBLIC_API_BASE_URL`, server-side code in the frontend cannot contact the API.
+
+## Secret rotation
+
+Both the backend (`JWT_SECRET`) and frontend (`NEXTAUTH_SECRET`) rely on symmetric keys to sign authentication tokens and cookies.
+
+1. Generate a new secret (for example with `openssl rand -base64 48`).
+2. Update the corresponding environment variable in Render (for `JWT_SECRET`) or Vercel (for `NEXTAUTH_SECRET`).
+3. Trigger a restart/redeploy. Existing tokens become invalid immediately, so notify users about the brief sign-in disruption.
+4. For safety, rotate the counterpart secret shortly after (e.g. rotate `JWT_SECRET`, wait for the deployment to stabilise, then rotate `NEXTAUTH_SECRET`) to avoid simultaneous session invalidation across tiers.
 
 ## CI
 
