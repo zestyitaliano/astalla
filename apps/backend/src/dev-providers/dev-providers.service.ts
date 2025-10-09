@@ -14,16 +14,15 @@ import {
   ScriptStatus,
   SourceAccountType
 } from "@prisma/client";
+import { ProviderManifest as ProviderManifestSchema } from "@shared/api";
+import type { ProviderManifest } from "@shared/api";
+import { createHash, randomUUID } from "crypto";
 import { transform } from "esbuild";
 import { VM } from "vm2";
-import { createHash, randomUUID } from "crypto";
-
-import type { ProviderManifest } from "@shared/api";
-import { ProviderManifest as ProviderManifestSchema } from "@shared/api";
 
 import { PrismaService } from "../prisma/prisma.service";
-import { JSON_NULL } from "../util/json";
 import { buildCredentialCipher, CredentialCipher } from "../util/credential-cipher";
+import { JSON_NULL } from "../util/json";
 import { redactSensitive } from "../util/redact";
 
 const EXECUTION_TIMEOUT_MS = 15_000;
