@@ -9,6 +9,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "format": "pnpm -r format --if-present",
+    "smoke": "node scripts/smoke.mjs",
     "prebuild:backend": "pnpm -C packages/shared build"
   }
 }

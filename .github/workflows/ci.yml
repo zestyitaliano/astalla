@@ -1,27 +1,91 @@
 name: CI
 
 on:
-  push:
-    branches: ["main", "feat/dashboard-scaffold"]
   pull_request:
+    branches:
+      - "*"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://astalla:astalla@localhost:5432/astalla
+      API_BASE: http://localhost:3001
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: astalla
+          POSTGRES_PASSWORD: astalla
+          POSTGRES_DB: astalla
+        options: >-
+          --health-cmd "pg_isready -U astalla -d astalla"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+
+      - uses: pnpm/action-setup@v3
         with:
           version: 10.13.1
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: "pnpm"
+          node-version: 20
+          cache: pnpm
+
       - name: Install dependencies
-        run: pnpm install
-      - name: Lint
-        run: pnpm lint
+        run: pnpm install --frozen-lockfile
+
       - name: Typecheck
-        run: pnpm typecheck
-      - name: Test
-        run: pnpm test
+        run: pnpm -w typecheck
+
+      - name: Lint
+        run: pnpm -w lint
+
+      - name: Build
+        run: pnpm -w build
+
+      - name: Prisma format
+        run: pnpm -C apps/backend prisma format
+
+      - name: Prisma validate
+        run: pnpm -C apps/backend prisma validate
+
+      - name: Prisma generate
+        run: pnpm -C apps/backend prisma generate
+
+      - name: Run migrations
+        run: pnpm -C apps/backend prisma migrate deploy
+
+      - name: Smoke test
+        env:
+          SMOKE_TIMEOUT: "60000"
+        run: |
+          pnpm -C apps/backend start:prod &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+
+          for i in {1..30}; do
+            if curl -sf http://localhost:3001/admin/tables > /dev/null; then
+              ready=1
+              break
+            fi
+
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              echo "Backend process exited before becoming ready" >&2
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          if [ -z "${ready:-}" ]; then
+            echo "Backend did not become ready in time" >&2
+            exit 1
+          fi
+
+          pnpm smoke
