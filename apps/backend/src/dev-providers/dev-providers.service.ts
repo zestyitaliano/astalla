@@ -547,10 +547,11 @@ export class DevProvidersService {
 
       await this.prisma.lead.upsert({
         where: {
-          propertyId_externalId: {
-            propertyId,
-            externalId
-          }
+          // propertyId_externalId: {
+          //   propertyId,
+          //   externalId
+          // }
+          externalId
         },
         update: updateData,
         create: createData
