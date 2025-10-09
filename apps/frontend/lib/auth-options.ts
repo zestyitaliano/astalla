@@ -3,8 +3,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { apiBaseUrl } from "@/lib/utils";
 
-const isDevelopment = process.env.NODE_ENV === "development";
-
 class CredentialsSigninError extends Error {
   constructor(message: string) {
     super(message);
@@ -65,10 +63,9 @@ function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
 
 async function authenticateWithBackend(identifier: string, password: string) {
   const loginUrl = `${apiBaseUrl}/auth/basic-login`;
+  const safeIdentifier = identifier.trim().toLowerCase();
 
-  if (isDevelopment) {
-    console.log(`[auth] POST ${loginUrl}`);
-  }
+  console.info(`[auth] authenticateWithBackend: POST ${loginUrl} for ${safeIdentifier}`);
 
   let response: Response;
   try {
@@ -80,13 +77,11 @@ async function authenticateWithBackend(identifier: string, password: string) {
       body: JSON.stringify({ identifier, password })
     });
   } catch (error) {
-    console.error("Failed to reach authentication service", error);
+    console.error(`[auth] Failed to reach authentication service for ${safeIdentifier}`, error);
     throw new Error("Unable to contact the authentication service. Please try again.");
   }
 
-  if (isDevelopment) {
-    console.log(`[auth] POST ${loginUrl} -> ${response.status}`);
-  }
+  console.info(`[auth] authenticateWithBackend: response status ${response.status} for ${safeIdentifier}`);
 
   const contentType = response.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
@@ -111,6 +106,11 @@ async function authenticateWithBackend(identifier: string, password: string) {
       }
     }
 
+    console.error(
+      `[auth] Backend login failed for ${safeIdentifier}. status=${response.status}`,
+      responseBody
+    );
+
     if (response.status >= 400 && response.status < 500) {
       throw new CredentialsSigninError(message);
     }
@@ -122,6 +122,8 @@ async function authenticateWithBackend(identifier: string, password: string) {
     console.error("Authentication response did not match the expected shape");
     throw new Error("Received an unexpected response from the authentication service.");
   }
+
+  console.info(`[auth] Backend login success for ${responseBody.user.email}`);
 
   return responseBody;
 }

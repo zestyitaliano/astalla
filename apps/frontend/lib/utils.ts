@@ -3,6 +3,8 @@ import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
 
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+const DEFAULT_PROD_API_BASE_URL = "https://api.astalla.com";
+const DEFAULT_DEV_API_BASE_URL = "http://localhost:3001";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -22,9 +24,24 @@ function normalizeUrl(value: string | undefined) {
   }
 }
 
-function resolveServerFallbackOrigin() {
-  const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
-  return normalizeUrl(process.env.NEXTAUTH_URL) ?? normalizeUrl(vercelUrl) ?? "http://localhost:3000";
+function resolveServerBaseUrl() {
+  const publicConfigured = normalizeUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
+  if (publicConfigured) {
+    return publicConfigured;
+  }
+
+  const serverConfigured = normalizeUrl(
+    process.env.API_BASE_URL ?? process.env.BACKEND_API_BASE_URL ?? process.env.INTERNAL_API_BASE_URL
+  );
+  if (serverConfigured) {
+    return serverConfigured;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return DEFAULT_PROD_API_BASE_URL;
+  }
+
+  return DEFAULT_DEV_API_BASE_URL;
 }
 
 export const apiBaseUrl = (() => {
@@ -32,10 +49,13 @@ export const apiBaseUrl = (() => {
   const isServer = typeof window === "undefined";
 
   if (isServer) {
-    return configured ?? resolveServerFallbackOrigin();
+    const serverBaseUrl = resolveServerBaseUrl();
+    console.info(`[utils] apiBaseUrl resolved on server: ${serverBaseUrl}`);
+    return serverBaseUrl;
   }
 
   if (!configured) {
+    console.info(`[utils] apiBaseUrl falling back to window origin: ${window.location.origin}`);
     return window.location.origin;
   }
 
@@ -53,6 +73,7 @@ export const apiBaseUrl = (() => {
     return window.location.origin;
   }
 
+  console.info(`[utils] apiBaseUrl resolved on client: ${configured}`);
   return configured;
 })();
 

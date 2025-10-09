@@ -28,18 +28,21 @@ export function LoginCard() {
       });
 
       if (!result) {
+        console.error("[auth] signIn returned null result");
         setError("Unable to sign in. Please try again.");
         return;
       }
 
       if (result.error) {
+        console.error("[auth] signIn returned error", result.error);
         setError(result.error);
         return;
       }
 
       router.replace("/dashboard");
       router.refresh();
-    } catch (_error) {
+    } catch (caughtError) {
+      console.error("[auth] signIn threw an exception", caughtError);
       setError("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
