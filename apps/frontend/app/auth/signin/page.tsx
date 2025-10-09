@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { LoginCard } from "@/components/auth/login-card";
 import { authOptions } from "@/lib/auth-options";
 
-export default async function LoginPage() {
+export default async function SignInPage() {
   const session = await getServerSession(authOptions);
 
   if (session) {

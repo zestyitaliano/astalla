@@ -1,205 +1,223 @@
-import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 import { apiBaseUrl } from "@/lib/utils";
-import { basicAuthLoginResponseSchema } from "@shared/api";
 
-type Account = {
-  id: string;
-  name: string;
-  email: string;
-};
+const isDevelopment = process.env.NODE_ENV === "development";
 
-type EnvironmentAccount = Account;
-
-const isMockMode =
-  process.env.DEV_MOCKS === "true" || process.env.NEXT_PUBLIC_DEV_MOCKS === "true";
-
-const fallbackUser = {
-  id: "demo-user",
-  name: "Demo User",
-  email: "demo@example.com",
-  username: "demo"
-};
-
-const envEmail = process.env.BASIC_AUTH_EMAIL;
-const envUsername = process.env.BASIC_AUTH_USERNAME;
-const envPassword = process.env.BASIC_AUTH_PASSWORD ?? "password";
-const envDisplayName = process.env.BASIC_AUTH_NAME;
-
-const configuredEmail = envEmail?.toLowerCase();
-const configuredUsername = envUsername?.toLowerCase();
-const configuredPassword = envPassword;
-const configuredDisplayName = envDisplayName;
-
-function resolveEnvironmentAccount(
-  normalizedIdentifier: string,
-  password: string
-): EnvironmentAccount | null {
-  const configuredIdentifiers: Array<{ normalized: string; source: "email" | "username" }> = [];
-
-  if (configuredEmail) {
-    configuredIdentifiers.push({ normalized: configuredEmail, source: "email" });
+class CredentialsSigninError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CredentialsSignin";
   }
-
-  if (configuredUsername) {
-    configuredIdentifiers.push({ normalized: configuredUsername, source: "username" });
-  }
-
-  const matchedIdentifier = configuredIdentifiers.find(
-    (entry) => entry.normalized === normalizedIdentifier
-  );
-
-  if (!matchedIdentifier) {
-    return null;
-  }
-
-  if (password !== configuredPassword) {
-    return null;
-  }
-
-  const email =
-    matchedIdentifier.source === "email"
-      ? envEmail ?? configuredEmail ?? fallbackUser.email
-      : envEmail ?? fallbackUser.email;
-
-  const name =
-    configuredDisplayName ??
-    (matchedIdentifier.source === "username"
-      ? envUsername ?? configuredUsername ?? fallbackUser.name
-      : fallbackUser.name);
-
-  const id =
-    matchedIdentifier.source === "username"
-      ? envUsername ?? configuredUsername ?? fallbackUser.id
-      : envEmail ?? configuredEmail ?? fallbackUser.id;
-
-  return {
-    id,
-    name,
-    email
-  };
 }
 
-async function attemptBackendLogin(identifier: string, password: string) {
+type BackendUser = {
+  id: string;
+  email: string;
+  name?: string | null;
+  role?: string | null;
+};
+
+type BackendLoginResponse = {
+  token: string;
+  user: BackendUser;
+};
+
+function isBackendUser(value: unknown): value is BackendUser {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate.id !== "string") {
+    return false;
+  }
+
+  if (typeof candidate.email !== "string") {
+    return false;
+  }
+
+  const { name, role } = candidate;
+  if (name !== undefined && name !== null && typeof name !== "string") {
+    return false;
+  }
+
+  if (role !== undefined && role !== null && typeof role !== "string") {
+    return false;
+  }
+
+  return true;
+}
+
+function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate.token !== "string") {
+    return false;
+  }
+
+  return isBackendUser(candidate.user);
+}
+
+async function authenticateWithBackend(identifier: string, password: string) {
+  const loginUrl = `${apiBaseUrl}/auth/basic-login`;
+
+  if (isDevelopment) {
+    console.log(`[auth] POST ${loginUrl}`);
+  }
+
+  let response: Response;
   try {
-    const response = await fetch(`${apiBaseUrl}/auth/basic-login`, {
+    response = await fetch(loginUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ identifier, password })
     });
+  } catch (error) {
+    console.error("Failed to reach authentication service", error);
+    throw new Error("Unable to contact the authentication service. Please try again.");
+  }
 
-    if (!response.ok) {
-      return null;
+  if (isDevelopment) {
+    console.log(`[auth] POST ${loginUrl} -> ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+
+  let responseBody: unknown = null;
+  if (isJson) {
+    try {
+      responseBody = await response.json();
+    } catch (error) {
+      console.error("Failed to parse authentication response as JSON", error);
+      responseBody = null;
+    }
+  }
+
+  if (!response.ok) {
+    let message = "Unable to sign in. Please try again.";
+    if (responseBody && typeof responseBody === "object") {
+      const candidate = responseBody as Record<string, unknown>;
+      const possibleMessage = candidate.message ?? candidate.error;
+      if (typeof possibleMessage === "string" && possibleMessage.trim() !== "") {
+        message = possibleMessage;
+      }
     }
 
-    const payload = basicAuthLoginResponseSchema.parse(await response.json());
+    if (response.status >= 400 && response.status < 500) {
+      throw new CredentialsSigninError(message);
+    }
 
-    return {
-      id: payload.id,
-      name: payload.name ?? fallbackUser.name,
-      email: payload.email ?? fallbackUser.email
-    } satisfies EnvironmentAccount;
-  } catch (error) {
-    console.error("Failed to verify credentials with backend", error);
-    return null;
+    throw new Error(message);
   }
+
+  if (!isBackendLoginResponse(responseBody)) {
+    console.error("Authentication response did not match the expected shape");
+    throw new Error("Received an unexpected response from the authentication service.");
+  }
+
+  return responseBody;
 }
 
-const acceptedIdentifiers = [configuredEmail, configuredUsername].filter(
-  (value): value is string => Boolean(value)
-);
-
 export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: "jwt"
+  },
+  secret: process.env.NEXTAUTH_SECRET || "development-secret",
+  pages: {
+    signIn: "/auth/signin"
+  },
   providers: [
     CredentialsProvider({
       name: "Basic Auth",
       credentials: {
         identifier: {
           label: "Email or username",
-          type: "text",
-          placeholder: envEmail ?? envUsername ?? fallbackUser.email
+          type: "text"
         },
-        password: { label: "Password", type: "password" }
+        password: {
+          label: "Password",
+          type: "password"
+        }
       },
       async authorize(credentials) {
         const identifier = credentials?.identifier?.trim();
         const password = credentials?.password ?? "";
 
-        if (!identifier || !password) {
-          return null;
+        if (!identifier || password.trim() === "") {
+          throw new CredentialsSigninError("Please enter your email or username and password.");
         }
 
-        if (isMockMode) {
-          return {
-            id: fallbackUser.id,
-            name: fallbackUser.name,
-            email: identifier.includes("@") ? identifier : fallbackUser.email
-          } satisfies EnvironmentAccount;
-        }
-
-        const normalizedIdentifier = identifier.toLowerCase();
-
-        const environmentAccount = resolveEnvironmentAccount(normalizedIdentifier, password);
-        if (environmentAccount) {
-          return environmentAccount;
-        }
-
-        const backendAccount = await attemptBackendLogin(identifier, password);
-        if (backendAccount) {
-          return backendAccount;
-        }
-
-        const identifiersToMatch =
-          acceptedIdentifiers.length > 0
-            ? acceptedIdentifiers
-            : [fallbackUser.email.toLowerCase(), fallbackUser.username.toLowerCase()];
-
-        const isIdentifierValid = identifiersToMatch.includes(normalizedIdentifier);
-        const isPasswordValid = password === configuredPassword;
-
-        if (!isIdentifierValid || !isPasswordValid) {
-          return null;
-        }
-
-        const matchesEmail = configuredEmail ? normalizedIdentifier === configuredEmail : false;
-        const matchesUsername = configuredUsername
-          ? normalizedIdentifier === configuredUsername
-          : false;
-
-        const email = matchesEmail
-          ? envEmail ?? configuredEmail ?? fallbackUser.email
-          : fallbackUser.email;
-
-        const name =
-          configuredDisplayName ||
-          (matchesUsername ? envUsername ?? configuredUsername ?? fallbackUser.name : fallbackUser.name);
-
-        const id = matchesUsername
-          ? envUsername ?? configuredUsername ?? fallbackUser.id
-          : matchesEmail
-            ? envEmail ?? configuredEmail ?? fallbackUser.id
-            : fallbackUser.id;
+        const { token, user } = await authenticateWithBackend(identifier, password);
 
         return {
-          id,
-          name,
-          email
-        } satisfies EnvironmentAccount;
+          id: user.id,
+          email: user.email,
+          name: user.name ?? undefined,
+          role: user.role ?? undefined,
+          accessToken: token
+        };
       }
     })
   ],
-  secret: process.env.NEXTAUTH_SECRET || "development-secret",
   callbacks: {
-    async session({ session }) {
-      if (session.user) {
-        session.user.name = session.user.name ?? fallbackUser.name;
-        session.user.email = session.user.email ?? fallbackUser.email;
-        const identifier = session.user.email?.toLowerCase() ?? "";
-        session.user.role = identifier.includes("viewer") ? "viewer" : "admin";
+    async jwt({ token, user }) {
+      if (user) {
+        const enrichedUser = user as {
+          id: string;
+          email: string;
+          name?: string | null;
+          role?: string | null;
+          accessToken?: string;
+        };
+
+        token.user = {
+          id: enrichedUser.id,
+          email: enrichedUser.email,
+          name: enrichedUser.name ?? null,
+          role: enrichedUser.role ?? null
+        };
+
+        if (enrichedUser.accessToken) {
+          token.accessToken = enrichedUser.accessToken;
+        }
       }
+
+      return token;
+    },
+    async session({ session, token }) {
+      const tokenUser = (token as {
+        user?: {
+          id: string;
+          email: string;
+          name?: string | null;
+          role?: string | null;
+        };
+        accessToken?: string;
+      }).user;
+
+      if (tokenUser) {
+        session.user = {
+          ...(session.user ?? {}),
+          id: tokenUser.id,
+          email: tokenUser.email,
+          name: tokenUser.name ?? session.user?.name ?? null,
+          role: tokenUser.role ?? undefined
+        };
+      }
+
+      const accessToken = (token as { accessToken?: string }).accessToken;
+      if (accessToken) {
+        session.accessToken = accessToken;
+      }
+
       return session;
     }
   }

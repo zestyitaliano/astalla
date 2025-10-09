@@ -14,7 +14,7 @@ export default async function TablePage({ params }: TablePageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login");
+    redirect("/auth/signin");
   }
 
   return <TableWorkspace tableId={params.id} />;
