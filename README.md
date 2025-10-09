@@ -42,6 +42,8 @@ Copy `.env.example` to `.env` in the repo root and adjust the placeholders as ne
 - `REDIS_URL` – Redis connection for BullMQ jobs (optional in local dev when Docker Compose is running).
 - `FRONTEND_ORIGIN` – Comma-separated list of allowed web origins. Include production and preview URLs, for example `https://app.astalla.com,https://*.vercel.app`.
 - `DEV_MOCKS` – Matches the shared flag; enables sample data providers when `true`.
+- `ADMIN_DEV_BYPASS` – Defaults to `false`. When `true`, allows the configured admin email to bypass password verification (intended for emergency lockout recovery only).
+- `ADMIN_DEV_EMAIL` – Email address eligible for the admin bypass. Defaults to the seeded admin account (`admin@astalla.com`).
 
 ## Local development
 
