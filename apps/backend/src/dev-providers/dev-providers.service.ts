@@ -545,14 +545,15 @@ export class DevProvidersService {
         createData.wbraid = wbraid;
       }
 
-      await this.prisma.lead.upsert({
-        where: {
-          // propertyId_externalId: {
-          //   propertyId,
-          //   externalId
-          // }
+      const where: Prisma.LeadWhereUniqueInput = {
+        propertyId_externalId: {
+          propertyId: propertyId,
           externalId
-        },
+        }
+      };
+
+      await this.prisma.lead.upsert({
+        where,
         update: updateData,
         create: createData
       });
