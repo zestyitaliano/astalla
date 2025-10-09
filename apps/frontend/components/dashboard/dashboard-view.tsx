@@ -152,6 +152,17 @@ export function DashboardView({ role }: DashboardViewProps) {
   const hasProperties = propertyOptions.length > 0;
   const selectedPropertyName = propertyOptions.find((option) => option.id === selectedProperty)?.name;
   const shouldShowEmptyState = !hasProperties && !propertiesQuery.isLoading && !propertiesQuery.isFetching;
+  const metricsUnavailable =
+    Boolean(selectedProperty) &&
+    !shouldShowEmptyState &&
+    !isAnyLoading &&
+    !propertiesQuery.isError &&
+    !occupancyQuery.isError &&
+    !pipelineQuery.isError &&
+    !costQuery.isError &&
+    !occupancyQuery.data &&
+    !pipelineQuery.data &&
+    !costQuery.data;
 
   useEffect(() => {
     if (!hasProperties) {
@@ -225,7 +236,35 @@ export function DashboardView({ role }: DashboardViewProps) {
         </section>
       ) : null}
 
-      {!shouldShowEmptyState ? (
+      {metricsUnavailable ? (
+        <section>
+          <div className="flex flex-col items-center gap-5 rounded-3xl border border-dashed border-border/70 bg-card/80 px-8 py-16 text-center shadow-sm">
+            <Sparkles className="h-8 w-8 text-primary" />
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">Waiting on your first sync</h3>
+              <p className="text-sm text-muted-foreground">
+                Connect a data source or publish a live dashboard to start streaming portfolio metrics into this workspace.
+              </p>
+            </div>
+            {role === "admin" ? (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button asChild className="rounded-full px-6">
+                  <Link href="/admin/sources">Connect a source</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full px-6">
+                  <Link href="/reports">Publish live dashboard</Link>
+                </Button>
+              </div>
+            ) : (
+              <Button asChild variant="outline" className="rounded-full px-6">
+                <a href="mailto:ops@astalla.com?subject=Live%20dashboard%20request">Request live access</a>
+              </Button>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {!shouldShowEmptyState && !metricsUnavailable ? (
         <section className="grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4">
           <MetricCard
             title="Average occupancy"
@@ -288,7 +327,7 @@ export function DashboardView({ role }: DashboardViewProps) {
         </section>
       ) : null}
 
-      {!shouldShowEmptyState ? (
+      {!shouldShowEmptyState && !metricsUnavailable ? (
         <section className="grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4">
           <DashboardCard
             title={selectedPropertyName ? `${selectedPropertyName} reviews` : "Resident feedback"}

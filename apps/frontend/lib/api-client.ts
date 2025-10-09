@@ -27,7 +27,8 @@ async function fetchJson<T>(path: string, schema: { parse: (data: unknown) => T 
       "Content-Type": "application/json",
       "x-mock-mode": isMockMode() ? "true" : "false"
     },
-    cache: "no-store"
+    cache: "no-store",
+    credentials: "include"
   });
 
   if (!response.ok) {
