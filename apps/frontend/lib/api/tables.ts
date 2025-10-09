@@ -316,7 +316,7 @@ export function useCreateViewMutation(tableId: string) {
   const invalidate = useInvalidateTableDetail();
   const invalidateList = useInvalidateTableList();
   return useMutation({
-    mutationFn: (payload: { name: string; config: unknown }) => createView(tableId, payload),
+    mutationFn: (payload: Omit<CreateViewDto, "tableId">) => createView(tableId, payload),
     onSuccess: () => {
       invalidate(tableId);
       invalidateList();
