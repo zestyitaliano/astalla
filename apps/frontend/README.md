@@ -5,7 +5,9 @@
 - Required environment variables:
   - `NEXTAUTH_URL`
   - `NEXTAUTH_SECRET`
-  - `API_BASE_URL`
+  - `NEXT_PUBLIC_API_BASE_URL`
+- Optional overrides:
+  - `API_BASE_URL` (server-only override; falls back to `NEXT_PUBLIC_API_BASE_URL` when unset)
   - `MOCK_MODE=false`
 - View Vercel function logs:
   1. Open the Vercel dashboard for the frontend project.

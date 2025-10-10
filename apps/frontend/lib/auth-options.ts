@@ -1,3 +1,4 @@
+import { resolveServerBaseUrl } from "@/lib/utils";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -72,13 +73,7 @@ async function authenticateWithBackend(
   identifier: string,
   password: string
 ): Promise<BackendLoginResponse | null> {
-  const baseUrl = (process.env.API_BASE_URL ?? "").trim();
-
-  if (!baseUrl) {
-    console.error("[auth] Missing API_BASE_URL environment variable");
-    return null;
-  }
-
+  const baseUrl = resolveServerBaseUrl();
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const loginUrl = `${normalizedBase}/auth/basic-login`;
   const safeIdentifier = identifier.trim().toLowerCase();
