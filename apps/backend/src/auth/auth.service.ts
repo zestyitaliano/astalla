@@ -101,8 +101,12 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const rawIdentifier = typeof dto.identifier === "string" ? dto.identifier : "";
-    const identifier = rawIdentifier.trim().toLowerCase();
+    if (typeof dto.identifier !== "string") {
+      this.logger.warn("AuthService: login missing identifier");
+      throw new BadRequestException("identifier is required");
+    }
+
+    const identifier = dto.identifier.trim().toLowerCase();
 
     if (!identifier) {
       this.logger.warn("AuthService: login missing identifier");

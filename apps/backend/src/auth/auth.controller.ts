@@ -41,15 +41,16 @@ export class AuthController {
   async basicLogin(@Body() dto: LoginDto) {
     const identifier = typeof dto.identifier === "string" ? dto.identifier : undefined;
     const maskedEmail = maskEmail(identifier);
+    const normalizedIdentifier = identifier?.trim();
 
-    if (!identifier || !identifier.trim()) {
+    if (!normalizedIdentifier) {
       const error = new BadRequestException("identifier is required");
-      this.logger.log(`basic-login status=${error.getStatus()} email=${maskedEmail}`);
+      this.logger.warn(`basic-login status=${error.getStatus()} email=${maskedEmail}`);
       throw error;
     }
 
     try {
-      const result = await this.authService.login(dto);
+      const result = await this.authService.login({ ...dto, identifier: normalizedIdentifier });
       this.logger.log(`basic-login status=200 email=${maskedEmail}`);
       return result;
     } catch (error) {
@@ -67,21 +68,23 @@ export class AuthController {
   }
 }
 
+const MASKED_IDENTIFIER_PLACEHOLDER = "***";
+
 function maskEmail(rawIdentifier?: string | null): string {
   if (typeof rawIdentifier !== "string") {
-    return "***";
+    return MASKED_IDENTIFIER_PLACEHOLDER;
   }
 
   const trimmed = rawIdentifier.trim().toLowerCase();
 
   if (!trimmed) {
-    return "***";
+    return MASKED_IDENTIFIER_PLACEHOLDER;
   }
 
   const [userPart, domain] = trimmed.split("@");
 
   if (!domain || !userPart) {
-    return "***";
+    return MASKED_IDENTIFIER_PLACEHOLDER;
   }
 
   const first = userPart[0];
