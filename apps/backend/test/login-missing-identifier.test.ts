@@ -1,7 +1,11 @@
+import "reflect-metadata";
+
 import assert from "node:assert/strict";
 import Module from "node:module";
+import type { AddressInfo } from "node:net";
 
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, HttpStatus, Module as NestModule } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
 
 const originalModuleLoad = (Module as unknown as { _load?: (...args: any[]) => any })._load;
 
@@ -65,6 +69,47 @@ async function testServiceMissingIdentifier() {
   assert.ok(thrown instanceof BadRequestException, "expected BadRequestException");
 }
 
+async function testHttpBasicLoginMissingIdentifier() {
+  let serviceCalled = false;
+  const authServiceStub = {
+    login: async () => {
+      serviceCalled = true;
+      throw new Error("should not be called");
+    }
+  };
+
+  @NestModule({
+    controllers: [AuthController],
+    providers: [{ provide: AuthService, useValue: authServiceStub }]
+  })
+  class TestAuthModule {}
+
+  const app = await NestFactory.create(TestAuthModule, { logger: false });
+  await app.init();
+  await app.listen(0);
+
+  try {
+    const server = app.getHttpServer();
+    const address = server.address();
+    assert.ok(address && typeof address === "object", "expected HTTP server address");
+
+    const { port } = address as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${port}/auth/basic-login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: "secret" })
+    });
+
+    assert.equal(response.status, HttpStatus.BAD_REQUEST);
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    assert.equal(payload.message, "identifier is required");
+    assert.equal(serviceCalled, false, "AuthService.login should not be called for missing identifier");
+  } finally {
+    await app.close();
+  }
+}
+
 async function runTest(name: string, fn: () => Promise<void>) {
   try {
     await fn();
@@ -77,6 +122,7 @@ async function runTest(name: string, fn: () => Promise<void>) {
 async function main() {
   await runTest("AuthController.basicLogin rejects missing identifier", testControllerMissingIdentifier);
   await runTest("AuthService.login rejects blank identifier", testServiceMissingIdentifier);
+  await runTest("POST /auth/basic-login without identifier returns 400", testHttpBasicLoginMissingIdentifier);
 
   const failed = results.filter((result) => result.error);
 
