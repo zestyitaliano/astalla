@@ -24,7 +24,7 @@ function normalizeUrl(value: string | undefined) {
   }
 }
 
-function resolveServerBaseUrl() {
+export function resolveServerBaseUrl() {
   const publicConfigured = normalizeUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
   if (publicConfigured) {
     return publicConfigured;

@@ -20,11 +20,12 @@ packages/
 
 ## Environment variables
 
-Copy `.env.example` to `.env` in the repo root and adjust the placeholders as needed. All traffic between the apps flows through `NEXT_PUBLIC_API_BASE_URL`, so make sure it always points at a reachable backend URL (Render in production, `http://localhost:3001` in local development). The value is consumed by both browser and server components in the Next.js app, so leaving it unset will break sign-in flows and server-side rendering.
+Copy `.env.example` to `.env` in the repo root and adjust the placeholders as needed. All traffic between the apps flows through `NEXT_PUBLIC_API_BASE_URL`, so make sure it always points at a reachable backend URL (Render in production, `http://localhost:3001` in local development). The value is consumed by both browser and server components in the Next.js app; when `API_BASE_URL` is not provided, server-side logic (including the NextAuth credentials flow) automatically reuses `NEXT_PUBLIC_API_BASE_URL`, so leaving the public variable unset will still break sign-in flows and server-side rendering.
 
 ### Shared
 
 - `NEXT_PUBLIC_API_BASE_URL` – Base URL for the Nest API. Required in every environment (including local dev when running via `pnpm dev`).
+- `API_BASE_URL` – Optional server-only override. If omitted, the frontend reuses `NEXT_PUBLIC_API_BASE_URL` for credentialed requests.
 - `DEV_MOCKS` – Opt-in flag for developer mocks. Defaults to `false`; set to `true` only when you intentionally want MSW/sample data.
 
 ### Frontend (`apps/frontend`)
