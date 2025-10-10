@@ -101,11 +101,18 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const identifier = dto.identifier.trim().toLowerCase();
+    const rawIdentifier = typeof dto.identifier === "string" ? dto.identifier : "";
+    const identifier = rawIdentifier.trim().toLowerCase();
+
+    if (!identifier) {
+      this.logger.warn("AuthService: login missing identifier");
+      throw new BadRequestException("identifier is required");
+    }
+
     this.logger.log(`AuthService: login attempt for ${identifier}`);
 
     try {
-      const user = await this.validateUser(dto.identifier, dto.password);
+      const user = await this.validateUser(identifier, dto.password);
       const authUser = this.toAuthUser(user);
       const token = this.signJwt({ sub: user.id, email: user.email, role: user.role });
 

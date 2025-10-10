@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -38,7 +39,14 @@ export class AuthController {
   @Post("basic-login")
   @HttpCode(HttpStatus.OK)
   async basicLogin(@Body() dto: LoginDto) {
-    const maskedEmail = maskEmail(dto.identifier);
+    const identifier = typeof dto.identifier === "string" ? dto.identifier : undefined;
+    const maskedEmail = maskEmail(identifier);
+
+    if (!identifier || !identifier.trim()) {
+      const error = new BadRequestException("identifier is required");
+      this.logger.log(`basic-login status=${error.getStatus()} email=${maskedEmail}`);
+      throw error;
+    }
 
     try {
       const result = await this.authService.login(dto);
@@ -59,8 +67,17 @@ export class AuthController {
   }
 }
 
-function maskEmail(rawIdentifier: string): string {
+function maskEmail(rawIdentifier?: string | null): string {
+  if (typeof rawIdentifier !== "string") {
+    return "***";
+  }
+
   const trimmed = rawIdentifier.trim().toLowerCase();
+
+  if (!trimmed) {
+    return "***";
+  }
+
   const [userPart, domain] = trimmed.split("@");
 
   if (!domain || !userPart) {
