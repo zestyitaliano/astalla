@@ -1,5 +1,14 @@
 import { UserRole } from "@prisma/client";
-import { IsEmail, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength
+} from "class-validator";
 
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 
@@ -7,9 +16,9 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  @IsOptional()
   @IsString()
-  name?: string;
+  @IsNotEmpty()
+  name!: string;
 
   @IsOptional()
   @IsString()

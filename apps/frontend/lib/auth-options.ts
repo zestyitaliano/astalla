@@ -72,10 +72,10 @@ async function authenticateWithBackend(
   identifier: string,
   password: string
 ): Promise<BackendLoginResponse | null> {
-  const baseUrl = (process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
+  const baseUrl = (process.env.API_BASE_URL ?? "").trim();
 
   if (!baseUrl) {
-    console.error("[auth] Missing API_BASE_URL/NEXT_PUBLIC_API_BASE_URL environment variables");
+    console.error("[auth] Missing API_BASE_URL environment variable");
     return null;
   }
 
