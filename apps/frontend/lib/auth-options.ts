@@ -1,15 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-import { apiBaseUrl } from "@/lib/utils";
-
-class CredentialsSigninError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "CredentialsSignin";
-  }
-}
-
 type BackendUser = {
   id: string;
   email: string;
@@ -61,69 +52,78 @@ function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
   return isBackendUser(candidate.user);
 }
 
-async function authenticateWithBackend(identifier: string, password: string) {
-  const loginUrl = `${apiBaseUrl}/auth/basic-login`;
+const LOGIN_TIMEOUT_MS = 8000;
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = LOGIN_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function authenticateWithBackend(
+  identifier: string,
+  password: string
+): Promise<BackendLoginResponse | null> {
+  const baseUrl = (process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
+
+  if (!baseUrl) {
+    console.error("[auth] Missing API_BASE_URL/NEXT_PUBLIC_API_BASE_URL environment variables");
+    return null;
+  }
+
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const loginUrl = `${normalizedBase}/auth/basic-login`;
   const safeIdentifier = identifier.trim().toLowerCase();
 
-  console.info(`[auth] authenticateWithBackend: POST ${loginUrl} for ${safeIdentifier}`);
+  console.log(`[auth] authorize() POST ${loginUrl}`);
 
   let response: Response;
   try {
-    response = await fetch(loginUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ identifier, password })
-    });
+    response = await fetchWithTimeout(
+      loginUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ identifier, password })
+      }
+    );
   } catch (error) {
-    console.error(`[auth] Failed to reach authentication service for ${safeIdentifier}`, error);
-    throw new Error("Unable to contact the authentication service. Please try again.");
+    console.error(`[auth] authorize() request failed for ${safeIdentifier}`, error);
+    return null;
   }
 
-  console.info(`[auth] authenticateWithBackend: response status ${response.status} for ${safeIdentifier}`);
-
-  const contentType = response.headers.get("content-type") ?? "";
-  const isJson = contentType.includes("application/json");
+  console.log(`[auth] authorize() response status ${response.status}`);
 
   let responseBody: unknown = null;
-  if (isJson) {
-    try {
-      responseBody = await response.json();
-    } catch (error) {
-      console.error("Failed to parse authentication response as JSON", error);
-      responseBody = null;
-    }
+  try {
+    responseBody = await response.json();
+  } catch (error) {
+    console.error("[auth] Failed to parse backend response as JSON", error);
+    return null;
   }
 
   if (!response.ok) {
-    let message = "Unable to sign in. Please try again.";
-    if (responseBody && typeof responseBody === "object") {
-      const candidate = responseBody as Record<string, unknown>;
-      const possibleMessage = candidate.message ?? candidate.error;
-      if (typeof possibleMessage === "string" && possibleMessage.trim() !== "") {
-        message = possibleMessage;
-      }
-    }
-
     console.error(
-      `[auth] Backend login failed for ${safeIdentifier}. status=${response.status}`,
+      `[auth] authorize() backend login failed for ${safeIdentifier}. status=${response.status}`,
       responseBody
     );
-
-    if (response.status >= 400 && response.status < 500) {
-      throw new CredentialsSigninError(message);
-    }
-
-    throw new Error(message);
+    return null;
   }
 
   if (!isBackendLoginResponse(responseBody)) {
-    console.error("Authentication response did not match the expected shape");
-    throw new Error("Received an unexpected response from the authentication service.");
+    console.error("[auth] authorize() unexpected response shape", responseBody);
+    return null;
   }
-
-  console.info(`[auth] Backend login success for ${responseBody.user.email}`);
 
   return responseBody;
 }
@@ -154,18 +154,54 @@ export const authOptions: NextAuthOptions = {
         const password = credentials?.password ?? "";
 
         if (!identifier || password.trim() === "") {
-          throw new CredentialsSigninError("Please enter your email or username and password.");
+          console.error("[auth] authorize() missing identifier or password");
+          return null;
         }
 
-        const { token, user } = await authenticateWithBackend(identifier, password);
+        // Developer-only bypass to unblock local testing when the backend is unavailable.
+        if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
+          console.log("[auth] NEXT_PUBLIC_DEV_AUTH_BYPASS enabled - returning fake user");
+          return {
+            id: "dev-bypass-user",
+            email: identifier,
+            name: "Dev Bypass",
+            token: "dev-bypass-token"
+          };
+        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? undefined,
-          role: user.role ?? undefined,
-          accessToken: token
-        };
+        try {
+          const result = await authenticateWithBackend(identifier, password);
+
+          if (!result) {
+            return null;
+          }
+
+          const { token, user } = result;
+
+          const minimalUser: {
+            id: string;
+            email: string;
+            name: string | null;
+            token: string;
+          } & { accessToken?: string } = {
+            id: user.id,
+            email: user.email,
+            name: user.name ?? null,
+            token
+          };
+
+          Object.defineProperty(minimalUser, "accessToken", {
+            value: token,
+            enumerable: false,
+            configurable: true,
+            writable: false
+          });
+
+          return minimalUser;
+        } catch (error) {
+          console.error("[auth] authorize() unexpected error", error);
+          return null;
+        }
       }
     })
   ],

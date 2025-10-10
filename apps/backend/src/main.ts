@@ -13,26 +13,17 @@ async function bootstrap() {
 
   app.use(json({ limit: "10mb" }));
 
-  const rawOrigins =
-    configService.get<string>("cors.origin") ?? process.env.CORS_ORIGIN ?? "";
-  const configuredOrigins = rawOrigins
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0);
-
-  const fallbackOrigins = new Set<string>(["https://app.astalla.com"]);
-
-  if (process.env.NODE_ENV !== "production") {
-    fallbackOrigins.add("http://localhost:3000");
-  }
-
-  const origins = configuredOrigins.length > 0 ? configuredOrigins : [...fallbackOrigins];
+  const defaultOrigins: (string | RegExp)[] = [
+    "https://app.astalla.com",
+    /\.vercel\.app$/,
+    "http://localhost:3000"
+  ];
 
   app.enableCors({
-    origin: origins,
+    origin: defaultOrigins,
     credentials: true,
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    allowedHeaders: "Content-Type,Authorization"
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-mock-mode"]
   });
 
   const { httpAdapter } = app.get(HttpAdapterHost);
@@ -45,7 +36,12 @@ async function bootstrap() {
   const port = configService.get<number>("app.port", 3001);
   await app.listen(port);
   Logger.log(`Backend listening on port ${port}`, "Bootstrap");
-  Logger.log(`CORS origins: ${origins.join(", ")}`, "Bootstrap");
+  Logger.log(
+    `CORS origins: ${defaultOrigins
+      .map((origin) => (origin instanceof RegExp ? origin.toString() : origin))
+      .join(", ")}`,
+    "Bootstrap"
+  );
 }
 
 void bootstrap();
