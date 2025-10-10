@@ -11,7 +11,7 @@
     "lint": "eslint ./src --ext .ts",
     "pretypecheck": "pnpm prisma generate",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No backend tests yet\"",
+    "test": "ts-node --transpile-only test/login-missing-identifier.test.ts",
     "prisma": "prisma",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
