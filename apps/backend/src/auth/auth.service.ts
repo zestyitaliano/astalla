@@ -132,7 +132,7 @@ export class AuthService {
 
     const email = dto.email.trim().toLowerCase();
     const username = dto.username ? dto.username.trim().toLowerCase() : null;
-    const name = dto.name?.trim() ?? null;
+    const name = dto.name.trim();
     const role = dto.role ?? UserRole.ORG_ADMIN;
 
     const existingByEmail = await this.prisma.user.findUnique({ where: { email } });
