@@ -211,7 +211,7 @@ export const authOptions: NextAuthOptions = {
           id: string;
           email: string;
           name?: string | null;
-          role?: string | null;
+          role?: KnownRole | null;
           accessToken?: string;
         };
 
@@ -235,7 +235,7 @@ export const authOptions: NextAuthOptions = {
           id: string;
           email: string;
           name?: string | null;
-          role?: string | null;
+          role?: KnownRole | null;
         };
         accessToken?: string;
       }).user;
