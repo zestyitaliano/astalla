@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { AlertsModule } from "./alerts/alerts.module";
 import { AuthModule } from "./auth/auth.module";
 import { DevProvidersModule } from "./dev-providers/dev-providers.module";
+import { HealthModule } from "./health/health.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -60,7 +61,8 @@ import { TablesModule } from "./tables/tables.module";
     JobsModule,
     DevProvidersModule,
     SourcesModule,
-    TablesModule
+    TablesModule,
+    HealthModule
   ]
 })
 export class AppModule {}

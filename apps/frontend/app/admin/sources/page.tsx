@@ -11,7 +11,7 @@ export default async function AdminSourcesPage() {
     redirect("/auth/signin");
   }
 
-  if (session.user?.role !== "admin") {
+  if (session.user?.role !== "ORG_ADMIN") {
     redirect("/dashboard");
   }
 

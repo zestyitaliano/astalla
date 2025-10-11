@@ -5,7 +5,7 @@ declare module "next-auth" {
     id: string;
     email: string;
     name?: string | null;
-    role?: string | null;
+    role?: "ORG_ADMIN" | "REGIONAL" | "PROPERTY" | "MARKETING" | null;
     accessToken?: string;
   }
 
@@ -14,7 +14,7 @@ declare module "next-auth" {
     user?: DefaultSession["user"] & {
       id: string;
       email: string;
-      role?: string | null;
+      role?: "ORG_ADMIN" | "REGIONAL" | "PROPERTY" | "MARKETING" | null;
     };
   }
 }
@@ -26,7 +26,7 @@ declare module "next-auth/jwt" {
       id: string;
       email: string;
       name?: string | null;
-      role?: string | null;
+      role?: "ORG_ADMIN" | "REGIONAL" | "PROPERTY" | "MARKETING" | null;
     };
   }
 }

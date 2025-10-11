@@ -13,17 +13,11 @@ async function bootstrap() {
 
   app.use(json({ limit: "10mb" }));
 
-  const defaultOrigins: (string | RegExp)[] = [
-    "https://app.astalla.com",
-    /\.vercel\.app$/,
-    "http://localhost:3000"
-  ];
+  const allowedOrigins = ["https://app.astalla.com", "http://localhost:3000"];
 
   app.enableCors({
-    origin: defaultOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-mock-mode"]
+    origin: allowedOrigins,
+    credentials: true
   });
 
   const { httpAdapter } = app.get(HttpAdapterHost);
@@ -36,12 +30,7 @@ async function bootstrap() {
   const port = configService.get<number>("app.port", 3001);
   await app.listen(port);
   Logger.log(`Backend listening on port ${port}`, "Bootstrap");
-  Logger.log(
-    `CORS origins: ${defaultOrigins
-      .map((origin) => (origin instanceof RegExp ? origin.toString() : origin))
-      .join(", ")}`,
-    "Bootstrap"
-  );
+  Logger.log(`CORS origins: ${allowedOrigins.join(", ")}`, "Bootstrap");
 }
 
 void bootstrap();
