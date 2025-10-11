@@ -11,7 +11,7 @@ export default async function TablesPage() {
     redirect("/auth/signin");
   }
 
-  const canManage = session.user?.role !== "viewer";
+  const canManage = session.user?.role === "ORG_ADMIN";
 
   return (
     <div className="space-y-6">
