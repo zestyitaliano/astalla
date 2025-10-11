@@ -1,0 +1,78 @@
+name: Smoke (Auth + API)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DATABASE_URL: "file:./dev.db"
+      JWT_SECRET: "test_jwt_32bytes_min"
+      ENCRYPTION_KEY: "dGVzdF90ZXN0X2VuY3J5cHRpb25fa2V5XzMyYnl0ZXM="
+      MOCK_MODE: "false"
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:4001"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "test_nextauth_secret_32bytes_min"
+      FRONTEND_ORIGIN: "http://localhost:3000"
+      DEV_MOCKS: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Setup PNPM
+        run: corepack enable
+      - name: Install deps
+        run: pnpm -w install
+      - name: Build shared + backend
+        run: |
+          pnpm -C packages/shared build
+          pnpm -C apps/backend build
+      - name: Prepare DB & seed
+        working-directory: apps/backend
+        run: |
+          pnpm prisma generate
+          pnpm test:prep
+      - name: Smoke API
+        working-directory: apps/backend
+        run: pnpm test:smoke
+      - name: Build frontend
+        run: pnpm -C apps/frontend build
+      - name: Install Playwright
+        working-directory: apps/frontend
+        run: pnpm e2e:install
+      - name: Start backend (test port 4001)
+        working-directory: apps/backend
+        run: |
+          PORT=4001 nohup node dist/main.js > backend.out 2>&1 &
+          echo $! > /tmp/backend.pid
+          npx wait-on http://localhost:4001/health/auth
+      - name: Start frontend (port 3000)
+        working-directory: apps/frontend
+        run: |
+          PORT=3000 NEXT_PUBLIC_API_BASE_URL=http://localhost:4001 nohup pnpm start > frontend.out 2>&1 &
+          echo $! > /tmp/frontend.pid
+          npx wait-on http://localhost:3000
+      - name: E2E (NextAuth credentials)
+        working-directory: apps/frontend
+        env:
+          NEXTAUTH_E2E: "true"
+        run: pnpm e2e
+      - name: Teardown
+        if: always()
+        run: |
+          kill $(cat /tmp/backend.pid) || true
+          kill $(cat /tmp/frontend.pid) || true
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs
+          path: |
+            apps/backend/backend.out
+            apps/frontend/frontend.out

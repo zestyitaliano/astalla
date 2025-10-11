@@ -50,15 +50,39 @@ pnpm -C apps/backend db:deploy-and-seed
 
 The seed script always updates the password hash and logs `Seeded admin user: ... passwordValid=true` upon success.
 
-## Smoke test
+## Automated smoke tests
 
-Use the lightweight smoke test to confirm password validity against the database:
+Local developers and CI share the same smoke harness that provisions a temporary SQLite database,
+seeds the admin user, verifies the password hash, and exercises the critical API endpoints.
 
 ```bash
-pnpm -C apps/backend smoke:auth
+cd apps/backend
+cp .env.test.example .env.test  # only needed the first time
+pnpm test:smoke
 ```
 
-The script prints `passwordValid=true` when the stored hash matches the expected admin password.
+The script output lists each check (`credentials login`, `health/auth`, `metrics/occupancy`, and
+the protected `admin/sources` route). Any `FAIL` entry exits with a non-zero status.
+
+For a quick manual probe, grab a JWT with the helper script and then list the admin sources:
+
+```bash
+./scripts/curl-auth.sh
+# Copy the access_token value
+./scripts/curl-sources.sh http://localhost:4001 "<paste token here>"
+```
+
+The GitHub Action **Smoke (Auth + API)** runs on every push and pull request. When it fails, open
+the workflow run → the failing job → the "Upload logs on failure" artifact for `backend.out` / `frontend.out`
+and the summarized smoke output.
+
+To probe the production deployment on Render, call the live auth endpoint directly:
+
+```bash
+curl -i -X POST https://api.astalla.com/auth/basic-login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"admin@astalla.com","password":"Astalla2025!"}'
+```
 
 ## Health & diagnostics
 

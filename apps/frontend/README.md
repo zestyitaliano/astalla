@@ -43,6 +43,28 @@ pnpm dev # from apps/frontend
 
 Ensure `NEXT_PUBLIC_API_BASE_URL` points to your local backend (default `http://localhost:3001`).
 
+## Credentials smoke test
+
+The Playwright suite exercises the full NextAuth credentials flow and asserts that the session
+contains `accessToken`, `user.email`, and `user.role`.
+
+```bash
+# Terminal 1 – seed the SQLite DB used by the backend smoke harness
+cd ../backend
+pnpm test:prep
+PORT=4001 pnpm start
+
+# Terminal 2 – start the frontend against the smoke API
+cd ../frontend
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4001 pnpm dev
+
+# Terminal 3 – run the credentials smoke test
+NEXTAUTH_E2E=true pnpm e2e
+```
+
+GitHub Actions runs the same flow in the **Smoke (Auth + API)** workflow. When it fails, download the
+`smoke-logs` artifact for the captured frontend/backend output and the Playwright report.
+
 ## Useful curl commands
 
 ```bash
@@ -52,3 +74,11 @@ curl -i -X POST "$NEXT_PUBLIC_API_BASE_URL/auth/basic-login" \
 ```
 
 Expect a 200 response with `{ "access_token": "...", "user": { ... } }`.
+
+To test against Render/Vercel directly, point to production:
+
+```bash
+curl -i -X POST https://api.astalla.com/auth/basic-login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"admin@astalla.com","password":"Astalla2025!"}'
+```
