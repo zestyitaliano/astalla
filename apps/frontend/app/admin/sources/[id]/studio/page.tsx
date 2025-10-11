@@ -15,7 +15,7 @@ export default async function SourceStudioPage({ params }: SourceStudioPageProps
     redirect("/auth/signin");
   }
 
-  if (session.user?.role !== "admin") {
+  if (session.user?.role !== "ORG_ADMIN") {
     redirect("/dashboard");
   }
 

@@ -13,8 +13,9 @@ export default async function DashboardPage() {
     redirect("/auth/signin");
   }
 
-  const role = session.user?.role === "viewer" ? "viewer" : "admin";
-  const isAdmin = role === "admin";
+  const isOrgAdmin = session.user?.role === "ORG_ADMIN";
+  const role = isOrgAdmin ? "admin" : "viewer";
+  const isAdmin = isOrgAdmin;
 
   return (
     <div className="space-y-6 pb-16">

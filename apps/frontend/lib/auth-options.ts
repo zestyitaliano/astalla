@@ -9,8 +9,24 @@ type BackendUser = {
   role?: string | null;
 };
 
+const KNOWN_ROLES = ["ORG_ADMIN", "REGIONAL", "PROPERTY", "MARKETING"] as const;
+type KnownRole = (typeof KNOWN_ROLES)[number];
+
+function normalizeRole(role: string | null | undefined): KnownRole | null {
+  if (!role) {
+    return null;
+  }
+
+  if ((KNOWN_ROLES as readonly string[]).includes(role)) {
+    return role as KnownRole;
+  }
+
+  console.warn(`[auth] Unexpected user role received from backend: ${role}`);
+  return null;
+}
+
 type BackendLoginResponse = {
-  token: string;
+  access_token: string;
   user: BackendUser;
 };
 
@@ -46,7 +62,7 @@ function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
   }
 
   const candidate = value as Record<string, unknown>;
-  if (typeof candidate.token !== "string") {
+  if (typeof candidate.access_token !== "string") {
     return false;
   }
 
@@ -89,7 +105,7 @@ async function authenticateWithBackend(
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ identifier, password })
+        body: JSON.stringify({ identifier: safeIdentifier, password })
       }
     );
   } catch (error) {
@@ -160,7 +176,8 @@ export const authOptions: NextAuthOptions = {
             id: "dev-bypass-user",
             email: identifier,
             name: "Dev Bypass",
-            token: "dev-bypass-token"
+            accessToken: "dev-bypass-token",
+            role: null
           };
         }
 
@@ -171,28 +188,15 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          const { token, user } = result;
+          const { access_token: accessToken, user } = result;
 
-          const minimalUser: {
-            id: string;
-            email: string;
-            name: string | null;
-            token: string;
-          } & { accessToken?: string } = {
+          return {
             id: user.id,
             email: user.email,
             name: user.name ?? null,
-            token
+            role: normalizeRole(user.role ?? null),
+            accessToken
           };
-
-          Object.defineProperty(minimalUser, "accessToken", {
-            value: token,
-            enumerable: false,
-            configurable: true,
-            writable: false
-          });
-
-          return minimalUser;
         } catch (error) {
           console.error("[auth] authorize() unexpected error", error);
           return null;

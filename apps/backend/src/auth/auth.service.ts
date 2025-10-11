@@ -88,12 +88,16 @@ export class AuthService {
     });
 
     if (!user || !user.passwordHash) {
+      const masked = this.maskIdentifier(identifier);
+      this.logger.warn(`validateUser userNotFound identifier=${masked}`);
       throw new UnauthorizedException("Invalid credentials");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
+      const masked = this.maskIdentifier(identifier);
+      this.logger.warn(`validateUser invalidPassword identifier=${masked}`);
       throw new UnauthorizedException("Invalid credentials");
     }
 
@@ -118,11 +122,11 @@ export class AuthService {
     try {
       const user = await this.validateUser(identifier, dto.password);
       const authUser = this.toAuthUser(user);
-      const token = this.signJwt({ sub: user.id, email: user.email, role: user.role });
+      const accessToken = this.signJwt({ sub: user.id, email: user.email, role: user.role });
 
       this.logger.log(`AuthService: login success for ${authUser.email}`);
 
-      return { user: authUser, token };
+      return { user: authUser, access_token: accessToken };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         this.logger.warn(`AuthService: login failed for ${identifier}`);
@@ -227,5 +231,23 @@ export class AuthService {
     }
 
     return secret;
+  }
+
+  private maskIdentifier(rawIdentifier: string) {
+    const trimmed = rawIdentifier.trim().toLowerCase();
+
+    if (!trimmed.includes("@")) {
+      return "***";
+    }
+
+    const [userPart, domain] = trimmed.split("@");
+
+    if (!userPart || !domain) {
+      return "***";
+    }
+
+    const first = userPart[0];
+    const last = userPart.length > 1 ? userPart[userPart.length - 1] : "";
+    return `${first}***${last}@${domain}`;
   }
 }
