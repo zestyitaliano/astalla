@@ -21,7 +21,7 @@ export default async function AnalyticsPage() {
     redirect("/auth/signin");
   }
 
-  const isAdmin = session.user?.role !== "viewer";
+  const isAdmin = session.user?.role === "ORG_ADMIN";
 
   return (
     <div className="space-y-6">

@@ -1,19 +1,35 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 
 export function LoginCard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+
+    if (!errorParam) {
+      return;
+    }
+
+    if (errorParam === "CredentialsSignin") {
+      setError("Invalid email or password. Please try again.");
+      return;
+    }
+
+    setError("Unable to sign in. Please try again.");
+  }, [searchParams]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -23,7 +39,7 @@ export function LoginCard() {
     try {
       const result = await signIn("credentials", {
         redirect: false,
-        identifier,
+        identifier: identifier.trim(),
         password
       });
 
@@ -35,7 +51,11 @@ export function LoginCard() {
 
       if (result.error) {
         console.error("[auth] signIn returned error", result.error);
-        setError(result.error);
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          setError(result.error);
+        }
         return;
       }
 
