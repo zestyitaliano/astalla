@@ -9,6 +9,22 @@ type BackendUser = {
   role?: string | null;
 };
 
+const KNOWN_ROLES = ["ORG_ADMIN", "REGIONAL", "PROPERTY", "MARKETING"] as const;
+type KnownRole = (typeof KNOWN_ROLES)[number];
+
+function normalizeRole(role: string | null | undefined): KnownRole | null {
+  if (!role) {
+    return null;
+  }
+
+  if ((KNOWN_ROLES as readonly string[]).includes(role)) {
+    return role as KnownRole;
+  }
+
+  console.warn(`[auth] Unexpected user role received from backend: ${role}`);
+  return null;
+}
+
 type BackendLoginResponse = {
   access_token: string;
   user: BackendUser;
@@ -160,7 +176,8 @@ export const authOptions: NextAuthOptions = {
             id: "dev-bypass-user",
             email: identifier,
             name: "Dev Bypass",
-            token: "dev-bypass-token"
+            accessToken: "dev-bypass-token",
+            role: null
           };
         }
 
@@ -177,7 +194,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             email: user.email,
             name: user.name ?? null,
-            role: user.role ?? null,
+            role: normalizeRole(user.role ?? null),
             accessToken
           };
         } catch (error) {
