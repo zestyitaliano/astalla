@@ -6,7 +6,12 @@ import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 import { AppChrome } from "@/components/shell/app-chrome";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-base",
+  display: "swap"
+});
 
 export const metadata: Metadata = {
   title: "Astalla Dashboard",
@@ -32,7 +37,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-white font-sans text-slate-900 antialiased">
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased transition-colors">
         <AppProviders>
           {isPublicHost ? (
             <main className="min-h-screen">

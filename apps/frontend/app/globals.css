@@ -2,125 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.cdnfonts.com/css/pp-formula");
+
 :root {
   color-scheme: light;
-  --slate-1: 210 33% 99%;
-  --slate-2: 210 23% 97%;
-  --slate-3: 209 21% 94%;
-  --slate-4: 209 19% 92%;
-  --slate-5: 208 17% 89%;
-  --slate-6: 208 15% 86%;
-  --slate-7: 207 14% 82%;
-  --slate-8: 206 13% 75%;
-  --slate-9: 205 10% 56%;
-  --slate-10: 205 10% 52%;
-  --slate-11: 210 11% 43%;
-  --slate-12: 210 24% 14%;
+  --font-heading: "PP Formula Condensed Bold", "PP Formula Condensed", "Impact", "Arial Narrow", sans-serif;
+  --font-base: "Inter Light", "Inter", "Helvetica Neue", Arial, sans-serif;
 
-  --violet-6: 253 94% 82%;
-  --violet-7: 255 92% 78%;
-  --violet-8: 255 90% 74%;
-  --violet-9: 252 95% 68%;
-  --violet-11: 255 88% 62%;
-  --violet-12: 255 98% 95%;
+  --neutral-950: 0 0% 8%;
+  --neutral-900: 231 11% 13%;
+  --neutral-800: 30 2% 17%;
+  --neutral-700: 30 1% 27%;
+  --neutral-600: 30 2% 36%;
+  --neutral-500: 30 1% 57%;
+  --neutral-200: 120 2% 78%;
+  --neutral-50: 160 100% 99%;
 
-  --tomato-9: 358 75% 59%;
-  --tomato-12: 350 100% 95%;
+  --brand-primary: var(--neutral-900);
+  --brand-primary-foreground: var(--neutral-50);
+  --brand-secondary: 20 96% 49%;
+  --brand-secondary-foreground: var(--neutral-50);
 
-  --bg: var(--slate-1);
-  --panel: var(--slate-2);
-  --card: var(--slate-1);
-  --card-contrast: var(--slate-3);
+  --bg: var(--neutral-50);
+  --panel: var(--neutral-200);
+  --card: var(--neutral-50);
+  --card-contrast: var(--neutral-200);
   --card-foreground: var(--foreground);
-  --border: var(--slate-5);
-  --border-strong: 210 16% 78%;
-  --muted: var(--slate-3);
-  --muted-foreground: var(--slate-11);
-  --foreground: var(--slate-12);
-  --accent: var(--violet-9);
-  --accent-contrast: var(--violet-12);
-  --ring: var(--violet-8);
-  --destructive: var(--tomato-9);
-  --destructive-foreground: var(--tomato-12);
-  --brand-primary: var(--violet-9);
-  --brand-primary-foreground: var(--violet-12);
-  --brand-secondary: 151 81% 46%;
-  --brand-secondary-foreground: 152 40% 16%;
-  --success: 151 81% 46%;
-  --success-foreground: 152 40% 16%;
-  --warning: 34 100% 65%;
-  --warning-foreground: 28 80% 20%;
-  --danger: var(--tomato-9);
-  --danger-foreground: var(--tomato-12);
+  --border: var(--neutral-500);
+  --border-strong: var(--neutral-600);
+  --muted: var(--neutral-200);
+  --muted-foreground: var(--neutral-500);
+  --foreground: var(--neutral-950);
+  --accent: var(--brand-secondary);
+  --accent-contrast: var(--neutral-50);
+  --ring: 20 96% 54%;
+  --destructive: 10 83% 47%;
+  --destructive-foreground: var(--neutral-50);
+  --success: 149 60% 42%;
+  --success-foreground: var(--neutral-50);
+  --warning: 33 100% 55%;
+  --warning-foreground: 30 100% 12%;
+  --danger: 10 83% 47%;
+  --danger-foreground: var(--neutral-50);
   --radius: 14px;
 
   /* Legacy tokens mapped to new system */
   --background: var(--bg);
-  --card-foreground: var(--card-foreground);
   --primary: var(--accent);
   --primary-foreground: var(--accent-contrast);
   --secondary: var(--panel);
   --secondary-foreground: var(--foreground);
   --accent-foreground: var(--accent-contrast);
-  --muted-foreground: var(--muted-foreground);
 }
 
 .dark {
   color-scheme: dark;
-  --slate-1: 210 25% 10%;
-  --slate-2: 215 27% 12%;
-  --slate-3: 210 23% 16%;
-  --slate-4: 211 21% 19%;
-  --slate-5: 210 20% 22%;
-  --slate-6: 209 18% 25%;
-  --slate-7: 206 18% 30%;
-  --slate-8: 206 17% 36%;
-  --slate-9: 205 18% 44%;
-  --slate-10: 205 20% 48%;
-  --slate-11: 210 25% 70%;
-  --slate-12: 210 40% 96%;
 
-  --violet-6: 258 58% 52%;
-  --violet-7: 259 62% 59%;
-  --violet-8: 258 65% 66%;
-  --violet-9: 252 92% 76%;
-  --violet-11: 252 100% 87%;
-  --violet-12: 255 100% 96%;
-
-  --tomato-9: 5 78% 62%;
-  --tomato-12: 5 100% 95%;
-
-  --bg: var(--slate-1);
-  --panel: var(--slate-2);
-  --card: var(--slate-3);
-  --card-contrast: var(--slate-4);
+  --bg: var(--neutral-950);
+  --panel: var(--neutral-800);
+  --card: var(--neutral-700);
+  --card-contrast: var(--neutral-600);
   --card-foreground: var(--foreground);
-  --border: var(--slate-6);
-  --muted: var(--slate-4);
-  --muted-foreground: var(--slate-11);
-  --foreground: var(--slate-12);
-  --accent: var(--violet-8);
-  --accent-contrast: var(--violet-12);
-  --ring: var(--violet-7);
-  --destructive: var(--tomato-9);
-  --destructive-foreground: var(--tomato-12);
-  --brand-primary: var(--violet-8);
-  --brand-primary-foreground: var(--violet-12);
-  --brand-secondary: 151 70% 40%;
-  --brand-secondary-foreground: 149 60% 88%;
-  --success: 151 70% 40%;
-  --success-foreground: 149 60% 88%;
-  --warning: 34 100% 60%;
-  --warning-foreground: 48 100% 90%;
-  --danger: var(--tomato-9);
-  --danger-foreground: var(--tomato-12);
+  --border: var(--neutral-600);
+  --border-strong: var(--neutral-500);
+  --muted: var(--neutral-700);
+  --muted-foreground: var(--neutral-200);
+  --foreground: var(--neutral-50);
+  --accent: 20 96% 60%;
+  --accent-contrast: var(--neutral-50);
+  --ring: 20 96% 65%;
+  --destructive: 8 82% 58%;
+  --destructive-foreground: var(--neutral-50);
+  --success: 148 58% 48%;
+  --success-foreground: var(--neutral-50);
+  --warning: 36 100% 65%;
+  --warning-foreground: 45 100% 90%;
+  --danger: 8 82% 58%;
+  --danger-foreground: var(--neutral-50);
 }
 
 body {
-  background: radial-gradient(120% 120% at 10% 0%, hsl(var(--brand-primary) / 0.12) 0%, transparent 45%),
-    radial-gradient(160% 140% at 90% 0%, hsl(var(--brand-secondary) / 0.08) 0%, transparent 52%),
-    linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(var(--bg)) 38%, #fff 100%);
+  background: radial-gradient(120% 120% at 10% -10%, hsl(var(--brand-secondary) / 0.18) 0%, transparent 52%),
+    radial-gradient(120% 120% at 100% 0%, hsl(var(--brand-primary) / 0.15) 0%, transparent 55%),
+    linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(var(--bg)) 65%, #ffffff 100%);
   color: hsl(var(--foreground));
+}
+
+.dark body {
+  background: radial-gradient(140% 140% at 20% -10%, hsl(var(--brand-secondary) / 0.15) 0%, transparent 55%),
+    linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(var(--bg)) 70%, #000 100%);
 }
 
 @layer base {
@@ -139,10 +109,22 @@ body {
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-base);
   }
 
   ::selection {
     background: hsl(var(--accent) / 0.2);
     color: hsl(var(--foreground));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.03em;
   }
 }
