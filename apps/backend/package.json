@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "nest start --watch",
     "start": "nest start",
-    "start:prod": "node dist/main.js",
+    "start:prod": "sh -c 'node dist/main.js || node dist/apps/backend/main.js || node dist/src/main.js'",
     "prebuild": "pnpm prisma generate && pnpm -C ../../packages/shared build",
     "build": "nest build",
-    "postbuild": "pnpm prisma db seed",
+    "postbuild": "echo '--- dist ---' && ls -la dist || true && echo '--- dist/apps/backend ---' && ls -la dist/apps/backend || true && echo '--- apps/backend/dist ---' && ls -la apps/backend/dist || true",
     "lint": "eslint ./src --ext .ts",
     "typecheck": "tsc --noEmit",
     "prisma": "prisma",
