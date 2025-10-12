@@ -219,17 +219,17 @@ export function ReportsView() {
 
   return (
     <div className="space-y-6">
-      <div className="card-surface rounded-2xl border bg-white/90 p-6 shadow-card">
+      <div className="card-surface rounded-2xl border bg-card/90 p-6 shadow-card">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Reports & templates</h1>
+            <h1 className="text-xl font-semibold text-text">Reports & templates</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Launch ready-made scorecards and automate delivery to property and regional teams.
             </p>
           </div>
           <Button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-brand-primary/90"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
             Create live dashboard
@@ -237,21 +237,21 @@ export function ReportsView() {
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {layoutOptions.map((layout) => (
-            <div key={layout.id} className="card-surface flex flex-col gap-3 rounded-2xl border bg-white/90 p-5 shadow-card">
+            <div key={layout.id} className="card-surface flex flex-col gap-3 rounded-2xl border bg-card/90 p-5 shadow-card">
               <div className="flex items-center gap-3">
-                <Globe2 className="h-5 w-5 text-brand-primary" />
+                <Globe2 className="h-5 w-5 text-primary" />
                 <div>
-                  <h2 className="text-base font-semibold text-foreground">{layout.name}</h2>
+                  <h2 className="text-base font-semibold text-text">{layout.name}</h2>
                   <p className="text-sm text-muted-foreground">{layout.description}</p>
                 </div>
               </div>
-              <div className="rounded-xl border border-dashed border-border/70 bg-slate-50/70 p-4 text-xs text-muted-foreground">
-                <div className="font-semibold text-foreground">Widget preview</div>
+              <div className="rounded-xl border border-dashed border-border/70 bg-muted/40 p-4 text-xs text-muted-foreground">
+                <div className="font-semibold text-text">Widget preview</div>
                 <ul className="mt-2 space-y-1">
                   {layout.config.widgets.map((widget: any) => (
                     <li key={widget.id} className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{widget.label}</span>
-                      <span className="font-medium text-foreground">{widget.value}</span>
+                      <span className="font-medium text-text">{widget.value}</span>
                     </li>
                   ))}
                 </ul>
@@ -261,10 +261,10 @@ export function ReportsView() {
         </div>
       </div>
 
-      <div className="card-surface rounded-2xl border bg-white/90 p-6 shadow-card">
+      <div className="card-surface rounded-2xl border bg-card/90 p-6 shadow-card">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Live dashboards</h2>
+            <h2 className="text-lg font-semibold text-text">Live dashboards</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Publish secure read-only dashboards on branded subdomains. Share links with leadership or property teams.
             </p>
@@ -284,7 +284,7 @@ export function ReportsView() {
             We couldn’t load your live dashboards. Refresh the page or try again shortly.
           </div>
         ) : dashboards.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-dashed border-border/70 bg-slate-50/70 p-8 text-center text-sm text-muted-foreground">
+          <div className="mt-6 rounded-xl border border-dashed border-border/70 bg-muted/40 p-8 text-center text-sm text-muted-foreground">
             No live dashboards yet. Use the templates above to publish your first experience.
           </div>
         ) : (
@@ -297,21 +297,21 @@ export function ReportsView() {
               return (
                 <div
                   key={dashboard.id}
-                  className="card-surface flex flex-col gap-4 rounded-2xl border bg-white/90 p-5 shadow-card transition hover:shadow-cardHover md:flex-row md:items-center md:justify-between"
+                  className="card-surface flex flex-col gap-4 rounded-2xl border bg-card/90 p-5 shadow-card transition hover:shadow-cardHover md:flex-row md:items-center md:justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-3">
-                      <span className="rounded-full border border-border bg-slate-50/80 px-3 py-1 text-xs font-medium text-muted-foreground">
+                      <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
                         {dashboard.isActive ? "Active" : "Paused"}
                       </span>
-                      <h3 className="text-base font-semibold text-foreground">{dashboard.title}</h3>
+                      <h3 className="text-base font-semibold text-text">{dashboard.title}</h3>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <a
                         href={url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-brand-primary hover:underline"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
                       >
                         {url}
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -359,23 +359,23 @@ export function ReportsView() {
       </div>
 
       {modalState.open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-          <div className="w-full max-w-xl rounded-2xl border bg-white p-6 shadow-card">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 px-4 py-6 backdrop-blur dark:bg-primary/95">
+          <div className="w-full max-w-xl rounded-2xl border bg-card p-6 shadow-card">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-lg font-semibold text-text">
                   {modalState.mode === "create" ? "Create live dashboard" : "Edit live dashboard"}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Choose a layout, assign a subdomain, and we will render a secure read-only dashboard for your clients.
                 </p>
               </div>
-              <button className="text-muted-foreground transition hover:text-foreground" onClick={closeModal}>
+              <button className="text-muted-foreground transition hover:text-text" onClick={closeModal}>
                 ×
               </button>
             </div>
             <form className="mt-4 space-y-4" onSubmit={submitForm}>
-              <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              <label className="flex flex-col gap-2 text-sm font-medium text-text">
                 Title
                 <Input
                   value={formState.title}
@@ -385,7 +385,7 @@ export function ReportsView() {
                 />
               </label>
               <div className="grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+                <label className="flex flex-col gap-2 text-sm font-medium text-text">
                   Subdomain
                   <Input
                     value={formState.subdomain}
@@ -398,10 +398,10 @@ export function ReportsView() {
                   />
                   <span className="text-xs font-normal text-muted-foreground">https://{slugPreview}</span>
                 </label>
-                <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+                <label className="flex flex-col gap-2 text-sm font-medium text-text">
                   Property scope (optional)
                   <select
-                    className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground"
+                    className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-text"
                     value={formState.propertyId}
                     onChange={(event) => updateField("propertyId", event.target.value)}
                   >
@@ -414,10 +414,10 @@ export function ReportsView() {
                   </select>
                 </label>
               </div>
-              <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              <label className="flex flex-col gap-2 text-sm font-medium text-text">
                 Pick from existing dashboard layout
                 <select
-                  className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground"
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-text"
                   value={formState.layoutId}
                   onChange={(event) => {
                     const layoutId = event.target.value;
@@ -433,15 +433,15 @@ export function ReportsView() {
                   {modalState.mode === "edit" ? <option value="custom">Keep current layout</option> : null}
                 </select>
               </label>
-              <div className="rounded-xl border border-dashed border-border/70 bg-slate-50/70 p-4 text-xs text-muted-foreground">
-                <div className="font-semibold text-foreground">Layout preview</div>
+              <div className="rounded-xl border border-dashed border-border/70 bg-muted/40 p-4 text-xs text-muted-foreground">
+                <div className="font-semibold text-text">Layout preview</div>
                 <ul className="mt-2 space-y-1">
                   {(Array.isArray((formState.config as any)?.widgets)
                     ? ((formState.config as any).widgets as any[])
                     : []).map((widget) => (
                     <li key={widget.id ?? widget.label} className="flex items-center justify-between">
                       <span>{widget.label ?? widget.id}</span>
-                      <span className="font-medium text-foreground">{widget.value ?? "—"}</span>
+                      <span className="font-medium text-text">{widget.value ?? "—"}</span>
                     </li>
                   ))}
                 </ul>
@@ -449,13 +449,13 @@ export function ReportsView() {
               <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
                 <div className="flex flex-col">
                   <span>Org scope</span>
-                  <span className="font-medium text-foreground">{orgId || "Loading…"}</span>
+                  <span className="font-medium text-text">{orgId || "Loading…"}</span>
                 </div>
                 <a
                   href={`https://${slugPreview}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-brand-primary"
+                  className="inline-flex items-center gap-1 text-primary"
                 >
                   Preview URL
                   <ArrowUpRight className="h-3.5 w-3.5" />

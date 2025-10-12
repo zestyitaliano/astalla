@@ -41,14 +41,14 @@ export function MetricCard({
   onRetry
 }: MetricCardProps) {
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : null;
-  const trendColor = trend === "down" ? "text-red-500" : trend === "up" ? "text-emerald-500" : "text-muted-foreground";
+  const trendColor = trend === "down" ? "text-danger" : trend === "up" ? "text-success" : "text-muted-foreground";
 
   return (
     <Card className={cn("h-full transition-shadow hover:shadow-md focus-within:shadow-md", className)} data-testid={testId}>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-6 pb-4">
         <div className="flex flex-col">
-          <CardTitle className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-foreground/95">{title}</CardTitle>
-          <span className="mt-3 text-[clamp(1.75rem,3vw,2.25rem)] font-semibold tracking-tight text-foreground">
+          <CardTitle className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-text/95">{title}</CardTitle>
+          <span className="mt-3 text-[clamp(1.75rem,3vw,2.25rem)] font-semibold tracking-tight text-text">
             {isLoading || isError ? "--" : value}
           </span>
         </div>
@@ -73,9 +73,9 @@ export function MetricCard({
         ) : null}
         {!isLoading && !isError ? (
           <div className="space-y-3">
-            {helperText ? <p className="text-[clamp(.9rem,1.5vw,1rem)] text-foreground/75">{helperText}</p> : null}
+            {helperText ? <p className="text-[clamp(.9rem,1.5vw,1rem)] text-text/75">{helperText}</p> : null}
             {typeof change === "number" ? (
-              <p className="text-[clamp(.9rem,1.5vw,1rem)] text-foreground/70">
+              <p className="text-[clamp(.9rem,1.5vw,1rem)] text-text/70">
                 {change > 0 ? "+" : ""}
                 {(change * 100).toFixed(1)}% vs. last period
               </p>

@@ -66,7 +66,7 @@ export function EditableCell<TData>({
 
   if (!isEditable) {
     return (
-      <span className="whitespace-nowrap text-sm text-foreground" role="textbox" aria-readonly>
+      <span className="whitespace-nowrap text-sm text-text" role="textbox" aria-readonly>
         {formatValue(getValue(), row.original) || "—"}
       </span>
     );
@@ -121,13 +121,13 @@ export function EditableCell<TData>({
           type={meta.inputType ?? "text"}
           placeholder={meta.placeholder}
           className={cn(
-            "w-full rounded-lg border border-border bg-card px-2 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "w-full rounded-lg border border-border bg-card px-2 py-1 text-sm text-text shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             error ? "border-destructive focus-visible:ring-destructive" : null
           )}
           aria-label={accessibleLabel}
         />
       ) : (
-        <span className="line-clamp-1 w-full text-sm text-foreground/90">{initialValue || "—"}</span>
+        <span className="line-clamp-1 w-full text-sm text-text/90">{initialValue || "—"}</span>
       )}
       {error ? (
         <span className="absolute -bottom-6 left-2 rounded-md bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">

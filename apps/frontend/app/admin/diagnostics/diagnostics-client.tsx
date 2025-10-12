@@ -44,8 +44,8 @@ export function DiagnosticsClient({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border bg-white/90 p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-foreground">Authentication diagnostics</h1>
+      <div className="rounded-2xl border bg-card/90 p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-text">Authentication diagnostics</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Backend base URL: <code className="rounded bg-muted px-1 py-0.5 text-xs">{apiBaseUrl}</code>
         </p>
@@ -66,10 +66,10 @@ export function DiagnosticsClient({
         </div>
       </div>
       {enableTestLogin ? (
-        <div className="rounded-2xl border bg-white/90 p-6 shadow-sm">
+        <div className="rounded-2xl border bg-card/90 p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Test login as admin</h2>
+              <h2 className="text-lg font-semibold text-text">Test login as admin</h2>
               <p className="text-sm text-muted-foreground">
                 Runs a credential login request against the backend using the configured admin user.
               </p>

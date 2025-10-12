@@ -70,19 +70,19 @@ export function LoginCard() {
   };
 
   const inputClasses =
-    "flex h-11 w-full rounded-lg border border-border/70 bg-card px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+    "flex h-11 w-full rounded-lg border border-border/70 bg-card px-3 py-2 text-sm text-text shadow-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
   return (
     <div className="mx-auto w-full max-w-md rounded-3xl border border-border/70 bg-card/95 p-10 text-left shadow-xl backdrop-blur">
       <div className="space-y-2 text-center">
-        <h1 className="font-heading text-3xl uppercase tracking-[0.28em] text-foreground">Sign in</h1>
+        <h1 className="font-heading text-3xl uppercase tracking-[0.28em] text-text">Sign in</h1>
         <p className="text-sm text-muted-foreground">
           Use your Astalla email or username with the shared password to access the dashboard.
         </p>
       </div>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="identifier">
+          <label className="text-sm font-medium text-text" htmlFor="identifier">
             Email or username
           </label>
           <input
@@ -97,7 +97,7 @@ export function LoginCard() {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="password">
+          <label className="text-sm font-medium text-text" htmlFor="password">
             Password
           </label>
           <input
@@ -126,7 +126,7 @@ export function LoginCard() {
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Need an account?{" "}
-        <Link className="font-medium text-brand-secondary hover:text-brand-secondary/80 hover:underline" href="/register">
+        <Link className="font-medium text-accent hover:text-accent/80 hover:underline" href="/register">
           Create one
         </Link>
       </p>

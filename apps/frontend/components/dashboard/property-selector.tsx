@@ -92,7 +92,7 @@ export function PropertySelector({
   };
 
   return (
-    <div className="flex flex-col gap-5 rounded-3xl border border-border/60 bg-white/85 p-6 shadow-sm supports-[backdrop-filter]:bg-white/70">
+    <div className="flex flex-col gap-5 rounded-3xl border border-border/60 bg-card/85 p-6 shadow-sm supports-[backdrop-filter]:bg-card/70">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -100,7 +100,7 @@ export function PropertySelector({
           </span>
           <div>
             <p className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Portfolio</p>
-            <h2 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-foreground">Property insights</h2>
+            <h2 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-text">Property insights</h2>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +111,7 @@ export function PropertySelector({
             <select
               id="property-select"
               className={cn(
-                "appearance-none rounded-full border border-border/60 bg-card px-4 py-2 pr-10 text-sm font-medium text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "appearance-none rounded-full border border-border/60 bg-card px-4 py-2 pr-10 text-sm font-medium text-text shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
                 disabled && "cursor-not-allowed opacity-60"
               )}
               value={selectedPropertyId ?? ""}
@@ -153,7 +153,7 @@ export function PropertySelector({
       </div>
       {properties.length === 0 ? (
         <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-border/80 bg-card/40 p-5 text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground">
-          <p className="font-medium text-foreground">No properties yet. Add one to get started.</p>
+          <p className="font-medium text-text">No properties yet. Add one to get started.</p>
           <Button type="button" size="sm" className="w-fit gap-2" onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4" /> Add property
           </Button>
@@ -218,17 +218,17 @@ function AddPropertyDialog({ open, onOpenChange, onSubmit, isSubmitting, suggest
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 px-4 backdrop-blur">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-foreground">Add a property</h3>
+          <h3 className="text-lg font-semibold text-text">Add a property</h3>
           <p className="text-sm text-muted-foreground">
             Name your property and give it a short code so you can identify it later.
           </p>
         </div>
         <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground" htmlFor="property-name">
+            <label className="text-sm font-medium text-text" htmlFor="property-name">
               Property name
             </label>
             <Input
@@ -240,7 +240,7 @@ function AddPropertyDialog({ open, onOpenChange, onSubmit, isSubmitting, suggest
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground" htmlFor="property-code">
+            <label className="text-sm font-medium text-text" htmlFor="property-code">
               Property code
             </label>
             <Input
@@ -252,7 +252,7 @@ function AddPropertyDialog({ open, onOpenChange, onSubmit, isSubmitting, suggest
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground" htmlFor="property-city">
+              <label className="text-sm font-medium text-text" htmlFor="property-city">
                 City
               </label>
               <Input
@@ -263,7 +263,7 @@ function AddPropertyDialog({ open, onOpenChange, onSubmit, isSubmitting, suggest
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground" htmlFor="property-state">
+              <label className="text-sm font-medium text-text" htmlFor="property-state">
                 State
               </label>
               <Input

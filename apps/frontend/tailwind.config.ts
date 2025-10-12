@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
+  darkMode: "class",
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -15,59 +15,41 @@ const config: Config = {
         heading: ["var(--font-heading)", "PP Formula Condensed Bold", "sans-serif"]
       },
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--border))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--bg))",
-        foreground: "hsl(var(--foreground))",
-        panel: "hsl(var(--panel))",
+        bg: "hsl(var(--bg))",
         card: {
           DEFAULT: "hsl(var(--card))",
           contrast: "hsl(var(--card-contrast))",
           foreground: "hsl(var(--card-foreground))"
         },
-        primary: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-contrast))"
-        },
-        brand: {
-          primary: {
-            DEFAULT: "hsl(var(--brand-primary))",
-            foreground: "hsl(var(--brand-primary-foreground))"
-          },
-          secondary: {
-            DEFAULT: "hsl(var(--brand-secondary))",
-            foreground: "hsl(var(--brand-secondary-foreground))"
-          }
-        },
-        success: {
-          DEFAULT: "hsl(var(--success))",
-          foreground: "hsl(var(--success-foreground))"
-        },
-        warning: {
-          DEFAULT: "hsl(var(--warning))",
-          foreground: "hsl(var(--warning-foreground))"
-        },
-        danger: {
-          DEFAULT: "hsl(var(--danger))",
-          foreground: "hsl(var(--danger-foreground))"
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--panel))",
-          foreground: "hsl(var(--foreground))"
-        },
+        text: "hsl(var(--text))",
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))"
         },
+        border: "hsl(var(--border))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))"
+        },
         accent: {
           DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-contrast))"
+          foreground: "hsl(var(--accent-foreground))"
         },
+        secondary: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--text))"
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        danger: "hsl(var(--danger))",
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))"
-        }
+          DEFAULT: "hsl(var(--danger))",
+          foreground: "hsl(var(--danger-foreground))"
+        },
+        background: "hsl(var(--bg))",
+        foreground: "hsl(var(--text))",
+        input: "hsl(var(--border))",
+        ring: "hsl(var(--ring))"
       },
       borderRadius: {
         xl: "18px",

@@ -215,7 +215,7 @@ export function DashboardView({ role }: DashboardViewProps) {
           <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card/85 px-8 py-16 text-center shadow-sm">
             <Sparkles className="h-8 w-8 text-primary" />
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">No properties yet. Add one to get started.</h3>
+              <h3 className="text-lg font-semibold text-text">No properties yet. Add one to get started.</h3>
               <p className="text-sm text-muted-foreground">
                 Create your first property or choose one above to see live metrics populate instantly.
               </p>
@@ -241,7 +241,7 @@ export function DashboardView({ role }: DashboardViewProps) {
           <div className="flex flex-col items-center gap-5 rounded-3xl border border-dashed border-border/70 bg-card/80 px-8 py-16 text-center shadow-sm">
             <Sparkles className="h-8 w-8 text-primary" />
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">Waiting on your first sync</h3>
+              <h3 className="text-lg font-semibold text-text">Waiting on your first sync</h3>
               <p className="text-sm text-muted-foreground">
                 Connect a data source or publish a live dashboard to start streaming portfolio metrics into this workspace.
               </p>
@@ -358,20 +358,20 @@ export function DashboardView({ role }: DashboardViewProps) {
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card-contrast/40 px-4 py-3">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Average rating</p>
-                    <p className="text-3xl font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-text">Average rating</p>
+                    <p className="text-3xl font-semibold text-text">
                       {reviewsQuery.data.summary.averageRating.toFixed(1)}
                     </p>
                   </div>
                   <Separator orientation="vertical" className="hidden h-12 sm:block" />
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Response rate</p>
-                    <p className="text-xl font-semibold text-foreground">{formatPercent(reviewsQuery.data.summary.responseRate)}</p>
+                    <p className="text-sm font-semibold text-text">Response rate</p>
+                    <p className="text-xl font-semibold text-text">{formatPercent(reviewsQuery.data.summary.responseRate)}</p>
                   </div>
                   <Separator orientation="vertical" className="hidden h-12 sm:block" />
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Reviews</p>
-                    <p className="text-xl font-semibold text-foreground">{reviewsQuery.data.summary.reviewCount}</p>
+                    <p className="text-sm font-semibold text-text">Reviews</p>
+                    <p className="text-xl font-semibold text-text">{reviewsQuery.data.summary.reviewCount}</p>
                   </div>
                 </div>
                 <div className="grid gap-3">
@@ -381,7 +381,7 @@ export function DashboardView({ role }: DashboardViewProps) {
                       className="rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition hover:border-border"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground">{review.author}</p>
+                        <p className="text-sm font-semibold text-text">{review.author}</p>
                         <span className="text-xs text-muted-foreground">
                           {new Date(review.submittedAt).toLocaleString(undefined, {
                             month: "short",

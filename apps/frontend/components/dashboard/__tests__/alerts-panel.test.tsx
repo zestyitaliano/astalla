@@ -29,7 +29,7 @@ describe("AlertsPanel", () => {
     );
 
     const alertTitles = Array.from(
-      container.querySelectorAll("button p.text-sm.font-semibold.text-foreground"),
+      container.querySelectorAll("button p.text-sm.font-semibold.text-text"),
       (node) => node.textContent
     );
 

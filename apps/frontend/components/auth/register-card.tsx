@@ -131,14 +131,14 @@ export function RegisterCard() {
   return (
     <div className="mx-auto w-full max-w-md rounded-2xl border bg-card p-10 text-left shadow-sm">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Create your account</h1>
+        <h1 className="text-2xl font-semibold text-text">Create your account</h1>
         <p className="text-sm text-muted-foreground">
           Enter your details to set up an Astalla account.
         </p>
       </div>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="name">
+          <label className="text-sm font-medium text-text" htmlFor="name">
             Full name
           </label>
           <input
@@ -148,11 +148,11 @@ export function RegisterCard() {
             autoComplete="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-bg px-3 py-2 text-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="email">
+          <label className="text-sm font-medium text-text" htmlFor="email">
             Email
           </label>
           <input
@@ -163,11 +163,11 @@ export function RegisterCard() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-bg px-3 py-2 text-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="username">
+          <label className="text-sm font-medium text-text" htmlFor="username">
             Username <span className="text-xs text-muted-foreground">(optional)</span>
           </label>
           <input
@@ -177,14 +177,14 @@ export function RegisterCard() {
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-bg px-3 py-2 text-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           <p className="text-xs text-muted-foreground">
             Use 3-32 characters: letters, numbers, dots, underscores, or hyphens.
           </p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="orgName">
+          <label className="text-sm font-medium text-text" htmlFor="orgName">
             Organization name <span className="text-xs text-muted-foreground">(optional)</span>
           </label>
           <input
@@ -194,11 +194,11 @@ export function RegisterCard() {
             autoComplete="organization"
             value={orgName}
             onChange={(event) => setOrgName(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-bg px-3 py-2 text-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="password">
+          <label className="text-sm font-medium text-text" htmlFor="password">
             Password
           </label>
           <input
@@ -209,12 +209,12 @@ export function RegisterCard() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-bg px-3 py-2 text-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           <p className="text-xs text-muted-foreground">Use at least 8 characters for security.</p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="confirmPassword">
+          <label className="text-sm font-medium text-text" htmlFor="confirmPassword">
             Confirm password
           </label>
           <input
@@ -225,7 +225,7 @@ export function RegisterCard() {
             required
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-bg px-3 py-2 text-sm ring-offset-bg placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         {error ? (
