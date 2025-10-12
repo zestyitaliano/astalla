@@ -11,7 +11,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "var(--font-sans)"]
+        sans: ["var(--font-base)", "Inter", "sans-serif"],
+        heading: ["var(--font-heading)", "PP Formula Condensed Bold", "sans-serif"]
       },
       colors: {
         border: "hsl(var(--border))",

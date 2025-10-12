@@ -37,17 +37,19 @@ export default function DashboardShell({
 
   return (
     <div className="flex flex-col gap-6 pb-20">
-      <header className="rounded-3xl border border-border/60 bg-white/80 p-6 shadow-sm supports-[backdrop-filter]:backdrop-blur">
+      <header className="rounded-3xl border border-border/70 bg-card/95 p-6 shadow-sm supports-[backdrop-filter]:backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
               {user.orgId ? user.orgId : "Astalla internal"}
             </p>
-            <h1 className="text-[clamp(1.5rem,3vw,2rem)] font-semibold text-foreground">Operations control center</h1>
+            <h1 className="font-heading text-[clamp(1.75rem,3vw,2.25rem)] uppercase tracking-[0.24em] text-foreground">
+              Operations control center
+            </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <ThemeToggle />
-            <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 text-xs text-muted-foreground sm:flex">
+            <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-card/90 px-4 py-2 text-xs text-muted-foreground sm:flex">
               <Search className="h-4 w-4" aria-hidden="true" />
               <span>Search workspaces</span>
             </div>
@@ -56,8 +58,8 @@ export default function DashboardShell({
                 <p className="text-sm font-semibold text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{displayEmail}</p>
               </div>
-              <Avatar className="h-9 w-9 bg-primary/10">
-                <AvatarFallback className="bg-transparent text-sm font-semibold text-primary">{initials}</AvatarFallback>
+              <Avatar className="h-9 w-9 bg-brand-secondary/10">
+                <AvatarFallback className="bg-transparent text-sm font-semibold text-brand-secondary">{initials}</AvatarFallback>
               </Avatar>
             </div>
             {role ? (
@@ -75,8 +77,8 @@ export default function DashboardShell({
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "rounded-full border border-transparent px-4 py-1.5 transition hover:text-foreground",
-                  isActive && "border-border bg-card text-foreground"
+                  "rounded-full border border-transparent px-4 py-1.5 transition hover:text-brand-secondary",
+                  isActive && "border-brand-secondary bg-brand-secondary/20 text-brand-secondary"
                 )}
               >
                 {link.label}

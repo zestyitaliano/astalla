@@ -70,12 +70,12 @@ export function LoginCard() {
   };
 
   const inputClasses =
-    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+    "flex h-11 w-full rounded-lg border border-border/70 bg-card px-3 py-2 text-sm text-foreground shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-2xl border bg-card p-10 text-left shadow-sm">
+    <div className="mx-auto w-full max-w-md rounded-3xl border border-border/70 bg-card/95 p-10 text-left shadow-xl backdrop-blur">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Sign in to continue</h1>
+        <h1 className="font-heading text-3xl uppercase tracking-[0.28em] text-foreground">Sign in</h1>
         <p className="text-sm text-muted-foreground">
           Use your Astalla email or username with the shared password to access the dashboard.
         </p>
@@ -126,7 +126,7 @@ export function LoginCard() {
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Need an account?{" "}
-        <Link className="font-medium text-primary hover:underline" href="/register">
+        <Link className="font-medium text-brand-secondary hover:text-brand-secondary/80 hover:underline" href="/register">
           Create one
         </Link>
       </p>
