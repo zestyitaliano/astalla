@@ -1,17 +1,19 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
-import { TablesWorkspace } from "./tables-workspace";
+import { ReportsView } from "@/components/reports/reports-view";
 import { authOptions } from "@/lib/auth-options";
 
-export default async function TablesPage() {
+export default async function AdminReportsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/auth/signin");
   }
 
-  const canManage = session.user?.role === "ORG_ADMIN";
+  if (session.user?.role !== "ORG_ADMIN") {
+    redirect("/dashboard");
+  }
 
-  return <TablesWorkspace canManage={canManage} />;
+  return <ReportsView />;
 }

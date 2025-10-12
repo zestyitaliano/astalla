@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { CredentialsConfig } from "next-auth/providers/credentials";
 
 describe("authOptions credentials authorize", () => {
   const originalEnv = process.env;
@@ -41,7 +42,9 @@ describe("authOptions credentials authorize", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const { authOptions } = await import("../auth-options");
-    const credentialsProvider = authOptions.providers.find((provider) => provider.name === "Basic Auth");
+    const credentialsProvider = authOptions.providers.find(
+      (provider): provider is CredentialsConfig => provider.id === "credentials"
+    );
 
     if (!credentialsProvider || typeof credentialsProvider.authorize !== "function") {
       throw new Error("Missing credentials authorize implementation");
