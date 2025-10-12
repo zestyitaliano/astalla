@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nest start --watch",
     "start": "nest start",
-    "start:prod": "node apps/backend/dist/main.js",
+    "start:prod": "node dist/main.js",
     "prebuild": "pnpm prisma generate && pnpm -C ../../packages/shared build",
     "build": "nest build",
     "postbuild": "pnpm prisma db seed",
