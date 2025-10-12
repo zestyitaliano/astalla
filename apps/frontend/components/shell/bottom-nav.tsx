@@ -3,18 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { shellNavItems } from "@/components/shell/nav-items";
+import { useShellNavItems } from "@/components/shell/nav-items";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const navItems = useShellNavItems();
+
+  if (navItems.length === 0) {
+    return null;
+  }
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 md:hidden"
       aria-label="Primary navigation"
     >
-      <ul className="grid grid-cols-5 text-xs">
-        {shellNavItems.map((item) => {
+      <ul className="grid" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}>
+        {navItems.map((item) => {
           const active = pathname?.startsWith(item.href);
           return (
             <li key={item.href}>

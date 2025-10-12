@@ -7,8 +7,22 @@ describe("PropertySelector", () => {
     const { container } = render(
       <PropertySelector
         properties={[
-          { id: "prop-1", name: "Atrium Center", city: "Austin", state: "TX" },
-          { id: "prop-2", name: "Harbor Tower", city: "Seattle", state: "WA" }
+          {
+            id: "prop-1",
+            name: "Atrium Center",
+            city: "Austin",
+            state: "TX",
+            propertyCode: "ATRIUM",
+            region: "Central"
+          },
+          {
+            id: "prop-2",
+            name: "Harbor Tower",
+            city: "Seattle",
+            state: "WA",
+            propertyCode: "HARBOR",
+            region: "Pacific Northwest"
+          }
         ]}
         selectedPropertyId="prop-1"
         onPropertyChange={() => {}}

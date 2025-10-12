@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 
-import { shellNavItems } from "@/components/shell/nav-items";
+import { useShellNavItems } from "@/components/shell/nav-items";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
@@ -14,6 +14,7 @@ interface SidebarProps {
 
 export function Sidebar({ variant = "desktop", onNavigate, onClose }: SidebarProps) {
   const path = usePathname();
+  const navItems = useShellNavItems();
 
   const containerClasses =
     variant === "desktop"
@@ -36,7 +37,7 @@ export function Sidebar({ variant = "desktop", onNavigate, onClose }: SidebarPro
         ) : null}
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {shellNavItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active = path?.startsWith(href);
           return (
             <Link
