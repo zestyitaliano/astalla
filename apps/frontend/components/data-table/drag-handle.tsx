@@ -10,7 +10,7 @@ export const DragHandle = React.forwardRef<HTMLButtonElement, React.HTMLAttribut
         ref={ref}
         type="button"
         className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-muted-foreground/80 transition hover:border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-muted-foreground/80 transition hover:border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
           className
         )}
         aria-label="Drag to reorder"

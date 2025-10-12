@@ -56,7 +56,7 @@ export function ColumnMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-muted-foreground hover:text-text">
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

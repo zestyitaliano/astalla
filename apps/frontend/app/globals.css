@@ -2,95 +2,85 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.cdnfonts.com/css/pp-formula");
+@font-face {
+  font-family: "PP Formula Condensed";
+  src: url("https://fonts.cdnfonts.com/s/122637/PPFormulaCondensed-Regular.woff2") format("woff2"),
+    url("https://fonts.cdnfonts.com/s/122637/PPFormulaCondensed-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Formula Condensed";
+  src: url("https://fonts.cdnfonts.com/s/122637/PPFormulaCondensed-Bold.woff2") format("woff2"),
+    url("https://fonts.cdnfonts.com/s/122637/PPFormulaCondensed-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  color-scheme: light;
-  --font-heading: "PP Formula Condensed Bold", "PP Formula Condensed", "Impact", "Arial Narrow", sans-serif;
-  --font-base: "Inter Light", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-heading: "PP Formula Condensed", "Impact", "Arial Narrow", sans-serif;
+  --font-base: "Inter", "Helvetica Neue", Arial, sans-serif;
 
-  --neutral-950: 0 0% 8%;
-  --neutral-900: 231 11% 13%;
-  --neutral-800: 30 2% 17%;
-  --neutral-700: 30 1% 27%;
-  --neutral-600: 30 2% 36%;
-  --neutral-500: 30 1% 57%;
-  --neutral-200: 120 2% 78%;
-  --neutral-50: 160 100% 99%;
+  --bg: 0 0% 100%;
+  --card: 210 20% 98%;
+  --card-contrast: 210 20% 94%;
+  --card-foreground: 230 15% 12%;
+  --text: 230 15% 12%;
+  --muted: 220 14% 94%;
+  --muted-foreground: 220 9% 36%;
+  --border: 220 13% 91%;
+  --primary: 230 7% 12%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 19 97% 49%;
+  --accent-foreground: 0 0% 100%;
+  --success: 142 55% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 40 95% 45%;
+  --warning-foreground: 0 0% 10%;
+  --danger: 0 72% 50%;
+  --danger-foreground: 0 0% 100%;
+  --ring: var(--accent);
 
-  --brand-primary: var(--neutral-900);
-  --brand-primary-foreground: var(--neutral-50);
-  --brand-secondary: 20 96% 49%;
-  --brand-secondary-foreground: var(--neutral-50);
-
-  --bg: var(--neutral-50);
-  --panel: var(--neutral-200);
-  --card: var(--neutral-50);
-  --card-contrast: var(--neutral-200);
-  --card-foreground: var(--foreground);
-  --border: var(--neutral-500);
-  --border-strong: var(--neutral-600);
-  --muted: var(--neutral-200);
-  --muted-foreground: var(--neutral-500);
-  --foreground: var(--neutral-950);
-  --accent: var(--brand-secondary);
-  --accent-contrast: var(--neutral-50);
-  --ring: 20 96% 54%;
-  --destructive: 10 83% 47%;
-  --destructive-foreground: var(--neutral-50);
-  --success: 149 60% 42%;
-  --success-foreground: var(--neutral-50);
-  --warning: 33 100% 55%;
-  --warning-foreground: 30 100% 12%;
-  --danger: 10 83% 47%;
-  --danger-foreground: var(--neutral-50);
-  --radius: 14px;
-
-  /* Legacy tokens mapped to new system */
   --background: var(--bg);
-  --primary: var(--accent);
-  --primary-foreground: var(--accent-contrast);
-  --secondary: var(--panel);
-  --secondary-foreground: var(--foreground);
-  --accent-foreground: var(--accent-contrast);
+  --foreground: var(--text);
 }
 
 .dark {
-  color-scheme: dark;
-
-  --bg: var(--neutral-950);
-  --panel: var(--neutral-800);
-  --card: var(--neutral-700);
-  --card-contrast: var(--neutral-600);
-  --card-foreground: var(--foreground);
-  --border: var(--neutral-600);
-  --border-strong: var(--neutral-500);
-  --muted: var(--neutral-700);
-  --muted-foreground: var(--neutral-200);
-  --foreground: var(--neutral-50);
-  --accent: 20 96% 60%;
-  --accent-contrast: var(--neutral-50);
-  --ring: 20 96% 65%;
-  --destructive: 8 82% 58%;
-  --destructive-foreground: var(--neutral-50);
-  --success: 148 58% 48%;
-  --success-foreground: var(--neutral-50);
-  --warning: 36 100% 65%;
+  --bg: 0 0% 8%;
+  --card: 24 3% 17%;
+  --card-contrast: 30 2% 26%;
+  --card-foreground: 0 0% 98%;
+  --text: 0 0% 98%;
+  --muted: 30 3% 26%;
+  --muted-foreground: 30 2% 68%;
+  --border: 30 2% 32%;
+  --primary: 230 7% 12%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 19 97% 49%;
+  --accent-foreground: 0 0% 100%;
+  --success: 142 55% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 40 95% 45%;
   --warning-foreground: 45 100% 90%;
-  --danger: 8 82% 58%;
-  --danger-foreground: var(--neutral-50);
+  --danger: 0 72% 50%;
+  --danger-foreground: 0 0% 100%;
+  --ring: var(--accent);
 }
 
 body {
-  background: radial-gradient(120% 120% at 10% -10%, hsl(var(--brand-secondary) / 0.18) 0%, transparent 52%),
-    radial-gradient(120% 120% at 100% 0%, hsl(var(--brand-primary) / 0.15) 0%, transparent 55%),
-    linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(var(--bg)) 65%, #ffffff 100%);
-  color: hsl(var(--foreground));
+  background: radial-gradient(120% 120% at 10% -10%, hsl(var(--accent) / 0.18) 0%, transparent 52%),
+    radial-gradient(120% 120% at 100% 0%, hsl(var(--primary) / 0.15) 0%, transparent 55%),
+    linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--bg)) 65%, hsl(var(--bg)) 100%);
+  color: hsl(var(--text));
 }
 
 .dark body {
-  background: radial-gradient(140% 140% at 20% -10%, hsl(var(--brand-secondary) / 0.15) 0%, transparent 55%),
-    linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(var(--bg)) 70%, #000 100%);
+  background: radial-gradient(140% 140% at 20% -10%, hsl(var(--accent) / 0.15) 0%, transparent 55%),
+    linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--bg)) 70%, hsl(var(--primary)) 100%);
+  color: hsl(var(--text));
 }
 
 @layer base {
@@ -99,22 +89,17 @@ body {
   }
 
   .card-surface {
-    border-color: hsl(var(--border-strong));
-  }
-
-  *:focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-bg text-text antialiased;
     font-family: var(--font-base);
   }
 
   ::selection {
     background: hsl(var(--accent) / 0.2);
-    color: hsl(var(--foreground));
+    color: hsl(var(--text));
   }
 
   h1,

@@ -26,26 +26,24 @@ export function AppChrome({ children }: AppChromeProps) {
   }, [sidebarOpen]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-bg">
       <Sidebar />
       <div className="flex min-h-screen flex-1 flex-col">
         <Topbar onToggleSidebar={() => setSidebarOpen((open) => !open)} isSidebarOpen={sidebarOpen} />
-        <main className="flex-1 min-h-0 bg-background pb-20">
-          <div className="mx-auto w-full max-w-[1200px] px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-            {children}
-          </div>
+        <main className="min-h-0 flex-1 bg-bg pb-20">
+          <div className="mx-auto w-full max-w-[1200px] px-4 pb-10 pt-6 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>
 
       {sidebarOpen ? (
         <div className="md:hidden" aria-hidden={!sidebarOpen}>
           <div
-            className="fixed inset-0 z-40 bg-brand-primary/80 backdrop-blur-sm dark:bg-black/70"
+            className="fixed inset-0 z-40 bg-primary/80 backdrop-blur-sm dark:bg-primary/95"
             role="presentation"
             onClick={() => setSidebarOpen(false)}
           />
           <div
-            className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto rounded-r-3xl border-r border-border/60 bg-panel/95 text-foreground shadow-2xl backdrop-blur transition"
+            className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto rounded-r-3xl border-r border-border/60 bg-card/95 text-text shadow-2xl backdrop-blur transition"
             role="dialog"
             aria-label="Navigation menu"
             aria-modal="true"

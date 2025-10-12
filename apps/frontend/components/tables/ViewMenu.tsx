@@ -48,7 +48,7 @@ export function ViewMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="secondary"
-          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-3 py-1 text-xs font-medium shadow-sm hover:shadow-cardHover"
+          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-3 py-1 text-xs font-medium shadow-sm hover:shadow-cardHover"
         >
           {label}
           <ChevronDown className="h-3.5 w-3.5" />

@@ -24,7 +24,7 @@ export default async function DashboardPage() {
         <div className="rounded-3xl border border-border/70 bg-card/95 p-6 shadow-sm supports-[backdrop-filter]:bg-card/80">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <h2 className="font-heading text-[clamp(1.25rem,2.2vw,1.75rem)] uppercase tracking-[0.24em] text-brand-secondary">
+              <h2 className="font-heading text-[clamp(1.25rem,2.2vw,1.75rem)] uppercase tracking-[0.24em] text-accent">
                 Accelerate your rollout
               </h2>
               <p className="text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground">
@@ -34,14 +34,14 @@ export default async function DashboardPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin/sources"
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-4 py-2 text-[clamp(.9rem,1.5vw,1rem)] font-medium text-foreground shadow-sm transition hover:bg-card/80 hover:text-brand-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-4 py-2 text-[clamp(.9rem,1.5vw,1rem)] font-medium text-text shadow-sm transition hover:bg-card/80 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
                 Connect a source
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="/reports"
-                className="inline-flex items-center gap-2 rounded-full border border-brand-secondary/40 bg-brand-secondary px-4 py-2 text-[clamp(.9rem,1.5vw,1rem)] font-semibold text-brand-secondary-foreground shadow-sm transition hover:bg-brand-secondary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent px-4 py-2 text-[clamp(.9rem,1.5vw,1rem)] font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
                 Publish a live dashboard
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />

@@ -427,7 +427,7 @@ function SortableRow({ row, virtualRow, allowDrag }: SortableRowProps) {
         width: "100%"
       }}
       className={cn(
-        "flex items-stretch border-b border-border/60 bg-white/70 last:border-none",
+        "flex items-stretch border-b border-border/60 bg-card/70 last:border-none",
         isDragging ? "shadow-cardHover" : undefined
       )}
       {...attributes}
@@ -437,7 +437,7 @@ function SortableRow({ row, virtualRow, allowDrag }: SortableRowProps) {
         <div
           key={cell.id}
           className={cn(
-            "flex min-h-full flex-1 items-center border-r border-border/40 px-3 text-sm text-foreground last:border-r-0",
+            "flex min-h-full flex-1 items-center border-r border-border/40 px-3 text-sm text-text last:border-r-0",
             cell.column.getSize() ? undefined : "min-w-[12rem]"
           )}
           style={{ width: cell.column.getSize() ? `${cell.column.getSize()}px` : undefined }}
@@ -1118,7 +1118,7 @@ export function TableGrid({ tableId }: TableGridProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-[480px] items-center justify-center rounded-3xl border border-border bg-white/80 shadow-card">
+      <div className="flex h-[480px] items-center justify-center rounded-3xl border border-border bg-card/80 shadow-card">
         <span className="text-sm text-muted-foreground">Loading table…</span>
       </div>
     );
@@ -1153,10 +1153,10 @@ export function TableGrid({ tableId }: TableGridProps) {
             onChange={(event) => setGlobalQuery(event.target.value)}
             placeholder="Quick search"
             aria-label="Quick search"
-            className="h-8 w-56 rounded-full border border-border/60 bg-white/70 pl-8 pr-3 text-sm focus-visible:ring-0"
+            className="h-8 w-56 rounded-full border border-border/60 bg-card/70 pl-8 pr-3 text-sm focus-visible:ring-0"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/60 bg-white/70 px-3 py-1">
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs font-medium text-muted-foreground">Filters</span>
           {filters.map((filter, index) => (
@@ -1183,7 +1183,7 @@ export function TableGrid({ tableId }: TableGridProps) {
             Add filter
           </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/60 bg-white/70 px-3 py-1">
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1">
           <ArrowDown className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs font-medium text-muted-foreground">Sorts</span>
           {sorts.map((sort, index) => (
@@ -1219,7 +1219,7 @@ export function TableGrid({ tableId }: TableGridProps) {
         >
           Export CSV
         </Button>
-        <Button type="button" className="rounded-full bg-brand-primary text-white" onClick={() => setIsAddColumnOpen(true)}>
+        <Button type="button" className="rounded-full bg-primary text-primary-foreground" onClick={() => setIsAddColumnOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Column
         </Button>
         <Button type="button" className="rounded-full" onClick={handleAddRow}>
@@ -1228,11 +1228,11 @@ export function TableGrid({ tableId }: TableGridProps) {
       </div>
 
       {filters.length ? (
-        <div className="space-y-3 rounded-3xl border border-border/70 bg-white/80 p-4 shadow-card">
+        <div className="space-y-3 rounded-3xl border border-border/70 bg-card/80 p-4 shadow-card">
           {filters.map((filter, index) => (
             <div key={`${filter.columnId}-${index}`} className="flex flex-wrap items-center gap-3">
               <select
-                className="rounded-xl border border-border/60 bg-white px-3 py-2 text-sm"
+                className="rounded-xl border border-border/60 bg-card px-3 py-2 text-sm"
                 value={filter.columnId}
                 onChange={(event) => {
                   const updated = [...filters];
@@ -1274,11 +1274,11 @@ export function TableGrid({ tableId }: TableGridProps) {
       ) : null}
 
       {sorts.length ? (
-        <div className="space-y-3 rounded-3xl border border-border/70 bg-white/80 p-4 shadow-card">
+        <div className="space-y-3 rounded-3xl border border-border/70 bg-card/80 p-4 shadow-card">
           {sorts.map((sort, index) => (
             <div key={`${sort.columnId}-${index}`} className="flex flex-wrap items-center gap-3">
               <select
-                className="rounded-xl border border-border/60 bg-white px-3 py-2 text-sm"
+                className="rounded-xl border border-border/60 bg-card px-3 py-2 text-sm"
                 value={sort.columnId}
                 onChange={(event) => {
                   const updated = [...sorts];
@@ -1326,11 +1326,11 @@ export function TableGrid({ tableId }: TableGridProps) {
         </div>
       ) : null}
 
-      <div className="relative flex-1 overflow-hidden rounded-3xl border border-border bg-white/80 shadow-card">
+      <div className="relative flex-1 overflow-hidden rounded-3xl border border-border bg-card/80 shadow-card">
         {!hasColumns ? (
           <div className="flex h-full items-center justify-center p-10 text-center">
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-foreground">Create your first column</h3>
+              <h3 className="text-lg font-semibold text-text">Create your first column</h3>
               <p className="text-sm text-muted-foreground">
                 Define the fields your team needs. Add a column to start building your workspace.
               </p>
@@ -1341,7 +1341,7 @@ export function TableGrid({ tableId }: TableGridProps) {
           </div>
         ) : (
           <>
-            <div className="sticky top-0 z-10 border-b border-border/60 bg-white/90">
+            <div className="sticky top-0 z-10 border-b border-border/60 bg-card/90">
               <DndContext sensors={columnSensors} collisionDetection={closestCenter} onDragEnd={handleColumnOrderChange}>
                 <SortableContext items={columnDragItems} strategy={horizontalListSortingStrategy}>
                   <div className="flex">
@@ -1363,7 +1363,7 @@ export function TableGrid({ tableId }: TableGridProps) {
             {!hasRows ? (
               <div className="flex h-full items-center justify-center p-10 text-center">
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-foreground">Add your first row</h3>
+                  <h3 className="text-lg font-semibold text-text">Add your first row</h3>
                   <p className="text-sm text-muted-foreground">
                     Capture records manually or import a CSV to bring in existing data.
                   </p>
@@ -1397,7 +1397,7 @@ export function TableGrid({ tableId }: TableGridProps) {
         )}
       </div>
 
-      <div className="flex items-center justify-between rounded-3xl border border-dashed border-border/70 bg-white/70 px-4 py-3 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between rounded-3xl border border-dashed border-border/70 bg-card/70 px-4 py-3 text-xs text-muted-foreground">
         <div>
           {selectedRows.size > 0 ? (
             <Button
@@ -1417,20 +1417,20 @@ export function TableGrid({ tableId }: TableGridProps) {
       </div>
 
       {isAddColumnOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 px-4 backdrop-blur">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/70 px-4 backdrop-blur">
           <div className="w-full max-w-md rounded-3xl border border-border bg-card/95 p-6 shadow-xl">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-primary/10">
-                <FolderPlus className="h-5 w-5 text-brand-primary" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+                <FolderPlus className="h-5 w-5 text-primary" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-foreground">Add column</h3>
+                <h3 className="text-lg font-semibold text-text">Add column</h3>
                 <p className="text-sm text-muted-foreground">Name the column and choose the type.</p>
               </div>
             </div>
             <div className="mt-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground" htmlFor="column-name">
+                <label className="text-sm font-medium text-text" htmlFor="column-name">
                   Column name
                 </label>
                 <Input
@@ -1442,7 +1442,7 @@ export function TableGrid({ tableId }: TableGridProps) {
                 />
               </div>
               <div className="space-y-2">
-                <span className="text-sm font-medium text-foreground">Type</span>
+                <span className="text-sm font-medium text-text">Type</span>
                 <div className="grid grid-cols-2 gap-2">
                   {COLUMN_TYPE_OPTIONS.map((option) => (
                     <button
@@ -1450,8 +1450,8 @@ export function TableGrid({ tableId }: TableGridProps) {
                       type="button"
                       onClick={() => setNewColumnType(option.value)}
                       className={cn(
-                        "flex items-center gap-2 rounded-2xl border border-border/60 bg-white/80 px-3 py-2 text-left text-sm",
-                        newColumnType === option.value ? "border-brand-primary text-brand-primary" : "hover:border-brand-primary/60"
+                        "flex items-center gap-2 rounded-2xl border border-border/60 bg-card/80 px-3 py-2 text-left text-sm",
+                        newColumnType === option.value ? "border-primary text-primary" : "hover:border-primary/60"
                       )}
                     >
                       {newColumnType === option.value ? <Check className="h-4 w-4" /> : <span className="h-4 w-4" />}
@@ -1462,7 +1462,7 @@ export function TableGrid({ tableId }: TableGridProps) {
               </div>
               {newColumnType === COLUMN_TYPE_ENUM.SELECT ? (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground" htmlFor="column-options">
+                  <label className="text-sm font-medium text-text" htmlFor="column-options">
                     Options
                   </label>
                   <textarea
@@ -1470,7 +1470,7 @@ export function TableGrid({ tableId }: TableGridProps) {
                     value={newColumnOptions}
                     onChange={(event) => setNewColumnOptions(event.target.value)}
                     placeholder={"One option per line"}
-                    className="min-h-[96px] w-full rounded-2xl border border-border/60 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                    className="min-h-[96px] w-full rounded-2xl border border-border/60 bg-card/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                   <p className="text-xs text-muted-foreground">Enter one option per line or separate with commas.</p>
                 </div>
@@ -1540,7 +1540,7 @@ function SortableColumnHeader({ header, disableDrag = false }: SortableColumnHea
         transform: CSS.Transform.toString(transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1 }),
         transition
       }}
-      className="flex min-h-[44px] flex-1 items-center border-r border-border/40 bg-white/80 px-3 text-sm font-medium text-muted-foreground last:border-r-0"
+      className="flex min-h-[44px] flex-1 items-center border-r border-border/40 bg-card/80 px-3 text-sm font-medium text-muted-foreground last:border-r-0"
       {...attributes}
       {...(!disableDrag ? listeners : {})}
     >
@@ -1586,7 +1586,7 @@ function ColumnHeader({
       ) : (
         <button
           type="button"
-          className="text-left text-sm font-semibold text-foreground"
+          className="text-left text-sm font-semibold text-text"
           onDoubleClick={() => onStartRename()}
         >
           {column.name}
@@ -1648,7 +1648,7 @@ function PrimitiveCellEditor({ column, value, onCommit }: Omit<CellEditorProps, 
       : [];
     return (
       <select
-        className="w-full rounded-lg border border-border/60 bg-white px-2 py-1 text-sm"
+        className="w-full rounded-lg border border-border/60 bg-card px-2 py-1 text-sm"
         value={draft ?? ""}
         onChange={(event) => {
           setDraft(event.target.value);

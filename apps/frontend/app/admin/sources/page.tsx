@@ -17,7 +17,7 @@ export default async function AdminSourcesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="card-surface rounded-2xl border bg-white/90 p-6 shadow-card">
+      <div className="card-surface rounded-2xl border bg-card/90 p-6 shadow-card">
         <SourcesAdminView />
       </div>
     </div>

@@ -199,16 +199,16 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 px-4 backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/70 px-4 backdrop-blur">
       <div className="relative w-full max-w-md rounded-3xl border border-border bg-card/95 p-6 shadow-xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold text-foreground">Create table</h3>
+            <h3 className="text-lg font-semibold text-text">Create table</h3>
             <p className="text-sm text-muted-foreground">Name your table and add an optional description.</p>
           </div>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground" htmlFor="table-name">
+              <label className="text-sm font-medium text-text" htmlFor="table-name">
                 Name
               </label>
               <Input
@@ -221,7 +221,7 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground" htmlFor="table-description">
+              <label className="text-sm font-medium text-text" htmlFor="table-description">
                 Description
               </label>
               <Input

@@ -80,7 +80,7 @@ function Sparkline({ points, color }: { points: number[]; color?: string | null 
       role="img"
       aria-hidden="true"
       preserveAspectRatio="none"
-      className="h-full w-full text-brand-primary"
+      className="h-full w-full text-primary"
     >
       <path
         d={path}
@@ -120,7 +120,7 @@ export default function PublicWidgetCard({ widget }: PublicWidgetCardProps) {
   }, [value]);
 
   return (
-    <article className="group flex h-full min-h-[200px] flex-col justify-between gap-4 rounded-3xl border border-border/60 bg-white/85 p-5 text-left shadow-sm transition-shadow supports-[backdrop-filter]:bg-white/70 content-visibility-auto contain-intrinsic-size-[320px]">
+    <article className="group flex h-full min-h-[200px] flex-col justify-between gap-4 rounded-3xl border border-border/60 bg-card/85 p-5 text-left shadow-sm transition-shadow supports-[backdrop-filter]:bg-card/70 content-visibility-auto contain-intrinsic-size-[320px]">
       <div className="space-y-2">
         <p className="text-[clamp(.85rem,1.4vw,1rem)] font-medium text-muted-foreground">{label ?? widget.id ?? "Widget"}</p>
         {description ? <p className="text-sm text-muted-foreground/80">{description}</p> : null}
@@ -149,7 +149,7 @@ export default function PublicWidgetCard({ widget }: PublicWidgetCardProps) {
           </div>
         </div>
       ) : (
-        <p className="text-[clamp(1.5rem,3vw,2.3rem)] font-semibold tracking-tight text-foreground">{formattedValue}</p>
+        <p className="text-[clamp(1.5rem,3vw,2.3rem)] font-semibold tracking-tight text-text">{formattedValue}</p>
       )}
     </article>
   );

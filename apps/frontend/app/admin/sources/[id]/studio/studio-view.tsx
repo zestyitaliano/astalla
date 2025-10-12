@@ -427,12 +427,12 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
 
   const saveStatusTone = (() => {
     if (saveStatus === "error") {
-      return "text-red-600";
+      return "text-danger";
     }
     if (saveStatus === "saving" || isDirty) {
-      return "text-amber-600";
+      return "text-warning";
     }
-    return "text-emerald-600";
+    return "text-success";
   })();
   const handleCopySuccess = useCallback(
     (section: "request" | "response") => {
@@ -457,8 +457,8 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
             className={cn(
               "pointer-events-auto rounded-lg border px-4 py-3 text-sm shadow-lg",
               toast.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                : "border-red-200 bg-red-50 text-red-900"
+                ? "border-success/40 bg-success/10 text-success"
+                : "border-danger/40 bg-danger/10 text-danger"
             )}
           >
             <div className="flex items-start justify-between gap-3">
@@ -483,15 +483,15 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-4">
           {scriptQuery.isError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
               Unable to load the current draft. Refresh the page to try again.
             </div>
           ) : null}
 
           <div className="overflow-hidden rounded-xl border">
-            <div className="flex flex-col gap-3 border-b bg-slate-50/60 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 border-b bg-card/60 px-4 py-3 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                   {scriptStatus === "PUBLISHED" ? "Published" : "Draft"}
                 </span>
                 {scriptQuery.data?.version !== undefined ? (
@@ -555,7 +555,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
               </div>
             </div>
 
-            <div className="flex border-b bg-slate-50">
+            <div className="flex border-b bg-card">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -564,7 +564,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
                     "px-4 py-2 text-sm font-medium",
                     activeTab === tab.key
                       ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-text"
                   )}
                   onClick={() => setActiveTab(tab.key)}
                 >
@@ -572,7 +572,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
                 </button>
               ))}
             </div>
-            <div className="bg-background">
+            <div className="bg-bg">
               <MonacoEditor
                 height="480px"
                 language={activeTab === "script" ? "typescript" : "markdown"}
@@ -601,8 +601,8 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
               className={cn(
                 "rounded-xl border px-4 py-3 text-sm",
                 feedback.success
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-red-200 bg-red-50 text-red-800"
+                  ? "border-success/40 bg-success/10 text-success"
+                  : "border-danger/40 bg-danger/10 text-danger"
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -616,7 +616,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
                     <span>{feedback.message}</span>
                   </div>
                   {feedback.rowsPersisted !== undefined ? (
-                    <p className="text-xs text-emerald-900">
+                    <p className="text-xs text-success">
                       Rows persisted: {feedback.rowsPersisted.toLocaleString()}
                     </p>
                   ) : null}
@@ -629,7 +629,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
                 </button>
               </div>
               {feedback.logs && feedback.logs.length > 0 ? (
-                <pre className="mt-3 max-h-48 overflow-y-auto rounded-lg bg-slate-900/90 p-3 font-mono text-xs text-slate-100">
+                <pre className="mt-3 max-h-48 overflow-y-auto rounded-lg bg-primary/90 p-3 font-mono text-xs text-primary-foreground">
                   {feedback.logs.join("\n")}
                 </pre>
               ) : null}
@@ -640,7 +640,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
         <aside className="space-y-4 lg:sticky lg:top-6">
           <div className="rounded-xl border p-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Run history</h2>
+              <h2 className="text-sm font-semibold text-text">Run history</h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -655,7 +655,7 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
             {logsQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading history…</p>
             ) : logsQuery.isError ? (
-              <p className="text-sm text-red-600">Unable to load run history.</p>
+              <p className="text-sm text-danger">Unable to load run history.</p>
             ) : logs.length > 0 ? (
               <div className="space-y-3">
                 {logs.map((entry) => (
@@ -687,13 +687,13 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
 
           <div className="rounded-xl border p-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Connection</h2>
+              <h2 className="text-sm font-semibold text-text">Connection</h2>
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-xs font-medium",
-                  status === "CONNECTED" && "bg-emerald-100 text-emerald-700",
-                  status === "ERROR" && "bg-red-100 text-red-700",
-                  status === "UNVERIFIED" && "bg-amber-100 text-amber-700"
+                  status === "CONNECTED" && "bg-success/15 text-success",
+                  status === "ERROR" && "bg-danger/15 text-danger",
+                  status === "UNVERIFIED" && "bg-warning/20 text-warning"
                 )}
               >
                 {status}
@@ -703,20 +703,20 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
             {detailQuery.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading details…</p>
             ) : detailQuery.isError ? (
-              <p className="text-sm text-red-600">Unable to load source details.</p>
+              <p className="text-sm text-danger">Unable to load source details.</p>
             ) : detailQuery.data ? (
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div>
-                  <span className="font-medium text-foreground">Name:</span> {detailQuery.data.name ?? "—"}
+                  <span className="font-medium text-text">Name:</span> {detailQuery.data.name ?? "—"}
                 </div>
                 <div>
-                  <span className="font-medium text-foreground">Type:</span> {detailQuery.data.type}
+                  <span className="font-medium text-text">Type:</span> {detailQuery.data.type}
                 </div>
                 <div>
-                  <span className="font-medium text-foreground">Property:</span> {detailQuery.data.propertyName ?? "—"}
+                  <span className="font-medium text-text">Property:</span> {detailQuery.data.propertyName ?? "—"}
                 </div>
                 <div>
-                  <span className="font-medium text-foreground">Created:</span> {formatDateTime(detailQuery.data.createdAt)}
+                  <span className="font-medium text-text">Created:</span> {formatDateTime(detailQuery.data.createdAt)}
                 </div>
               </div>
             ) : null}
@@ -730,9 +730,9 @@ export function SourceStudioView({ sourceId }: SourceStudioViewProps) {
                 {credentialSummary.map((item) => (
                   <div
                     key={item.key}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs text-muted-foreground"
+                    className="flex items-center justify-between rounded-lg bg-card px-3 py-2 text-xs text-muted-foreground"
                   >
-                    <span className="font-medium text-foreground">{item.key}</span>
+                    <span className="font-medium text-text">{item.key}</span>
                     <span>{item.present ? item.preview ?? "set" : "missing"}</span>
                   </div>
                 ))}
@@ -793,14 +793,14 @@ function RunHistoryItem({ entry, onCopyError, onCopySuccess }: RunHistoryItemPro
         <div className="space-y-1">
           <div className="flex items-center gap-2 font-semibold">
             <span className="uppercase tracking-wide text-muted-foreground">{entry.action}</span>
-            <span className={entry.ok ? "text-emerald-600" : "text-red-600"}>{entry.ok ? "OK" : "Error"}</span>
+            <span className={entry.ok ? "text-success" : "text-danger"}>{entry.ok ? "OK" : "Error"}</span>
           </div>
           <div className="text-muted-foreground">{formatDateTime(entry.createdAt)}</div>
           <div className="text-muted-foreground">Duration: {formatDuration(duration)}</div>
           {rowsPersisted !== undefined ? (
             <div className="text-muted-foreground">Rows persisted: {rowsPersisted.toLocaleString()}</div>
           ) : null}
-          {entry.error ? <div className="text-red-600">{entry.error}</div> : null}
+          {entry.error ? <div className="text-danger">{entry.error}</div> : null}
         </div>
         <Button variant="ghost" size="icon" onClick={() => setOpen((value) => !value)}>
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -830,7 +830,7 @@ function RunHistoryItem({ entry, onCopyError, onCopySuccess }: RunHistoryItemPro
                   )}
                 </Button>
               </div>
-              <pre className="max-h-40 overflow-auto rounded bg-slate-900/90 p-2 font-mono text-[11px] text-slate-100">
+              <pre className="max-h-40 overflow-auto rounded bg-primary/90 p-2 font-mono text-[11px] text-primary-foreground">
                 {requestJson}
               </pre>
             </div>
@@ -857,7 +857,7 @@ function RunHistoryItem({ entry, onCopyError, onCopySuccess }: RunHistoryItemPro
                   )}
                 </Button>
               </div>
-              <pre className="max-h-40 overflow-auto rounded bg-slate-900/90 p-2 font-mono text-[11px] text-slate-100">
+              <pre className="max-h-40 overflow-auto rounded bg-primary/90 p-2 font-mono text-[11px] text-primary-foreground">
                 {responseJson}
               </pre>
             </div>
@@ -866,7 +866,7 @@ function RunHistoryItem({ entry, onCopyError, onCopySuccess }: RunHistoryItemPro
           {logs.length > 0 ? (
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Logs</p>
-              <pre className="mt-2 max-h-32 overflow-auto rounded bg-slate-900/90 p-2 font-mono text-[11px] text-slate-100">
+              <pre className="mt-2 max-h-32 overflow-auto rounded bg-primary/90 p-2 font-mono text-[11px] text-primary-foreground">
                 {logs.join("\n")}
               </pre>
             </div>

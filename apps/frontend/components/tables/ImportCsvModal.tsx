@@ -44,14 +44,14 @@ export function ImportCsvModal({ open, onOpenChange, onSubmit, isSubmitting, sum
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 px-4 backdrop-blur">
       <div className="w-full max-w-lg rounded-3xl border border-border bg-card/95 p-6 shadow-xl">
         <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-primary/10">
-            <UploadCloud className="h-5 w-5 text-brand-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
+            <UploadCloud className="h-5 w-5 text-primary" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-foreground">Import CSV</h2>
+            <h2 className="text-lg font-semibold text-text">Import CSV</h2>
             <p className="text-sm text-muted-foreground">
               Upload a CSV file. Headers will be matched to existing columns and new columns will be created as needed.
             </p>
@@ -71,13 +71,13 @@ export function ImportCsvModal({ open, onOpenChange, onSubmit, isSubmitting, sum
                 setFile(nextFile ?? null);
               }}
             />
-            <label htmlFor="table-import-input" className="cursor-pointer text-sm font-medium text-brand-primary hover:underline">
+            <label htmlFor="table-import-input" className="cursor-pointer text-sm font-medium text-primary hover:underline">
               {file ? file.name : "Choose a CSV file"}
             </label>
             <p className="mt-2 text-xs text-muted-foreground">UTF-8 encoded files work best.</p>
           </div>
           {summary ? (
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-foreground">
+            <div className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm text-text">
               Imported {summary.createdRows} rows and {summary.createdColumns} new columns.
             </div>
           ) : null}

@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
+
 import "./globals.css";
+
 import { AppProviders } from "@/components/providers/app-providers";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AppChrome } from "@/components/shell/app-chrome";
 
 const inter = Inter({
@@ -37,16 +40,21 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans text-foreground antialiased transition-colors">
-        <AppProviders>
-          {isPublicHost ? (
-            <main className="min-h-screen">
-              <div className="mx-auto min-h-screen w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">{children}</div>
-            </main>
-          ) : (
-            <AppChrome>{children}</AppChrome>
-          )}
-        </AppProviders>
+      <head>
+        <meta name="color-scheme" content="light dark" />
+      </head>
+      <body className="min-h-screen bg-bg font-sans text-text antialiased transition-colors">
+        <ThemeProvider>
+          <AppProviders>
+            {isPublicHost ? (
+              <main className="min-h-screen">
+                <div className="mx-auto min-h-screen w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">{children}</div>
+              </main>
+            ) : (
+              <AppChrome>{children}</AppChrome>
+            )}
+          </AppProviders>
+        </ThemeProvider>
       </body>
     </html>
   );

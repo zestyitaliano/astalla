@@ -21,7 +21,7 @@ export default async function SourceStudioPage({ params }: SourceStudioPageProps
 
   return (
     <div className="space-y-6">
-      <div className="card-surface rounded-2xl border bg-white/90 p-6 shadow-card">
+      <div className="card-surface rounded-2xl border bg-card/90 p-6 shadow-card">
         <SourceStudioView sourceId={params.id} />
       </div>
     </div>

@@ -34,9 +34,9 @@ export function DashboardCard({
       <div className={cn("flex flex-col", dense ? "p-5" : "p-6")}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <h2 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold tracking-tight text-foreground">{title}</h2>
+            <h2 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold tracking-tight text-text">{title}</h2>
             {description ? (
-              <p className="text-[clamp(.9rem,1.5vw,1rem)] text-foreground/80">{description}</p>
+              <p className="text-[clamp(.9rem,1.5vw,1rem)] text-text/80">{description}</p>
             ) : null}
           </div>
           {action ? <div className="shrink-0 space-y-2 text-sm text-muted-foreground">{action}</div> : null}

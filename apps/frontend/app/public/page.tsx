@@ -37,9 +37,9 @@ interface DashboardLoadResult {
 
 const PublicWidgetCard = dynamic(() => import("./widgets/widget-card"), {
   loading: () => (
-    <div className="content-visibility-auto contain-intrinsic-size-[320px] rounded-3xl border border-border/60 bg-white/80 p-5 shadow-sm supports-[backdrop-filter]:bg-white/60">
-      <div className="h-4 w-20 rounded-full bg-slate-200/90" />
-      <div className="mt-6 h-8 w-32 rounded-full bg-slate-200/90" />
+    <div className="content-visibility-auto contain-intrinsic-size-[320px] rounded-3xl border border-border/60 bg-card/80 p-5 shadow-sm supports-[backdrop-filter]:bg-card/60">
+      <div className="h-4 w-20 rounded-full bg-muted/60" />
+      <div className="mt-6 h-8 w-32 rounded-full bg-muted/60" />
     </div>
   )
 });
@@ -124,7 +124,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
   if (!normalizedHost) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-center px-4 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground sm:px-6">
-        Provide a host via the <code className="rounded bg-slate-100 px-2 py-1 text-foreground">x-host</code> query parameter to
+        Provide a host via the <code className="rounded bg-muted px-2 py-1 text-text">x-host</code> query parameter to
         view a live dashboard. Share links from the Astalla app automatically include this parameter.
       </main>
     );
@@ -142,7 +142,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
         </p>
         <a
           href={`mailto:ops@astalla.com?subject=Live%20dashboard%20access&body=Please%20help%20me%20access%20${encodeURIComponent(normalizedHost)}.`}
-          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:border-border"
+          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 text-sm font-medium text-text shadow-sm transition hover:border-border"
         >
           Contact your Astalla admin
         </a>
@@ -163,7 +163,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
           <p className="text-[clamp(.75rem,1.3vw,.9rem)] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
             Live dashboard
           </p>
-          <h1 className="text-[clamp(1.65rem,4vw,2.75rem)] font-semibold text-foreground">
+          <h1 className="text-[clamp(1.65rem,4vw,2.75rem)] font-semibold text-text">
             {data.title ?? "Property performance"}
           </h1>
           <div className="space-y-1">
@@ -177,7 +177,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
         </div>
         <button
           type="button"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border/60 bg-white px-5 py-2 text-[clamp(.9rem,1.5vw,1rem)] font-medium text-foreground shadow-sm transition hover:shadow-md sm:w-auto"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border/60 bg-card px-5 py-2 text-[clamp(.9rem,1.5vw,1rem)] font-medium text-text shadow-sm transition hover:shadow-md sm:w-auto"
           aria-label="Share dashboard"
         >
           <Share2 className="h-4 w-4" aria-hidden="true" />
@@ -190,7 +190,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
         className="content-visibility-auto grid auto-rows-fr grid-cols-1 gap-4 [--min-card:18rem] sm:[grid-template-columns:repeat(auto-fit,minmax(var(--min-card),1fr))]"
       >
         {widgets.length === 0 ? (
-          <div className="col-span-1 flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/70 bg-white/75 p-10 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground shadow-sm sm:col-span-2 lg:col-span-3 xl:col-span-4">
+          <div className="col-span-1 flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/75 p-10 text-center text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground shadow-sm sm:col-span-2 lg:col-span-3 xl:col-span-4">
             <p className="max-w-md">
               Dashboard widgets will appear here once the owner publishes a layout. Ask your Astalla admin to share the latest report.
             </p>
@@ -202,7 +202,7 @@ export default async function PublicDashboard({ searchParams }: PublicDashboardP
         )}
       </section>
 
-      <footer className="content-visibility-auto mt-auto rounded-3xl border border-border/60 bg-white/70 p-6 text-center text-[clamp(.85rem,1.4vw,.95rem)] text-muted-foreground shadow-sm">
+      <footer className="content-visibility-auto mt-auto rounded-3xl border border-border/60 bg-card/70 p-6 text-center text-[clamp(.85rem,1.4vw,.95rem)] text-muted-foreground shadow-sm">
         Need a custom view for another audience? Ask your Astalla admin to publish a fresh live dashboard from the reports area of the app.
       </footer>
     </main>

@@ -427,7 +427,7 @@ function SortableColumnHeader<TData>({ header }: SortableColumnHeaderProps<TData
           {column.getCanSort() ? (
             <button
               type="button"
-              className="flex items-center gap-1 text-left text-foreground"
+              className="flex items-center gap-1 text-left text-text"
               onClick={column.getToggleSortingHandler()}
             >
               <span>{flexRender(column.columnDef.header, header.getContext())}</span>
@@ -438,7 +438,7 @@ function SortableColumnHeader<TData>({ header }: SortableColumnHeaderProps<TData
               ) : null}
             </button>
           ) : (
-            <span className="text-foreground">{flexRender(column.columnDef.header, header.getContext())}</span>
+            <span className="text-text">{flexRender(column.columnDef.header, header.getContext())}</span>
           )}
           {!meta.disableDrag ? <DragHandle {...attributes} {...listeners} /> : null}
           {column.getCanResize() ? (
@@ -468,7 +468,7 @@ function SortableRow<TData>({ row }: SortableRowProps<TData>) {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "border-b border-border/60 text-sm text-foreground transition",
+        "border-b border-border/60 text-sm text-text transition",
         isDragging ? "bg-card-contrast/60 shadow" : "hover:bg-card-contrast/50"
       )}
     >
@@ -515,7 +515,7 @@ function VirtualizedRow<TData>({ row, virtualRow, measureElement }: VirtualizedR
         width: "100%",
         transform: `translateY(${virtualRow.start}px)`
       }}
-      className="border-b border-border/60 text-sm text-foreground transition hover:bg-card-contrast/50"
+      className="border-b border-border/60 text-sm text-text transition hover:bg-card-contrast/50"
     >
       {row.getVisibleCells().map((cell) => {
         const isSelectionCell = cell.column.id === "__select";

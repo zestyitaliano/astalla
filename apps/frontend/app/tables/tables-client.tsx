@@ -40,7 +40,7 @@ export function TablesClient({ canManage }: TablesClientProps) {
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
         <div className="space-y-4">
-          <div className="rounded-3xl border border-border bg-white/80 p-4 shadow-card">
+          <div className="rounded-3xl border border-border bg-card/80 p-4 shadow-card">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground">Tables</h2>
               <Button
@@ -79,8 +79,8 @@ export function TablesClient({ canManage }: TablesClientProps) {
                       onClick={() => setSelectedTableId(table.id)}
                       className={`w-full rounded-2xl border px-3 py-2 text-left text-sm transition ${
                         isSelected
-                          ? "border-brand-primary bg-brand-primary/10 text-brand-primary shadow-cardHover"
-                          : "border-border/60 bg-white/80 text-foreground hover:border-brand-primary/50 hover:shadow-card"
+                          ? "border-primary bg-primary/10 text-primary shadow-cardHover"
+                          : "border-border/60 bg-card/80 text-text hover:border-primary/50 hover:shadow-card"
                       }`}
                     >
                       <div className="font-medium">{table.name}</div>
@@ -100,9 +100,9 @@ export function TablesClient({ canManage }: TablesClientProps) {
           {selectedTableId ? (
             <TableGrid tableId={selectedTableId} />
           ) : (
-            <div className="flex h-[480px] items-center justify-center rounded-3xl border border-dashed border-border/70 bg-white/80 p-10 text-center shadow-card">
+            <div className="flex h-[480px] items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/80 p-10 text-center shadow-card">
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-foreground">Create a table to get started</h3>
+                <h3 className="text-lg font-semibold text-text">Create a table to get started</h3>
                 <p className="text-sm text-muted-foreground">
                   Tables let you design custom workflows, capture updates, and share context with your team.
                 </p>

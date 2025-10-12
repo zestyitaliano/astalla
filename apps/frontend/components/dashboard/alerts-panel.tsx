@@ -17,9 +17,9 @@ interface AlertsPanelProps {
 type Severity = Alert["severity"];
 
 const severityStyles: Record<Severity, string> = {
-  high: "bg-red-500/10 text-red-500 border-red-500/30",
-  medium: "bg-amber-500/10 text-amber-500 border-amber-500/30",
-  low: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+  high: "border-danger/40 bg-danger/10 text-danger",
+  medium: "border-warning/40 bg-warning/10 text-warning",
+  low: "border-success/40 bg-success/10 text-success"
 };
 
 function formatRelativeTime(timestamp: string) {
@@ -47,7 +47,7 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
   }, [activeAlertId, alerts]);
 
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-border/60 bg-white/85 shadow-sm supports-[backdrop-filter]:bg-white/70">
+    <div className="flex h-full flex-col rounded-3xl border border-border/60 bg-card/85 shadow-sm supports-[backdrop-filter]:bg-card/70">
       <header className="flex items-center justify-between gap-4 border-b border-border/60 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -62,7 +62,7 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
           </div>
           <div>
             <p className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Signals</p>
-            <h3 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-foreground">Alerts & notifications</h3>
+            <h3 className="text-[clamp(1.125rem,2vw,1.375rem)] font-semibold text-text">Alerts & notifications</h3>
           </div>
         </div>
         <Button type="button" variant="ghost" size="icon" onClick={onRetry} disabled={isLoading} aria-label="Refresh alerts">
@@ -114,7 +114,7 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
                         </span>
                         <span className="text-[clamp(.8rem,1.4vw,.9rem)] text-muted-foreground">{formatRelativeTime(alert.occurredAt)}</span>
                       </div>
-                      <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-semibold text-foreground">{alert.label}</p>
+                      <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-semibold text-text">{alert.label}</p>
                       <p className="text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground line-clamp-2">{alert.detail}</p>
                     </button>
                   );
@@ -127,7 +127,7 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
                     return (
                       <div className="space-y-2">
                         <p className="text-[clamp(.75rem,1.2vw,.875rem)] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Details</p>
-                        <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-semibold text-foreground">{activeAlert.label}</p>
+                        <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-semibold text-text">{activeAlert.label}</p>
                         <p className="text-[clamp(.9rem,1.5vw,1rem)] leading-6 text-muted-foreground">{activeAlert.detail}</p>
                       </div>
                     );
@@ -139,7 +139,7 @@ export function AlertsPanel({ alerts, isLoading, isError, onRetry }: AlertsPanel
             </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-              <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-medium text-foreground">No alerts right now.</p>
+              <p className="text-[clamp(.95rem,1.5vw,1.05rem)] font-medium text-text">No alerts right now.</p>
               <p className="text-[clamp(.9rem,1.5vw,1rem)] text-muted-foreground">We&apos;ll notify you as soon as we detect something noteworthy.</p>
             </div>
           )

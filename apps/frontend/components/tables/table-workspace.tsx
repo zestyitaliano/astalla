@@ -190,7 +190,7 @@ export function TableWorkspace({ tableId }: TableWorkspaceProps) {
     return (
       <div className="flex flex-col items-center gap-6 rounded-2xl border border-dashed border-border/70 bg-card/40 p-10 text-center">
         <div className="max-w-md space-y-2">
-          <h2 className="text-xl font-semibold text-foreground">Create your first table</h2>
+          <h2 className="text-xl font-semibold text-text">Create your first table</h2>
           <p className="text-sm text-muted-foreground">
             Tables let you capture workflows, audit updates, and collaborate with your team in real time.
             Start by defining the columns you need and invite others to contribute.
@@ -257,8 +257,8 @@ export function TableWorkspace({ tableId }: TableWorkspaceProps) {
                   className={cn(
                     "flex items-center justify-between rounded-xl px-3 py-2 text-sm transition",
                     entry.id === table.id
-                      ? "bg-primary/10 text-primary-foreground shadow"
-                      : "text-muted-foreground hover:bg-card-contrast/50 hover:text-foreground"
+                      ? "bg-primary/10 text-primary shadow"
+                      : "text-muted-foreground hover:bg-card-contrast/50 hover:text-text"
                   )}
                 >
                   <span className="truncate">{entry.name}</span>
@@ -296,7 +296,7 @@ export function TableWorkspace({ tableId }: TableWorkspaceProps) {
                   onChange={(event) => setDraftDescription(event.target.value)}
                   onBlur={handleUpdateDescription}
                   placeholder="Summarize what this dataset tracks"
-                  className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   rows={2}
                 />
               </div>
@@ -318,7 +318,7 @@ export function TableWorkspace({ tableId }: TableWorkspaceProps) {
         <section className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Columns</h3>
+              <h3 className="text-sm font-semibold text-text">Columns</h3>
               <p className="text-xs text-muted-foreground">Reorder columns inside the grid or add new fields here.</p>
             </div>
             <form onSubmit={handleAddColumn} className="flex w-full max-w-sm items-center gap-2 md:w-auto">
@@ -338,7 +338,7 @@ export function TableWorkspace({ tableId }: TableWorkspaceProps) {
                 key={columnName + index.toString()}
                 className="flex items-center justify-between rounded-xl border border-border/60 bg-card-contrast/40 px-3 py-2 text-sm"
               >
-                <span className="truncate font-medium text-foreground">{columnName || `Column ${index + 1}`}</span>
+                <span className="truncate font-medium text-text">{columnName || `Column ${index + 1}`}</span>
                 <Button
                   type="button"
                   variant="ghost"

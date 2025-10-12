@@ -50,9 +50,9 @@ const TYPE_LABELS: Record<SourceType, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  CONNECTED: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  ERROR: "bg-red-100 text-red-800 border-red-200",
-  UNVERIFIED: "bg-amber-100 text-amber-800 border-amber-200"
+  CONNECTED: "border-success/40 bg-success/15 text-success",
+  ERROR: "border-danger/40 bg-danger/15 text-danger",
+  UNVERIFIED: "border-warning/40 bg-warning/20 text-warning"
 };
 
 function buildInitialValues(type: SourceType): SourceFormValues {
@@ -88,7 +88,7 @@ function formatTimestamp(value?: string | null) {
 function SourceStatusBadge({ status }: { status?: string | null }) {
   if (!status) {
     return (
-      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+      <span className="inline-flex items-center rounded-full border border-warning/40 bg-warning/20 px-3 py-1 text-xs font-medium text-warning">
         Unverified
       </span>
     );
@@ -132,11 +132,11 @@ function SourceForm({ mode, values, onChange, onSubmit, onClose, isSubmitting, p
   const typeOptions = Object.entries(TYPE_LABELS) as [SourceType, string][];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 px-4 backdrop-blur dark:bg-primary/90">
       <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-text">
               {mode === "create" ? "Add connection" : `Edit ${TYPE_LABELS[values.type]}`}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -145,15 +145,15 @@ function SourceForm({ mode, values, onChange, onSubmit, onClose, isSubmitting, p
                 : "Update the connection details. Leave credential fields blank to keep the current secret values."}
             </p>
           </div>
-          <button type="button" className="text-muted-foreground transition hover:text-foreground" onClick={onClose}>
+          <button type="button" className="text-muted-foreground transition hover:text-text" onClick={onClose}>
             ✕
           </button>
         </div>
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
+          <label className="flex flex-col gap-1 text-sm font-medium text-text">
             Integration type
             <select
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+              className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text"
               value={values.type}
               onChange={(event) => handleTypeChange(event.target.value as SourceType)}
               disabled={mode === "edit"}
@@ -166,10 +166,10 @@ function SourceForm({ mode, values, onChange, onSubmit, onClose, isSubmitting, p
             </select>
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
+            <label className="flex flex-col gap-1 text-sm font-medium text-text">
               Property
               <select
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text"
                 value={values.propertyId}
                 onChange={(event) => updateField("propertyId", event.target.value)}
                 required
@@ -184,7 +184,7 @@ function SourceForm({ mode, values, onChange, onSubmit, onClose, isSubmitting, p
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
+            <label className="flex flex-col gap-1 text-sm font-medium text-text">
               Display name
               <Input
                 value={values.name}
@@ -200,7 +200,7 @@ function SourceForm({ mode, values, onChange, onSubmit, onClose, isSubmitting, p
               checked={values.enabled}
               onCheckedChange={(checked) => updateField("enabled", Boolean(checked))}
             />
-            <label htmlFor="source-enabled" className="text-sm text-foreground">
+            <label htmlFor="source-enabled" className="text-sm text-text">
               Enable this connection
             </label>
           </div>
@@ -397,7 +397,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
+    <label className="flex flex-col gap-1 text-sm font-medium text-text">
       {label}
       <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} />
     </label>
@@ -562,7 +562,7 @@ export function SourcesAdminView() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Connections / Sources</h1>
+          <h1 className="text-2xl font-semibold text-text">Connections / Sources</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Manage API credentials for Entrata, Google Analytics, Ads, and Business Profile providers.
           </p>
@@ -577,8 +577,8 @@ export function SourcesAdminView() {
         <div
           className={cn(
             "flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm",
-            banner.tone === "success" && "border-emerald-200 bg-emerald-50 text-emerald-800",
-            banner.tone === "error" && "border-red-200 bg-red-50 text-red-800",
+            banner.tone === "success" && "border-success/40 bg-success/10 text-success",
+            banner.tone === "error" && "border-danger/40 bg-danger/10 text-danger",
             banner.tone === "info" && "border-blue-200 bg-blue-50 text-blue-800"
           )}
         >
@@ -596,14 +596,14 @@ export function SourcesAdminView() {
       ) : null}
 
       {sourcesQuery.isError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           Unable to load sources. Please try again shortly.
         </div>
       ) : null}
 
       {!sourcesQuery.isLoading && sources.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-          <p className="text-base font-medium text-foreground">No connections yet</p>
+          <p className="text-base font-medium text-text">No connections yet</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Connect your first integration to begin syncing operational data into the dashboard.
           </p>
@@ -626,17 +626,17 @@ export function SourcesAdminView() {
           >
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-lg font-semibold text-foreground">{source.name || TYPE_LABELS[source.type]}</h3>
+                <h3 className="text-lg font-semibold text-text">{source.name || TYPE_LABELS[source.type]}</h3>
                 <SourceStatusBadge status={source.status} />
                 {!source.enabled ? (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Disabled</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Disabled</span>
                 ) : null}
               </div>
               <p className="text-sm text-muted-foreground">{TYPE_LABELS[source.type]}</p>
               <p className="text-xs text-muted-foreground">Last success: {formatTimestamp(source.lastSuccessAt)}</p>
               <p className="text-xs text-muted-foreground">Last error: {formatTimestamp(source.lastErrorAt)}</p>
               {source.status === "ERROR" ? (
-                <p className="text-xs text-red-600">Validation failed. Update credentials and try again.</p>
+                <p className="text-xs text-danger">Validation failed. Update credentials and try again.</p>
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -660,7 +660,7 @@ export function SourcesAdminView() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-600 hover:bg-red-50"
+                className="text-danger hover:bg-danger/10"
                 onClick={() => deleteMutation.mutate(source.id)}
                 disabled={deleteMutation.isPending}
               >
