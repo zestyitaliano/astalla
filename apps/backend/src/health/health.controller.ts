@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -10,6 +10,12 @@ export class HealthController {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService
   ) {}
+
+  // 👇 Add this top-level /health route
+  @Get()
+  getRootHealth() {
+    return { status: "ok" };
+  }
 
   @Get("auth")
   async getAuthHealth() {
@@ -27,9 +33,10 @@ export class HealthController {
       bcryptModule: "bcryptjs",
       env: {
         hasJwtSecret:
-          Boolean(this.configService.get<string>("auth.jwtSecret")) || Boolean(process.env.JWT_SECRET),
-        hasEncryptionKey: Boolean(process.env.ENCRYPTION_KEY)
-      }
+          Boolean(this.configService.get<string>("auth.jwtSecret")) ||
+          Boolean(process.env.JWT_SECRET),
+        hasEncryptionKey: Boolean(process.env.ENCRYPTION_KEY),
+      },
     };
 
     try {
@@ -39,7 +46,9 @@ export class HealthController {
     }
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });
+      const user = await this.prisma.user.findUnique({
+        where: { email: ADMIN_EMAIL },
+      });
       report.seedAdminExists = Boolean(user);
     } catch (error) {
       report.db = "error";
