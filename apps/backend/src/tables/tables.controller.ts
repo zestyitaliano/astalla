@@ -139,25 +139,9 @@ export class TablesController {
   async exportCsv(@Param("id") id: string, @Res() res: Response, @Query("viewId") viewId?: string) {
     const orgId = this.getOrgId();
     const data = await this.tablesService.exportCsv(orgId, id, viewId);
-    const csv = this.buildCsv(data.headers, data.rows);
     res.header("Content-Type", "text/csv");
     res.header("Content-Disposition", `attachment; filename="${id}.csv"`);
-    res.send(csv);
-  }
 
-  @Post(":id/import.csv")
-  @UseInterceptors(FileInterceptor("file"))
-  async importCsv(@Param("id") id: string, @UploadedFile() file: UploadedCsvFile) {
-    if (!file) {
-      throw new BadRequestException("file is required");
-    }
-
-    const orgId = this.getOrgId();
-    const actorId = this.getActorId();
-    return this.tablesService.importCsv(orgId, id, file.buffer, actorId);
-  }
-
-  private buildCsv(headers: string[], rows: string[][]) {
     const escape = (value: string) => {
       const sanitized = value ?? "";
       let processed = sanitized;
@@ -173,9 +157,30 @@ export class TablesController {
       return processed;
     };
 
-    return [headers, ...rows]
-      .map((row) => row.map((cell) => escape(cell ?? "")).join(","))
-      .join("\n");
+    const writeRow = (row: string[]) => {
+      const line = row.map((cell) => escape(cell ?? "")).join(",");
+      res.write(`${line}\n`);
+    };
+
+    writeRow(data.headers);
+
+    for await (const row of data.rows) {
+      writeRow(row);
+    }
+
+    res.end();
+  }
+
+  @Post(":id/import.csv")
+  @UseInterceptors(FileInterceptor("file"))
+  async importCsv(@Param("id") id: string, @UploadedFile() file: UploadedCsvFile) {
+    if (!file) {
+      throw new BadRequestException("file is required");
+    }
+
+    const orgId = this.getOrgId();
+    const actorId = this.getActorId();
+    return this.tablesService.importCsv(orgId, id, file.buffer, actorId);
   }
 
   private getOrgId() {

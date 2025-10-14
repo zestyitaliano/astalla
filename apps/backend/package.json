@@ -16,6 +16,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "db:deploy-and-seed": "pnpm prisma:migrate && pnpm prisma db seed",
     "smoke:auth": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/smoke-auth.ts",
+    "smoke:tables": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/smoke-tables.ts",
     "test:smoke:api": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/smoke-api.ts"
   },
   "dependencies": {

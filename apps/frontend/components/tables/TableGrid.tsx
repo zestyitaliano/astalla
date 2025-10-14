@@ -489,6 +489,16 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [newColumnOptions, setNewColumnOptions] = useState("");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importSummary, setImportSummary] = useState<{ createdColumns: number; createdRows: number } | null>(null);
+  const [importToast, setImportToast] = useState<string | null>(null);
+  const importToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (importToastTimerRef.current) {
+        clearTimeout(importToastTimerRef.current);
+      }
+    };
+  }, []);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
   const [globalQuery, setGlobalQuery] = useState("");
@@ -1095,6 +1105,17 @@ export function TableGrid({ tableId }: TableGridProps) {
     async (file: File) => {
       const summary = await importCsvMutation.mutateAsync(file);
       setImportSummary(summary);
+      setIsImportOpen(false);
+      const parts = [
+        summary.createdRows === 1 ? "1 row" : `${summary.createdRows} rows`,
+        summary.createdColumns === 1 ? "1 new column" : `${summary.createdColumns} new columns`
+      ];
+      const message = `Imported ${parts.join(" • ")}`;
+      setImportToast(message);
+      if (importToastTimerRef.current) {
+        clearTimeout(importToastTimerRef.current);
+      }
+      importToastTimerRef.current = setTimeout(() => setImportToast(null), 4_000);
     },
     [importCsvMutation]
   );
@@ -1502,6 +1523,11 @@ export function TableGrid({ tableId }: TableGridProps) {
         isSubmitting={importCsvMutation.isPending}
         summary={importSummary}
       />
+      {importToast ? (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-border/60 bg-card/95 px-4 py-3 shadow-lg">
+          <p className="text-sm font-medium text-text">{importToast}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

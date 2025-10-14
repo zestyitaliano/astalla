@@ -507,151 +507,42 @@ export class TablesService {
     const limit = Math.min(Math.max(options.limit ?? DEFAULT_QUERY_LIMIT, 1), MAX_QUERY_LIMIT);
     const offset = Math.max(options.offset ?? 0, 0);
 
-    const table = await this.prisma.dataTable.findFirst({
-      where: { id: tableId, orgId },
-      include: {
-        columns: {
-          orderBy: { position: "asc" }
-        },
-        views: true
-      }
-    });
+    const context = await this.buildQueryContext(orgId, tableId, options);
 
-    if (!table) {
-      throw new NotFoundException("Table not found");
-    }
-
-    const columnMap = new Map(table.columns.map((column) => [column.id, column] as const));
-
-    let viewConfig: ViewConfig = {};
-
-    if (options.viewId) {
-      const view = table.views.find((item) => item.id === options.viewId);
-
-      if (!view) {
-        throw new NotFoundException("View not found");
-      }
-
-      viewConfig = this.parseViewConfig(view.config);
-    }
-
-    const mergedFilters = this.mergeFilters(viewConfig.filters, options.filters).filter((filter) =>
-      columnMap.has(filter.columnId)
-    );
-    const mergedSorts = this.mergeSorts(viewConfig.sorts, options.sorts).filter((sort) =>
-      columnMap.has(sort.columnId)
+    const pagedRows = context.rows.slice(offset, offset + limit).map((entry) =>
+      this.projectRow(entry, context.visibleColumns)
     );
 
-    const orderedColumns = [...table.columns];
-
-    if (viewConfig.columnOrder?.length) {
-      const orderMap = new Map(viewConfig.columnOrder.map((columnId, index) => [columnId, index] as const));
-      orderedColumns.sort((a, b) => {
-        const aOrder = orderMap.has(a.id) ? orderMap.get(a.id)! : Number.POSITIVE_INFINITY;
-        const bOrder = orderMap.has(b.id) ? orderMap.get(b.id)! : Number.POSITIVE_INFINITY;
-
-        if (aOrder === bOrder) {
-          return a.position - b.position;
-        }
-
-        return aOrder - bOrder;
-      });
-    }
-
-    const hiddenColumns = new Set(viewConfig.hidden ?? []);
-    const visibleColumns = orderedColumns.filter((column) => !hiddenColumns.has(column.id));
-
-    const rows = await this.prisma.tableRow.findMany({
-      where: { tableId },
-      include: { cells: true },
-      orderBy: { position: "asc" }
-    });
-
-    const normalizedRows = rows.map((row) => this.normalizeRow(row, table.columns));
-
-    const filteredRows = mergedFilters.length
-      ? normalizedRows.filter((entry) => this.matchesFilters(entry, mergedFilters, columnMap))
-      : normalizedRows;
-
-    const sortedRows = this.sortRows(filteredRows, mergedSorts, columnMap);
-
-    const total = sortedRows.length;
-    const pagedRows = sortedRows.slice(offset, offset + limit);
-
-    const resultRows = pagedRows.map((entry) => this.projectRow(entry, visibleColumns));
-    const resultColumns = visibleColumns.map((column) => ({
+    const resultColumns = context.visibleColumns.map((column) => ({
       ...column,
       config: this.deserializeJson(column.config) ?? undefined
     }));
 
     return {
-      rows: resultRows,
+      rows: pagedRows,
       columns: resultColumns,
-      total
+      total: context.total
     };
   }
 
-  async exportCsv(orgId: string, tableId: string, viewId?: string) {
-    const table = await this.prisma.dataTable.findFirst({
-      where: { id: tableId, orgId },
-      include: {
-        columns: {
-          orderBy: { position: "asc" }
-        },
-        rows: {
-          orderBy: { position: "asc" },
-          include: { cells: true }
-        },
-        views: true
+  async exportCsv(
+    orgId: string,
+    tableId: string,
+    viewId?: string
+  ): Promise<{ headers: string[]; rows: AsyncIterable<string[]> }> {
+    const context = await this.buildQueryContext(orgId, tableId, { viewId });
+    const headers = context.visibleColumns.map((column) => column.name);
+
+    const iterator = (async function* (service: TablesService) {
+      for (const entry of context.rows) {
+        const row = context.visibleColumns.map((column) =>
+          service.formatValueForExport(column.type as PrismaColumnType, entry.values.get(column.id))
+        );
+        yield row;
       }
-    });
+    })(this);
 
-    if (!table) {
-      throw new NotFoundException("Table not found");
-    }
-
-    const columns = [...table.columns];
-    const hiddenColumns = new Set<string>();
-
-    if (viewId) {
-      const view = table.views.find((item) => item.id === viewId);
-
-      if (!view) {
-        throw new NotFoundException("View not found");
-      }
-
-      const config = this.parseViewConfig(view.config);
-
-      if (config.columnOrder?.length) {
-        const orderMap = new Map(config.columnOrder.map((columnId, index) => [columnId, index] as const));
-        columns.sort((a, b) => {
-          const aOrder = orderMap.has(a.id) ? orderMap.get(a.id)! : Number.POSITIVE_INFINITY;
-          const bOrder = orderMap.has(b.id) ? orderMap.get(b.id)! : Number.POSITIVE_INFINITY;
-          if (aOrder === bOrder) {
-            return a.position - b.position;
-          }
-          return aOrder - bOrder;
-        });
-      }
-
-      if (config.hidden?.length) {
-        for (const columnId of config.hidden) {
-          hiddenColumns.add(columnId);
-        }
-      }
-    }
-
-    const visibleColumns = columns.filter((column) => !hiddenColumns.has(column.id));
-    const headers = visibleColumns.map((column) => column.name);
-
-    const rows = table.rows.map((row) => {
-      const cellMap = new Map(row.cells.map((cell) => [cell.columnId, cell.value] as const));
-      return visibleColumns.map((column) =>
-        this.formatValueForExport(column.type, cellMap.get(column.id))
-      );
-    });
-
-    return { headers, rows };
+    return { headers, rows: iterator };
   }
 
   async importCsv(orgId: string, tableId: string, fileBuffer: Buffer, actorId?: string | null) {
@@ -1747,7 +1638,8 @@ export class TablesService {
       }
       case PrismaColumnType.DATE:
         if (typeof value === "string") {
-          return value;
+          const parsed = new Date(value);
+          return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
         }
         if (value instanceof Date) {
           return value.toISOString();
@@ -1774,19 +1666,106 @@ export class TablesService {
         }
         return "";
       case PrismaColumnType.SELECT:
-      case PrismaColumnType.REFERENCE:
-        if (typeof value === "object") {
-          try {
-            return JSON.stringify(value);
-          } catch {
-            return String(value);
+        if (typeof value === "string") {
+          return value;
+        }
+        if (value && typeof value === "object" && "value" in (value as Record<string, unknown>)) {
+          const record = value as Record<string, unknown>;
+          if (typeof record.value === "string") {
+            return record.value;
           }
         }
         return String(value);
+      case PrismaColumnType.REFERENCE:
+        if (value && typeof value === "object") {
+          const record = value as Record<string, unknown>;
+          const label = typeof record.label === "string" && record.label.trim().length
+            ? record.label
+            : undefined;
+          const id = typeof record.id === "string" ? record.id : undefined;
+          return label ?? id ?? "";
+        }
+        return typeof value === "string" ? value : "";
       case PrismaColumnType.TEXT:
       default:
         return String(value);
     }
+  }
+
+  private async buildQueryContext(
+    orgId: string,
+    tableId: string,
+    options: TableQueryRequest
+  ): Promise<{ visibleColumns: TableColumn[]; rows: NormalizedRow[]; total: number }> {
+    const table = await this.prisma.dataTable.findFirst({
+      where: { id: tableId, orgId },
+      include: {
+        columns: {
+          orderBy: { position: "asc" }
+        },
+        rows: {
+          orderBy: { position: "asc" },
+          include: { cells: true }
+        },
+        views: true
+      }
+    });
+
+    if (!table) {
+      throw new NotFoundException("Table not found");
+    }
+
+    const columnMap = new Map(table.columns.map((column) => [column.id, column] as const));
+
+    let viewConfig: ViewConfig = {};
+
+    if (options.viewId) {
+      const view = table.views.find((item) => item.id === options.viewId);
+
+      if (!view) {
+        throw new NotFoundException("View not found");
+      }
+
+      viewConfig = this.parseViewConfig(view.config);
+    }
+
+    const mergedFilters = this.mergeFilters(viewConfig.filters, options.filters).filter((filter) =>
+      columnMap.has(filter.columnId)
+    );
+    const mergedSorts = this.mergeSorts(viewConfig.sorts, options.sorts).filter((sort) =>
+      columnMap.has(sort.columnId)
+    );
+
+    const orderedColumns = [...table.columns];
+
+    if (viewConfig.columnOrder?.length) {
+      const orderMap = new Map(viewConfig.columnOrder.map((columnId, index) => [columnId, index] as const));
+      orderedColumns.sort((a, b) => {
+        const aOrder = orderMap.has(a.id) ? orderMap.get(a.id)! : Number.POSITIVE_INFINITY;
+        const bOrder = orderMap.has(b.id) ? orderMap.get(b.id)! : Number.POSITIVE_INFINITY;
+
+        if (aOrder === bOrder) {
+          return a.position - b.position;
+        }
+
+        return aOrder - bOrder;
+      });
+    }
+
+    const hiddenColumns = new Set(viewConfig.hidden ?? []);
+    const visibleColumns = orderedColumns.filter((column) => !hiddenColumns.has(column.id));
+
+    const normalizedRows = table.rows.map((row) => this.normalizeRow(row, table.columns));
+    const filteredRows = mergedFilters.length
+      ? normalizedRows.filter((entry) => this.matchesFilters(entry, mergedFilters, columnMap))
+      : normalizedRows;
+    const sortedRows = this.sortRows(filteredRows, mergedSorts, columnMap);
+
+    return {
+      visibleColumns,
+      rows: sortedRows,
+      total: sortedRows.length
+    };
   }
 
   private parseViewConfig(config: unknown): ViewConfig {
