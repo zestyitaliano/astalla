@@ -16,7 +16,7 @@ async function bootstrap() {
   const allowedOrigins = [
     "https://app.astalla.com",
     "http://localhost:3000",
-    /https:\/\/.*\.vercel\.app$/
+    /^https:\/\/astalla-[^.]+\.vercel\.app$/,
   ];
 
   app.enableCors({
