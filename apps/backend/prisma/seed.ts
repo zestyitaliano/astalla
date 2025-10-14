@@ -1,4 +1,4 @@
-import { ColumnType, PrismaClient, UserRole } from "@prisma/client";
+import { ColumnType, PrismaClient, UserRole, type Prisma } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -176,22 +176,22 @@ async function main() {
       });
 
       const cells = Object.entries(data)
-        .map(([key, rawValue]) => {
+        .map(([key, rawValue]): Prisma.TableCellCreateManyInput | null => {
           const column = columnMap.get(key);
           if (!column) {
-            return undefined;
+            return null;
           }
 
-          let value: unknown;
+          let value: Prisma.InputJsonValue;
           switch (column.type) {
             case ColumnType.NUMBER:
-              value = Number(rawValue);
+              value = Number(rawValue) as Prisma.InputJsonValue;
               break;
             case ColumnType.DATE:
-              value = new Date(String(rawValue)).toISOString();
+              value = new Date(String(rawValue)).toISOString() as Prisma.InputJsonValue;
               break;
             default:
-              value = rawValue as string;
+              value = String(rawValue) as Prisma.InputJsonValue;
           }
 
           return {
@@ -200,7 +200,7 @@ async function main() {
             value
           };
         })
-        .filter((entry): entry is { rowId: string; columnId: string; value: unknown } => Boolean(entry));
+        .filter((entry): entry is Prisma.TableCellCreateManyInput => Boolean(entry));
 
       if (cells.length) {
         await prisma.tableCell.createMany({ data: cells });
