@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ShieldOff, Sparkles } from "lucide-react";
 
 import { AlertsPanel } from "@/components/dashboard/alerts-panel";
 import DashboardShell from "@/components/dashboard/dashboard-shell";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
-import { MetricCard } from "@/components/dashboard/metric-card";
+import { MetricCard, type MetricTrendPoint } from "@/components/dashboard/metric-card";
 import {
   PropertySelector,
   type CreatePropertyPayload,
@@ -19,10 +19,136 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api-client";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { useTablesQuery, type TableRecord } from "@/lib/tablesQuery";
 import { cn } from "@/lib/utils";
 
 import { OperationsTable } from "./operations-table";
 import type { PropertiesResponse } from "@shared/api";
+
+const numberFormatter = new Intl.NumberFormat("en-US");
+
+function resolveValue(record: TableRecord | undefined, keys: string[]): unknown {
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized = keys
+    .map((key) => key?.trim().toLowerCase())
+    .filter((key): key is string => Boolean(key));
+
+  for (const candidate of normalized) {
+    for (const [entryKey, entryValue] of Object.entries(record.values)) {
+      if (entryKey.toLowerCase() === candidate) {
+        return entryValue;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function resolveString(record: TableRecord | undefined, keys: string[]): string | null {
+  const value = resolveValue(record, keys);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
+function resolveNumber(record: TableRecord | undefined, keys: string[]): number | null {
+  const value = resolveValue(record, keys);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const sanitized = value.replace(/[^0-9+\-.,]/g, "");
+    if (!sanitized) {
+      return null;
+    }
+    const parsed = Number(sanitized.replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function parseTrendPointsValue(raw: unknown): MetricTrendPoint[] | undefined {
+  const toArray = (input: unknown): unknown[] | null => {
+    if (Array.isArray(input)) {
+      return input;
+    }
+    if (typeof input === "string" && input.trim()) {
+      try {
+        const parsed = JSON.parse(input);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const items = toArray(raw);
+  if (!items?.length) {
+    return undefined;
+  }
+
+  const points: MetricTrendPoint[] = [];
+
+  items.forEach((entry, index) => {
+    if (typeof entry === "number" && Number.isFinite(entry)) {
+      points.push({ timestamp: String(index), value: entry });
+      return;
+    }
+
+    if (!entry || typeof entry !== "object") {
+      return;
+    }
+
+    const record = entry as Record<string, unknown>;
+    const rawValue = record.value ?? record.metric ?? record.amount ?? record.count;
+    const numericValue =
+      typeof rawValue === "number"
+        ? rawValue
+        : typeof rawValue === "string"
+          ? Number(rawValue.replace(/,/g, ""))
+          : null;
+
+    if (numericValue === null || Number.isNaN(numericValue)) {
+      return;
+    }
+
+    const rawTimestamp = record.timestamp ?? record.date ?? record.period ?? record.label;
+    const timestamp =
+      typeof rawTimestamp === "string" && rawTimestamp.trim().length
+        ? rawTimestamp
+        : String(index);
+
+    points.push({ timestamp, value: numericValue });
+  });
+
+  return points.length ? points : undefined;
+}
+
+function resolveTrendPoints(record: TableRecord | undefined, keys: string[]): MetricTrendPoint[] | undefined {
+  const value = resolveValue(record, keys);
+  return parseTrendPointsValue(value);
+}
+
+function buildMetricMap(records: TableRecord[], keys: string[]): Map<string, TableRecord> {
+  const map = new Map<string, TableRecord>();
+  for (const record of records) {
+    const identifier = resolveString(record, keys);
+    if (!identifier) {
+      continue;
+    }
+    map.set(identifier.toLowerCase(), record);
+  }
+  return map;
+}
 
 function resolveTrend(change?: number) {
   if (typeof change !== "number") {
@@ -49,6 +175,69 @@ export function DashboardView({ role }: DashboardViewProps) {
   const meQuery = useQuery({ queryKey: ["me"], queryFn: api.me });
   const propertiesQuery = useQuery({ queryKey: ["properties"], queryFn: api.properties });
 
+  const metricsTableId = process.env.NEXT_PUBLIC_TABLES_METRICS_TABLE_ID ?? null;
+  const metricsViewId = process.env.NEXT_PUBLIC_TABLES_METRICS_VIEW_ID ?? null;
+  const metricsPropertyHint = (process.env.NEXT_PUBLIC_TABLES_METRICS_PROPERTY_COLUMN ?? "property_id").trim();
+  const metricsMetricHint = (process.env.NEXT_PUBLIC_TABLES_METRICS_METRIC_COLUMN ?? "metric").trim();
+  const occupancyKeyHint = (process.env.NEXT_PUBLIC_TABLES_METRICS_OCCUPANCY_KEY ?? "occupancy").trim();
+  const pipelineKeyHint = (process.env.NEXT_PUBLIC_TABLES_METRICS_PIPELINE_KEY ?? "pipeline").trim();
+  const costKeyHint = (process.env.NEXT_PUBLIC_TABLES_METRICS_COST_KEY ?? "cost_per_lead").trim();
+  const metricsEnabled = Boolean(metricsTableId);
+
+  const [metricsPropertyColumnId, setMetricsPropertyColumnId] = useState<string | null>(null);
+
+  const metricsRequest = useMemo(() => {
+    const request: { viewId?: string; filters?: Array<{ columnId: string; operator: "eq"; value: string }> } = {};
+    if (metricsViewId) {
+      request.viewId = metricsViewId;
+    }
+    if (metricsPropertyColumnId && selectedProperty) {
+      request.filters = [
+        {
+          columnId: metricsPropertyColumnId,
+          operator: "eq",
+          value: selectedProperty
+        }
+      ];
+    }
+    return request;
+  }, [metricsPropertyColumnId, metricsViewId, selectedProperty]);
+
+  const metricsQuery = useTablesQuery(metricsTableId ?? undefined, metricsRequest, {
+    enabled: metricsEnabled && Boolean(selectedProperty)
+  });
+
+  useEffect(() => {
+    if (!metricsEnabled) {
+      if (metricsPropertyColumnId) {
+        setMetricsPropertyColumnId(null);
+      }
+      return;
+    }
+
+    const columns = metricsQuery.data?.columns;
+    if (!columns?.length || metricsPropertyColumnId) {
+      return;
+    }
+
+    const directMatch = columns.find((column) => column.id === metricsPropertyHint);
+    if (directMatch) {
+      setMetricsPropertyColumnId(directMatch.id);
+      return;
+    }
+
+    const normalized = metricsPropertyHint.toLowerCase();
+    const match = columns.find((column) => {
+      const slug = column.slug.trim().toLowerCase();
+      const name = column.name.trim().toLowerCase();
+      return slug === normalized || name === normalized;
+    });
+
+    if (match) {
+      setMetricsPropertyColumnId(match.id);
+    }
+  }, [metricsEnabled, metricsPropertyColumnId, metricsPropertyHint, metricsQuery.data?.columns]);
+
   const propertyOptions: PropertyOption[] = useMemo(() => {
     return (propertiesQuery.data?.properties ?? []).map((property) => ({
       ...property,
@@ -56,6 +245,82 @@ export function DashboardView({ role }: DashboardViewProps) {
       region: property.region ?? property.state ?? ""
     }));
   }, [propertiesQuery.data?.properties]);
+
+  const metricKeyCandidates = useMemo(
+    () => [metricsMetricHint, "metric", "metric_key", "name"],
+    [metricsMetricHint]
+  );
+  const metricsMap = useMemo(() => buildMetricMap(metricsQuery.data?.records ?? [], metricKeyCandidates), [
+    metricKeyCandidates,
+    metricsQuery.data?.records
+  ]);
+
+  const getMetricRecord = useCallback(
+    (...aliases: string[]) => {
+      for (const alias of aliases) {
+        const normalized = alias.trim().toLowerCase();
+        if (!normalized) {
+          continue;
+        }
+        const record = metricsMap.get(normalized);
+        if (record) {
+          return record;
+        }
+      }
+      return undefined;
+    },
+    [metricsMap]
+  );
+
+  const valueKeys = ["value", "metric_value", "current_value"];
+  const changeKeys = ["change", "delta", "change_rate"];
+  const helperKeys = ["helper", "helper_text", "summary", "description"];
+  const trendKeys = ["trend", "trend_points", "history"];
+
+  const occupancyRecord = useMemo(
+    () => getMetricRecord(occupancyKeyHint, "occupancy", "occupancy_rate"),
+    [getMetricRecord, occupancyKeyHint]
+  );
+  const pipelineRecord = useMemo(
+    () => getMetricRecord(pipelineKeyHint, "pipeline", "leasing_velocity", "conversions"),
+    [getMetricRecord, pipelineKeyHint]
+  );
+  const costRecord = useMemo(
+    () => getMetricRecord(costKeyHint, "cost", "cost_per_lead", "marketing_spend"),
+    [getMetricRecord, costKeyHint]
+  );
+
+  const occupancyValue = resolveNumber(occupancyRecord, [...valueKeys, "occupancy_rate"]);
+  const occupancyChange = resolveNumber(occupancyRecord, [...changeKeys, "occupancy_change"]);
+  const occupancyUnits = resolveNumber(occupancyRecord, ["units_occupied", "occupied_units"]);
+  const occupancyTotal = resolveNumber(occupancyRecord, ["total_units", "units_total"]);
+  const occupancyHelperText =
+    occupancyUnits !== null && occupancyTotal !== null
+      ? `${numberFormatter.format(occupancyUnits)} of ${numberFormatter.format(occupancyTotal)} units`
+      : resolveString(occupancyRecord, helperKeys) ?? undefined;
+  const occupancyTrend = resolveTrendPoints(occupancyRecord, trendKeys);
+
+  const pipelineValue = resolveNumber(pipelineRecord, [...valueKeys, "applications_approved", "conversions"]);
+  const pipelineLeads = resolveNumber(pipelineRecord, ["leads", "new_leads"]);
+  const pipelineTours = resolveNumber(pipelineRecord, ["tours", "tours_scheduled"]);
+  const pipelineHelperParts: string[] = [];
+  if (pipelineLeads !== null) {
+    pipelineHelperParts.push(`${numberFormatter.format(pipelineLeads)} leads`);
+  }
+  if (pipelineTours !== null) {
+    pipelineHelperParts.push(`${numberFormatter.format(pipelineTours)} tours`);
+  }
+  const pipelineHelperText =
+    pipelineHelperParts.length > 0 ? pipelineHelperParts.join(" • ") : resolveString(pipelineRecord, helperKeys) ?? undefined;
+  const pipelineChange = resolveNumber(pipelineRecord, changeKeys);
+  const pipelineTrend = resolveTrendPoints(pipelineRecord, trendKeys);
+
+  const costValue = resolveNumber(costRecord, [...valueKeys, "cost_per_lead"]);
+  const costSpend = resolveNumber(costRecord, ["spend", "marketing_spend"]);
+  const costHelperText =
+    costSpend !== null ? `Spend ${formatCurrency(costSpend)}` : resolveString(costRecord, helperKeys) ?? undefined;
+  const costChange = resolveNumber(costRecord, changeKeys);
+  const costTrend = resolveTrendPoints(costRecord, trendKeys);
 
   const handleCreateProperty = async (payload: CreatePropertyPayload): Promise<PropertyOption> => {
     const normalizedCode = payload.code.trim().toUpperCase();
@@ -99,29 +364,6 @@ export function DashboardView({ role }: DashboardViewProps) {
     return created;
   };
 
-  const metricsParams = useMemo(
-    () => ({ propertyId: selectedProperty ?? undefined, window: timeRange }),
-    [selectedProperty, timeRange]
-  );
-
-  const occupancyQuery = useQuery({
-    queryKey: ["occupancy", metricsParams.propertyId, metricsParams.window],
-    queryFn: () => api.occupancy(metricsParams),
-    enabled: Boolean(metricsParams.propertyId)
-  });
-
-  const pipelineQuery = useQuery({
-    queryKey: ["pipeline", metricsParams.propertyId, metricsParams.window],
-    queryFn: () => api.pipeline(metricsParams),
-    enabled: Boolean(metricsParams.propertyId)
-  });
-
-  const costQuery = useQuery({
-    queryKey: ["cost", metricsParams.propertyId, metricsParams.window],
-    queryFn: () => api.cost(metricsParams),
-    enabled: Boolean(metricsParams.propertyId)
-  });
-
   const reviewsQuery = useQuery({
     queryKey: ["reviews", selectedProperty],
     queryFn: () => api.reviews(selectedProperty ?? undefined),
@@ -136,9 +378,7 @@ export function DashboardView({ role }: DashboardViewProps) {
 
   const isAnyLoading =
     propertiesQuery.isLoading ||
-    occupancyQuery.isLoading ||
-    pipelineQuery.isLoading ||
-    costQuery.isLoading ||
+    (metricsEnabled && metricsQuery.isLoading) ||
     reviewsQuery.isLoading ||
     alertsQuery.isLoading;
 
@@ -153,16 +393,13 @@ export function DashboardView({ role }: DashboardViewProps) {
   const selectedPropertyName = propertyOptions.find((option) => option.id === selectedProperty)?.name;
   const shouldShowEmptyState = !hasProperties && !propertiesQuery.isLoading && !propertiesQuery.isFetching;
   const metricsUnavailable =
+    metricsEnabled &&
     Boolean(selectedProperty) &&
     !shouldShowEmptyState &&
     !isAnyLoading &&
     !propertiesQuery.isError &&
-    !occupancyQuery.isError &&
-    !pipelineQuery.isError &&
-    !costQuery.isError &&
-    !occupancyQuery.data &&
-    !pipelineQuery.data &&
-    !costQuery.data;
+    !metricsQuery.isError &&
+    (!metricsQuery.data || metricsQuery.data.records.length === 0);
 
   useEffect(() => {
     if (!hasProperties) {
@@ -268,60 +505,44 @@ export function DashboardView({ role }: DashboardViewProps) {
         <section className="grid grid-cols-1 gap-3 md:grid-cols-6 md:gap-4">
           <MetricCard
             title="Average occupancy"
-            value={occupancyQuery.data ? formatPercent(occupancyQuery.data.occupancyRate) : "--"}
-            helperText={
-              occupancyQuery.data
-                ? `${occupancyQuery.data.unitsOccupied} of ${occupancyQuery.data.totalUnits} units`
-                : undefined
-            }
-            change={occupancyQuery.data?.change}
-            trend={resolveTrend(occupancyQuery.data?.change)}
-            trendPoints={occupancyQuery.data?.trend}
+            value={occupancyValue !== null ? formatPercent(occupancyValue) : "--"}
+            helperText={occupancyHelperText}
+            change={occupancyChange ?? undefined}
+            trend={resolveTrend(occupancyChange ?? undefined)}
+            trendPoints={occupancyTrend}
             trendFormatter={(value) => `${formatPercent(value)} occupancy`}
             testId="metric-occupancy"
-            isLoading={occupancyQuery.isPending && !occupancyQuery.data}
-            isError={occupancyQuery.isError}
-            onRetry={() => occupancyQuery.refetch()}
+            isLoading={metricsEnabled && metricsQuery.isPending && !metricsQuery.data}
+            isError={metricsQuery.isError}
+            onRetry={() => metricsQuery.refetch()}
             className="min-h-[120px] md:col-span-2"
           />
           <MetricCard
             title="Pipeline conversions"
-            value={pipelineQuery.data ? `${pipelineQuery.data.applicationsApproved}` : "--"}
-            helperText={
-              pipelineQuery.data
-                ? `${pipelineQuery.data.newLeads} leads • ${pipelineQuery.data.toursScheduled} tours`
-                : undefined
-            }
-            change={
-              pipelineQuery.data
-                ? pipelineQuery.data.applicationsApproved / Math.max(1, pipelineQuery.data.newLeads) - 0.3
-                : undefined
-            }
-            trend={resolveTrend(
-              pipelineQuery.data
-                ? pipelineQuery.data.applicationsApproved / Math.max(1, pipelineQuery.data.newLeads) - 0.3
-                : undefined
-            )}
-            trendPoints={pipelineQuery.data?.trend}
-            trendFormatter={(value) => `${value} conversions/day`}
+            value={pipelineValue !== null ? numberFormatter.format(pipelineValue) : "--"}
+            helperText={pipelineHelperText}
+            change={pipelineChange ?? undefined}
+            trend={resolveTrend(pipelineChange ?? undefined)}
+            trendPoints={pipelineTrend}
+            trendFormatter={(value) => `${numberFormatter.format(value)} conversions`}
             testId="metric-pipeline"
-            isLoading={pipelineQuery.isPending && !pipelineQuery.data}
-            isError={pipelineQuery.isError}
-            onRetry={() => pipelineQuery.refetch()}
+            isLoading={metricsEnabled && metricsQuery.isPending && !metricsQuery.data}
+            isError={metricsQuery.isError}
+            onRetry={() => metricsQuery.refetch()}
             className="min-h-[120px] md:col-span-2"
           />
           <MetricCard
             title="Cost per lead"
-            value={costQuery.data ? formatCurrency(costQuery.data.costPerLead) : "--"}
-            helperText={costQuery.data ? `Spend ${formatCurrency(costQuery.data.marketingSpend)}` : ""}
-            change={costQuery.data?.spendChange}
-            trend={resolveTrend(costQuery.data?.spendChange)}
-            trendPoints={costQuery.data?.trend}
+            value={costValue !== null ? formatCurrency(costValue) : "--"}
+            helperText={costHelperText}
+            change={costChange ?? undefined}
+            trend={resolveTrend(costChange ?? undefined)}
+            trendPoints={costTrend}
             trendFormatter={(value) => `${formatCurrency(value)} CPL`}
             testId="metric-cost"
-            isLoading={costQuery.isPending && !costQuery.data}
-            isError={costQuery.isError}
-            onRetry={() => costQuery.refetch()}
+            isLoading={metricsEnabled && metricsQuery.isPending && !metricsQuery.data}
+            isError={metricsQuery.isError}
+            onRetry={() => metricsQuery.refetch()}
             className="min-h-[120px] md:col-span-2"
           />
         </section>
