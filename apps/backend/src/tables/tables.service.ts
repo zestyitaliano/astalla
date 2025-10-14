@@ -1081,24 +1081,26 @@ export class TablesService {
     entry: NormalizedRow,
     columns: TableColumn[]
   ): TableQueryResponse["rows"][number] {
-    const cells = columns
-      .map((column) => {
-        const cell = entry.cellMap.get(column.id);
+    const cells: TableQueryResponse["rows"][number]["cells"] = [];
 
-        if (!cell) {
-          return undefined;
-        }
+    for (const column of columns) {
+      const cell = entry.cellMap.get(column.id);
 
-        return {
-          id: cell.id,
-          rowId: cell.rowId,
-          columnId: cell.columnId,
-          createdAt: cell.createdAt.toISOString(),
-          updatedAt: cell.updatedAt.toISOString(),
-          value: entry.values.get(column.id) ?? null
-        };
-      })
-      .filter((cell): cell is TableQueryResponse["rows"][number]["cells"][number] => Boolean(cell));
+      if (!cell) {
+        continue;
+      }
+
+      const normalizedValue = entry.values.get(column.id);
+
+      cells.push({
+        id: cell.id,
+        rowId: cell.rowId,
+        columnId: cell.columnId,
+        createdAt: cell.createdAt.toISOString(),
+        updatedAt: cell.updatedAt.toISOString(),
+        value: normalizedValue ?? null
+      });
+    }
 
     return {
       id: entry.row.id,
