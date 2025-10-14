@@ -1,0 +1,1 @@
+-- No-op migration: schema updated to align relation names and maintain compatibility.

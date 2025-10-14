@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Check, Edit3, Eye, EyeOff, MoreHorizontal, Type, Trash2 } from "lucide-react";
 
-import { ColumnType } from "@shared/api";
+import { ColumnTypeSchema } from "@shared/api";
 import { type TableColumnDto } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ interface ColumnMenuProps {
   canMoveRight: boolean;
 }
 
-const COLUMN_TYPE_ENUM = ColumnType.enum;
+const COLUMN_TYPE_ENUM = ColumnTypeSchema.enum;
 
 const COLUMN_TYPE_OPTIONS: Array<{ label: string; value: TableColumnDto["type"] }> = [
   { label: "Text", value: COLUMN_TYPE_ENUM.TEXT },

@@ -1,6 +1,16 @@
 import { z } from "zod";
 
-export const ColumnType = z.enum(["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]);
+export enum ColumnType {
+  TEXT = "TEXT",
+  NUMBER = "NUMBER",
+  DATE = "DATE",
+  BOOLEAN = "BOOLEAN",
+  SELECT = "SELECT",
+  REFERENCE = "REFERENCE"
+}
+
+export const ColumnTypeSchema = z.nativeEnum(ColumnType);
+export const columnTypeSchema = ColumnTypeSchema;
 
 export const ScriptStatusEnum = z.enum(["DRAFT", "PUBLISHED"]);
 
@@ -380,8 +390,6 @@ export const updatePublicDashboardRequestSchema = z
     message: "Update payload cannot be empty"
   });
 
-export const columnTypeSchema = ColumnType;
-
 export const tableCellDtoSchema = z.object({
   id: z.string(),
   rowId: z.string(),
@@ -515,6 +523,45 @@ export const updateViewDtoSchema = z
     message: "Update payload cannot be empty"
   });
 
+const tableQueryOperators = [
+  "eq",
+  "neq",
+  "contains",
+  "lt",
+  "lte",
+  "gt",
+  "gte",
+  "in",
+  "notIn",
+  "isEmpty",
+  "isNotEmpty"
+] as const;
+
+export const tableQueryFilterSchema = z.object({
+  columnId: z.string(),
+  operator: z.enum(tableQueryOperators),
+  value: z.unknown().optional()
+});
+
+export const tableQuerySortSchema = z.object({
+  columnId: z.string(),
+  direction: z.enum(["asc", "desc"])
+});
+
+export const tableQueryRequestSchema = z.object({
+  viewId: z.string().optional(),
+  filters: z.array(tableQueryFilterSchema).optional(),
+  sorts: z.array(tableQuerySortSchema).optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  offset: z.number().int().min(0).optional()
+});
+
+export const tableQueryResponseSchema = z.object({
+  rows: z.array(tableRowDtoSchema),
+  columns: z.array(tableColumnDtoSchema),
+  total: z.number().int().min(0)
+});
+
 export type Org = z.infer<typeof orgSchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type User = z.infer<typeof userSchema>;
@@ -572,84 +619,8 @@ export type PatchCellsDto = z.infer<typeof patchCellsDtoSchema>;
 export type ReorderRowsDto = z.infer<typeof reorderRowsDtoSchema>;
 export type CreateViewDto = z.infer<typeof createViewDtoSchema>;
 export type UpdateViewDto = z.infer<typeof updateViewDtoSchema>;
+export type TableQueryFilter = z.infer<typeof tableQueryFilterSchema>;
+export type TableQuerySort = z.infer<typeof tableQuerySortSchema>;
+export type TableQueryRequest = z.infer<typeof tableQueryRequestSchema>;
+export type TableQueryResponse = z.infer<typeof tableQueryResponseSchema>;
 
-export const TableColumnSchema = z.object({
-  id: z.string(),
-  tableId: z.string(),
-  name: z.string(),
-  slug: z.string(),
-  type: ColumnType,
-  position: z.number(),
-  config: z.any().optional(),
-});
-
-export const TableRowSchema = z.object({
-  id: z.string(),
-  tableId: z.string(),
-  position: z.number(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-export const TableCellSchema = z.object({
-  id: z.string(),
-  rowId: z.string(),
-  columnId: z.string(),
-  value: z.any().optional(),
-});
-
-export const TableViewSchema = z.object({
-  id: z.string(),
-  tableId: z.string(),
-  name: z.string(),
-  config: z.any(),
-});
-
-export const DataTableSchema = z.object({
-  id: z.string(),
-  orgId: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  columns: z.array(TableColumnSchema).optional(),
-  views: z.array(TableViewSchema).optional(),
-});
-
-export const CreateTableDto = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-});
-export const CreateColumnDto = z.object({
-  tableId: z.string(),
-  name: z.string().min(1),
-  type: ColumnType,
-  config: z.any().optional(),
-  position: z.number().optional(),
-});
-export const UpdateColumnDto = z.object({
-  name: z.string().optional(),
-  position: z.number().optional(),
-  config: z.any().optional(),
-});
-export const CreateRowDto = z.object({
-  tableId: z.string(),
-  afterRowId: z.string().optional(),
-});
-export const PatchCellsDto = z.object({
-  rowId: z.string(),
-  cells: z.array(z.object({ columnId: z.string(), value: z.any() })),
-});
-export const ReorderRowsDto = z.object({
-  order: z.array(z.object({ rowId: z.string(), position: z.number() })),
-});
-export const CreateViewDto = z.object({
-  tableId: z.string(),
-  name: z.string(),
-  config: viewConfigSchema,
-});
-export const UpdateViewDto = z.object({
-  name: z.string().optional(),
-  config: viewConfigSchema.optional(),
-});
-
-export type TColumnType = z.infer<typeof ColumnType>;
-export type TDataTable = z.infer<typeof DataTableSchema>;
