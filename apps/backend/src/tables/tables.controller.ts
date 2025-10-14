@@ -20,6 +20,9 @@ import {
   CreateViewDto,
   PatchCellsDto,
   ReorderRowsDto,
+  type TableQueryFilter,
+  type TableQueryRequest,
+  type TableQuerySort,
   UpdateColumnDto,
   UpdateViewDto
 } from "@shared/api";
@@ -53,6 +56,13 @@ export class TablesController {
   getTable(@Param("id") id: string) {
     const orgId = this.getOrgId();
     return this.tablesService.getTable(orgId, id);
+  }
+
+  @Get(":id/query")
+  queryTable(@Param("id") id: string, @Query() query: Record<string, string | string[]>) {
+    const orgId = this.getOrgId();
+    const options = this.parseQueryParams(query);
+    return this.tablesService.query(orgId, id, options);
   }
 
   @Post(":id/columns")
@@ -174,5 +184,95 @@ export class TablesController {
 
   private getActorId() {
     return "demo-user";
+  }
+
+  private parseQueryParams(params: Record<string, string | string[]>): TableQueryRequest {
+    const options: TableQueryRequest = {};
+
+    const limit = this.parseIntegerParam(params.limit, "limit");
+    if (limit !== undefined) {
+      options.limit = limit;
+    }
+
+    const offset = this.parseIntegerParam(params.offset, "offset");
+    if (offset !== undefined) {
+      options.offset = offset;
+    }
+
+    const viewId = this.parseStringParam(params.viewId);
+    if (viewId) {
+      options.viewId = viewId;
+    }
+
+    const filters = this.parseJsonArray<TableQueryFilter>(params.filters, "filters");
+    if (filters) {
+      options.filters = filters;
+    }
+
+    const sorts = this.parseJsonArray<TableQuerySort>(params.sorts, "sorts");
+    if (sorts) {
+      options.sorts = sorts;
+    }
+
+    return options;
+  }
+
+  private parseIntegerParam(value: string | string[] | undefined, field: string): number | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const raw = Array.isArray(value) ? value[0] : value;
+    const trimmed = raw?.trim();
+
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const parsed = Number(trimmed);
+
+    if (!Number.isInteger(parsed)) {
+      throw new BadRequestException(`${field} must be an integer`);
+    }
+
+    return parsed;
+  }
+
+  private parseStringParam(value: string | string[] | undefined): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const raw = Array.isArray(value) ? value[0] : value;
+    const trimmed = raw?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  private parseJsonArray<T>(value: string | string[] | undefined, field: string): T[] | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (!raw) {
+      return undefined;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (parsed === undefined || parsed === null) {
+        return undefined;
+      }
+
+      if (!Array.isArray(parsed)) {
+        throw new BadRequestException(`${field} must be an array`);
+      }
+
+      return parsed as T[];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid JSON";
+      throw new BadRequestException(`${field} is invalid: ${message}`);
+    }
   }
 }

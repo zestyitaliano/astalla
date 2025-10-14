@@ -40,7 +40,7 @@ import {
   Trash2
 } from "lucide-react";
 
-import { ColumnType, type TableColumnDto, type TableRowDto, type TableViewDto } from "@shared/api";
+import { ColumnTypeSchema, type TableColumnDto, type TableRowDto, type TableViewDto } from "@shared/api";
 import {
   useCreateColumnMutation,
   useCreateRowMutation,
@@ -93,7 +93,7 @@ interface TableGridProps {
   tableId: string;
 }
 
-const COLUMN_TYPE_ENUM = ColumnType.enum;
+const COLUMN_TYPE_ENUM = ColumnTypeSchema.enum;
 
 const SEARCHABLE_COLUMN_TYPES = new Set<ColumnKind>([
   COLUMN_TYPE_ENUM.TEXT,

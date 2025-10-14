@@ -1,6 +1,16 @@
 // src/schemas.ts
 import { z } from "zod";
-var ColumnType = z.enum(["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]);
+var ColumnType = /* @__PURE__ */ ((ColumnType2) => {
+  ColumnType2["TEXT"] = "TEXT";
+  ColumnType2["NUMBER"] = "NUMBER";
+  ColumnType2["DATE"] = "DATE";
+  ColumnType2["BOOLEAN"] = "BOOLEAN";
+  ColumnType2["SELECT"] = "SELECT";
+  ColumnType2["REFERENCE"] = "REFERENCE";
+  return ColumnType2;
+})(ColumnType || {});
+var ColumnTypeSchema = z.nativeEnum(ColumnType);
+var columnTypeSchema = ColumnTypeSchema;
 var ScriptStatusEnum = z.enum(["DRAFT", "PUBLISHED"]);
 var ProviderActionParam = z.object({
   name: z.string(),
@@ -320,7 +330,6 @@ var updatePublicDashboardRequestSchema = z.object({
 }).refine((payload) => Object.keys(payload).length > 0, {
   message: "Update payload cannot be empty"
 });
-var columnTypeSchema = ColumnType;
 var tableCellDtoSchema = z.object({
   id: z.string(),
   rowId: z.string(),
@@ -433,96 +442,46 @@ var updateViewDtoSchema = z.object({
 }).refine((payload) => Object.keys(payload).length > 0, {
   message: "Update payload cannot be empty"
 });
-var TableColumnSchema = z.object({
-  id: z.string(),
-  tableId: z.string(),
-  name: z.string(),
-  slug: z.string(),
-  type: ColumnType,
-  position: z.number(),
-  config: z.any().optional()
-});
-var TableRowSchema = z.object({
-  id: z.string(),
-  tableId: z.string(),
-  position: z.number(),
-  createdAt: z.string(),
-  updatedAt: z.string()
-});
-var TableCellSchema = z.object({
-  id: z.string(),
-  rowId: z.string(),
+var tableQueryOperators = [
+  "eq",
+  "neq",
+  "contains",
+  "lt",
+  "lte",
+  "gt",
+  "gte",
+  "in",
+  "notIn",
+  "isEmpty",
+  "isNotEmpty"
+];
+var tableQueryFilterSchema = z.object({
   columnId: z.string(),
-  value: z.any().optional()
+  operator: z.enum(tableQueryOperators),
+  value: z.unknown().optional()
 });
-var TableViewSchema = z.object({
-  id: z.string(),
-  tableId: z.string(),
-  name: z.string(),
-  config: z.any()
+var tableQuerySortSchema = z.object({
+  columnId: z.string(),
+  direction: z.enum(["asc", "desc"])
 });
-var DataTableSchema = z.object({
-  id: z.string(),
-  orgId: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  columns: z.array(TableColumnSchema).optional(),
-  views: z.array(TableViewSchema).optional()
+var tableQueryRequestSchema = z.object({
+  viewId: z.string().optional(),
+  filters: z.array(tableQueryFilterSchema).optional(),
+  sorts: z.array(tableQuerySortSchema).optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  offset: z.number().int().min(0).optional()
 });
-var CreateTableDto = z.object({
-  name: z.string().min(1),
-  description: z.string().optional()
-});
-var CreateColumnDto = z.object({
-  tableId: z.string(),
-  name: z.string().min(1),
-  type: ColumnType,
-  config: z.any().optional(),
-  position: z.number().optional()
-});
-var UpdateColumnDto = z.object({
-  name: z.string().optional(),
-  position: z.number().optional(),
-  config: z.any().optional()
-});
-var CreateRowDto = z.object({
-  tableId: z.string(),
-  afterRowId: z.string().optional()
-});
-var PatchCellsDto = z.object({
-  rowId: z.string(),
-  cells: z.array(z.object({ columnId: z.string(), value: z.any() }))
-});
-var ReorderRowsDto = z.object({
-  order: z.array(z.object({ rowId: z.string(), position: z.number() }))
-});
-var CreateViewDto = z.object({
-  tableId: z.string(),
-  name: z.string(),
-  config: viewConfigSchema
-});
-var UpdateViewDto = z.object({
-  name: z.string().optional(),
-  config: viewConfigSchema.optional()
+var tableQueryResponseSchema = z.object({
+  rows: z.array(tableRowDtoSchema),
+  columns: z.array(tableColumnDtoSchema),
+  total: z.number().int().min(0)
 });
 export {
   ColumnType,
-  CreateColumnDto,
-  CreateRowDto,
-  CreateTableDto,
-  CreateViewDto,
-  DataTableSchema,
-  PatchCellsDto,
+  ColumnTypeSchema,
   ProviderActionParam,
   ProviderManifest,
-  ReorderRowsDto,
   ScriptStatusEnum,
-  TableCellSchema,
-  TableColumnSchema,
-  TableRowSchema,
-  TableViewSchema,
-  UpdateColumnDto,
-  UpdateViewDto,
   alertSchema,
   alertsResponseSchema,
   applicationSchema,
@@ -572,6 +531,10 @@ export {
   tableAuditDtoSchema,
   tableCellDtoSchema,
   tableColumnDtoSchema,
+  tableQueryFilterSchema,
+  tableQueryRequestSchema,
+  tableQueryResponseSchema,
+  tableQuerySortSchema,
   tableRowDtoSchema,
   tableViewDtoSchema,
   updateColumnDtoSchema,
