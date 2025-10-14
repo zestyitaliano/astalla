@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { ColumnType as PrismaColumnType, Prisma, TableCell, TableColumn, TableRow } from "@prisma/client";
 import {
+  ColumnType as SharedColumnType,
   CreateColumnDto,
   CreateRowDto,
   CreateTableDto,
@@ -509,14 +510,23 @@ export class TablesService {
 
     const context = await this.buildQueryContext(orgId, tableId, options);
 
-    const pagedRows = context.rows.slice(offset, offset + limit).map((entry) =>
-      this.projectRow(entry, context.visibleColumns)
-    );
+    const pagedRows: TableQueryResponse["rows"] = context.rows
+      .slice(offset, offset + limit)
+      .map((entry) => this.projectRow(entry, context.visibleColumns));
 
-    const resultColumns = context.visibleColumns.map((column) => ({
-      ...column,
-      config: this.deserializeJson(column.config) ?? undefined
-    }));
+    const resultColumns: TableQueryResponse["columns"] = context.visibleColumns.map(
+      (column) => ({
+        id: column.id,
+        tableId: column.tableId,
+        name: column.name,
+        slug: column.slug,
+        type: column.type as unknown as SharedColumnType,
+        position: column.position,
+        config: this.deserializeJson(column.config) ?? undefined,
+        createdAt: column.createdAt.toISOString(),
+        updatedAt: column.updatedAt.toISOString()
+      })
+    );
 
     return {
       rows: pagedRows,
@@ -1067,7 +1077,10 @@ export class TablesService {
     return { row, cellMap, values };
   }
 
-  private projectRow(entry: NormalizedRow, columns: TableColumn[]): RowWithCells {
+  private projectRow(
+    entry: NormalizedRow,
+    columns: TableColumn[]
+  ): TableQueryResponse["rows"][number] {
     const cells = columns
       .map((column) => {
         const cell = entry.cellMap.get(column.id);
@@ -1077,14 +1090,24 @@ export class TablesService {
         }
 
         return {
-          ...cell,
+          id: cell.id,
+          rowId: cell.rowId,
+          columnId: cell.columnId,
+          createdAt: cell.createdAt.toISOString(),
+          updatedAt: cell.updatedAt.toISOString(),
           value: entry.values.get(column.id) ?? null
         };
       })
-      .filter((cell): cell is TableCell => Boolean(cell));
+      .filter((cell): cell is TableQueryResponse["rows"][number]["cells"][number] => Boolean(cell));
 
     return {
-      ...entry.row,
+      id: entry.row.id,
+      tableId: entry.row.tableId,
+      position: entry.row.position,
+      createdAt: entry.row.createdAt.toISOString(),
+      updatedAt: entry.row.updatedAt.toISOString(),
+      createdBy: entry.row.createdBy,
+      updatedBy: entry.row.updatedBy,
       cells
     };
   }
