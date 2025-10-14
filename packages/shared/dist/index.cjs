@@ -21,22 +21,10 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var index_exports = {};
 __export(index_exports, {
   ColumnType: () => ColumnType,
-  CreateColumnDto: () => CreateColumnDto,
-  CreateRowDto: () => CreateRowDto,
-  CreateTableDto: () => CreateTableDto,
-  CreateViewDto: () => CreateViewDto,
-  DataTableSchema: () => DataTableSchema,
-  PatchCellsDto: () => PatchCellsDto,
+  ColumnTypeSchema: () => ColumnTypeSchema,
   ProviderActionParam: () => ProviderActionParam,
   ProviderManifest: () => ProviderManifest,
-  ReorderRowsDto: () => ReorderRowsDto,
   ScriptStatusEnum: () => ScriptStatusEnum,
-  TableCellSchema: () => TableCellSchema,
-  TableColumnSchema: () => TableColumnSchema,
-  TableRowSchema: () => TableRowSchema,
-  TableViewSchema: () => TableViewSchema,
-  UpdateColumnDto: () => UpdateColumnDto,
-  UpdateViewDto: () => UpdateViewDto,
   alertSchema: () => alertSchema,
   alertsResponseSchema: () => alertsResponseSchema,
   applicationSchema: () => applicationSchema,
@@ -86,6 +74,10 @@ __export(index_exports, {
   tableAuditDtoSchema: () => tableAuditDtoSchema,
   tableCellDtoSchema: () => tableCellDtoSchema,
   tableColumnDtoSchema: () => tableColumnDtoSchema,
+  tableQueryFilterSchema: () => tableQueryFilterSchema,
+  tableQueryRequestSchema: () => tableQueryRequestSchema,
+  tableQueryResponseSchema: () => tableQueryResponseSchema,
+  tableQuerySortSchema: () => tableQuerySortSchema,
   tableRowDtoSchema: () => tableRowDtoSchema,
   tableViewDtoSchema: () => tableViewDtoSchema,
   updateColumnDtoSchema: () => updateColumnDtoSchema,
@@ -99,7 +91,17 @@ module.exports = __toCommonJS(index_exports);
 
 // src/schemas.ts
 var import_zod = require("zod");
-var ColumnType = import_zod.z.enum(["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]);
+var ColumnType = /* @__PURE__ */ ((ColumnType2) => {
+  ColumnType2["TEXT"] = "TEXT";
+  ColumnType2["NUMBER"] = "NUMBER";
+  ColumnType2["DATE"] = "DATE";
+  ColumnType2["BOOLEAN"] = "BOOLEAN";
+  ColumnType2["SELECT"] = "SELECT";
+  ColumnType2["REFERENCE"] = "REFERENCE";
+  return ColumnType2;
+})(ColumnType || {});
+var ColumnTypeSchema = import_zod.z.nativeEnum(ColumnType);
+var columnTypeSchema = ColumnTypeSchema;
 var ScriptStatusEnum = import_zod.z.enum(["DRAFT", "PUBLISHED"]);
 var ProviderActionParam = import_zod.z.object({
   name: import_zod.z.string(),
@@ -419,7 +421,6 @@ var updatePublicDashboardRequestSchema = import_zod.z.object({
 }).refine((payload) => Object.keys(payload).length > 0, {
   message: "Update payload cannot be empty"
 });
-var columnTypeSchema = ColumnType;
 var tableCellDtoSchema = import_zod.z.object({
   id: import_zod.z.string(),
   rowId: import_zod.z.string(),
@@ -532,97 +533,47 @@ var updateViewDtoSchema = import_zod.z.object({
 }).refine((payload) => Object.keys(payload).length > 0, {
   message: "Update payload cannot be empty"
 });
-var TableColumnSchema = import_zod.z.object({
-  id: import_zod.z.string(),
-  tableId: import_zod.z.string(),
-  name: import_zod.z.string(),
-  slug: import_zod.z.string(),
-  type: ColumnType,
-  position: import_zod.z.number(),
-  config: import_zod.z.any().optional()
-});
-var TableRowSchema = import_zod.z.object({
-  id: import_zod.z.string(),
-  tableId: import_zod.z.string(),
-  position: import_zod.z.number(),
-  createdAt: import_zod.z.string(),
-  updatedAt: import_zod.z.string()
-});
-var TableCellSchema = import_zod.z.object({
-  id: import_zod.z.string(),
-  rowId: import_zod.z.string(),
+var tableQueryOperators = [
+  "eq",
+  "neq",
+  "contains",
+  "lt",
+  "lte",
+  "gt",
+  "gte",
+  "in",
+  "notIn",
+  "isEmpty",
+  "isNotEmpty"
+];
+var tableQueryFilterSchema = import_zod.z.object({
   columnId: import_zod.z.string(),
-  value: import_zod.z.any().optional()
+  operator: import_zod.z.enum(tableQueryOperators),
+  value: import_zod.z.unknown().optional()
 });
-var TableViewSchema = import_zod.z.object({
-  id: import_zod.z.string(),
-  tableId: import_zod.z.string(),
-  name: import_zod.z.string(),
-  config: import_zod.z.any()
+var tableQuerySortSchema = import_zod.z.object({
+  columnId: import_zod.z.string(),
+  direction: import_zod.z.enum(["asc", "desc"])
 });
-var DataTableSchema = import_zod.z.object({
-  id: import_zod.z.string(),
-  orgId: import_zod.z.string(),
-  name: import_zod.z.string(),
-  description: import_zod.z.string().optional(),
-  columns: import_zod.z.array(TableColumnSchema).optional(),
-  views: import_zod.z.array(TableViewSchema).optional()
+var tableQueryRequestSchema = import_zod.z.object({
+  viewId: import_zod.z.string().optional(),
+  filters: import_zod.z.array(tableQueryFilterSchema).optional(),
+  sorts: import_zod.z.array(tableQuerySortSchema).optional(),
+  limit: import_zod.z.number().int().min(1).max(500).optional(),
+  offset: import_zod.z.number().int().min(0).optional()
 });
-var CreateTableDto = import_zod.z.object({
-  name: import_zod.z.string().min(1),
-  description: import_zod.z.string().optional()
-});
-var CreateColumnDto = import_zod.z.object({
-  tableId: import_zod.z.string(),
-  name: import_zod.z.string().min(1),
-  type: ColumnType,
-  config: import_zod.z.any().optional(),
-  position: import_zod.z.number().optional()
-});
-var UpdateColumnDto = import_zod.z.object({
-  name: import_zod.z.string().optional(),
-  position: import_zod.z.number().optional(),
-  config: import_zod.z.any().optional()
-});
-var CreateRowDto = import_zod.z.object({
-  tableId: import_zod.z.string(),
-  afterRowId: import_zod.z.string().optional()
-});
-var PatchCellsDto = import_zod.z.object({
-  rowId: import_zod.z.string(),
-  cells: import_zod.z.array(import_zod.z.object({ columnId: import_zod.z.string(), value: import_zod.z.any() }))
-});
-var ReorderRowsDto = import_zod.z.object({
-  order: import_zod.z.array(import_zod.z.object({ rowId: import_zod.z.string(), position: import_zod.z.number() }))
-});
-var CreateViewDto = import_zod.z.object({
-  tableId: import_zod.z.string(),
-  name: import_zod.z.string(),
-  config: viewConfigSchema
-});
-var UpdateViewDto = import_zod.z.object({
-  name: import_zod.z.string().optional(),
-  config: viewConfigSchema.optional()
+var tableQueryResponseSchema = import_zod.z.object({
+  rows: import_zod.z.array(tableRowDtoSchema),
+  columns: import_zod.z.array(tableColumnDtoSchema),
+  total: import_zod.z.number().int().min(0)
 });
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ColumnType,
-  CreateColumnDto,
-  CreateRowDto,
-  CreateTableDto,
-  CreateViewDto,
-  DataTableSchema,
-  PatchCellsDto,
+  ColumnTypeSchema,
   ProviderActionParam,
   ProviderManifest,
-  ReorderRowsDto,
   ScriptStatusEnum,
-  TableCellSchema,
-  TableColumnSchema,
-  TableRowSchema,
-  TableViewSchema,
-  UpdateColumnDto,
-  UpdateViewDto,
   alertSchema,
   alertsResponseSchema,
   applicationSchema,
@@ -672,6 +623,10 @@ var UpdateViewDto = import_zod.z.object({
   tableAuditDtoSchema,
   tableCellDtoSchema,
   tableColumnDtoSchema,
+  tableQueryFilterSchema,
+  tableQueryRequestSchema,
+  tableQueryResponseSchema,
+  tableQuerySortSchema,
   tableRowDtoSchema,
   tableViewDtoSchema,
   updateColumnDtoSchema,

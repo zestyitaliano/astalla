@@ -506,9 +506,9 @@ model DataTable {
   orgId       String
   name        String
   description String?
-  columns     TableColumn[]
-  rows        TableRow[]
-  views       TableView[]
+  views       TableView[]  @relation("Table_Views")
+  columns     TableColumn[] @relation("Table_Columns")
+  rows        TableRow[]   @relation("Table_Rows")
   createdBy   String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -518,8 +518,8 @@ model DataTable {
 
 model TableColumn {
   id        String      @id @default(cuid())
-  table     DataTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId   String
+  table     DataTable   @relation(fields: [tableId], references: [id], onDelete: Cascade, name: "Table_Columns")
   name      String
   slug      String
   type      ColumnType
@@ -527,8 +527,7 @@ model TableColumn {
   config    Json?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
-
-  cells     TableCell[]
+  cells     TableCell[] @relation("Column_Cells")
 
   @@unique([tableId, slug])
   @@index([tableId, position])
@@ -536,10 +535,10 @@ model TableColumn {
 
 model TableRow {
   id        String     @id @default(cuid())
-  table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId   String
+  table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade, name: "Table_Rows")
   position  Int
-  cells     TableCell[]
+  cells     TableCell[] @relation("Row_Cells")
   createdBy String?
   updatedBy String?
   createdAt DateTime   @default(now())
@@ -550,10 +549,10 @@ model TableRow {
 
 model TableCell {
   id        String      @id @default(cuid())
-  row       TableRow    @relation(fields: [rowId], references: [id], onDelete: Cascade)
   rowId     String
-  column    TableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  row       TableRow    @relation(fields: [rowId], references: [id], onDelete: Cascade, name: "Row_Cells")
   columnId  String
+  column    TableColumn @relation(fields: [columnId], references: [id], onDelete: Cascade, name: "Column_Cells")
   value     Json?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -563,11 +562,10 @@ model TableCell {
 
 model TableView {
   id        String     @id @default(cuid())
-  table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
   tableId   String
+  table     DataTable  @relation(fields: [tableId], references: [id], onDelete: Cascade, name: "Table_Views")
   name      String
-  /// { filters: [...], sorts: [...], columnOrder: [...], hidden: [...] }
-  config    Json
+  config    Json       // { filters: [...], sorts: [...], columnOrder: [...], hidden: [...] }
   createdBy String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -579,8 +577,7 @@ model TableAudit {
   id        String   @id @default(cuid())
   tableId   String
   actorId   String?
-  /// CREATE_TABLE | ADD_COLUMN | UPDATE_CELL | ...
-  action    String
+  action    String   // "CREATE_TABLE"|"ADD_COLUMN"|"UPDATE_CELL"|...
   payload   Json
   createdAt DateTime @default(now())
 

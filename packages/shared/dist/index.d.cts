@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
-declare const ColumnType: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+declare enum ColumnType {
+    TEXT = "TEXT",
+    NUMBER = "NUMBER",
+    DATE = "DATE",
+    BOOLEAN = "BOOLEAN",
+    SELECT = "SELECT",
+    REFERENCE = "REFERENCE"
+}
+declare const ColumnTypeSchema: z.ZodNativeEnum<typeof ColumnType>;
+declare const columnTypeSchema: z.ZodNativeEnum<typeof ColumnType>;
 declare const ScriptStatusEnum: z.ZodEnum<["DRAFT", "PUBLISHED"]>;
 declare const ProviderActionParam: z.ZodObject<{
     name: z.ZodString;
@@ -1499,7 +1508,6 @@ declare const updatePublicDashboardRequestSchema: z.ZodEffects<z.ZodObject<{
     config?: unknown;
     isActive?: boolean | undefined;
 }>;
-declare const columnTypeSchema: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
 declare const tableCellDtoSchema: z.ZodObject<{
     id: z.ZodString;
     rowId: z.ZodString;
@@ -1527,14 +1535,14 @@ declare const tableColumnDtoSchema: z.ZodObject<{
     tableId: z.ZodString;
     name: z.ZodString;
     slug: z.ZodString;
-    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+    type: z.ZodNativeEnum<typeof ColumnType>;
     position: z.ZodNumber;
     config: z.ZodOptional<z.ZodUnknown>;
     createdAt: z.ZodString;
     updatedAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    type: ColumnType;
     id: string;
     createdAt: string;
     updatedAt: string;
@@ -1544,7 +1552,7 @@ declare const tableColumnDtoSchema: z.ZodObject<{
     config?: unknown;
 }, {
     name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    type: ColumnType;
     id: string;
     createdAt: string;
     updatedAt: string;
@@ -1651,14 +1659,14 @@ declare const dataTableDtoSchema: z.ZodObject<{
         tableId: z.ZodString;
         name: z.ZodString;
         slug: z.ZodString;
-        type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+        type: z.ZodNativeEnum<typeof ColumnType>;
         position: z.ZodNumber;
         config: z.ZodOptional<z.ZodUnknown>;
         createdAt: z.ZodString;
         updatedAt: z.ZodString;
     }, "strip", z.ZodTypeAny, {
         name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        type: ColumnType;
         id: string;
         createdAt: string;
         updatedAt: string;
@@ -1668,7 +1676,7 @@ declare const dataTableDtoSchema: z.ZodObject<{
         config?: unknown;
     }, {
         name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        type: ColumnType;
         id: string;
         createdAt: string;
         updatedAt: string;
@@ -1778,7 +1786,7 @@ declare const dataTableDtoSchema: z.ZodObject<{
     description?: string | null | undefined;
     columns?: {
         name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        type: ColumnType;
         id: string;
         createdAt: string;
         updatedAt: string;
@@ -1823,7 +1831,7 @@ declare const dataTableDtoSchema: z.ZodObject<{
     description?: string | null | undefined;
     columns?: {
         name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+        type: ColumnType;
         id: string;
         createdAt: string;
         updatedAt: string;
@@ -1894,42 +1902,42 @@ declare const createTableDtoSchema: z.ZodObject<{
 declare const createColumnDtoSchema: z.ZodObject<{
     tableId: z.ZodString;
     name: z.ZodString;
-    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
+    type: z.ZodNativeEnum<typeof ColumnType>;
     config: z.ZodOptional<z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
     name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    type: ColumnType;
     tableId: string;
     config?: unknown;
 }, {
     name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
+    type: ColumnType;
     tableId: string;
     config?: unknown;
 }>;
 declare const updateColumnDtoSchema: z.ZodEffects<z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     position: z.ZodOptional<z.ZodNumber>;
-    type: z.ZodOptional<z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>>;
+    type: z.ZodOptional<z.ZodNativeEnum<typeof ColumnType>>;
     config: z.ZodOptional<z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
-    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
+    type?: ColumnType | undefined;
     config?: unknown;
     position?: number | undefined;
 }, {
     name?: string | undefined;
-    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
+    type?: ColumnType | undefined;
     config?: unknown;
     position?: number | undefined;
 }>, {
     name?: string | undefined;
-    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
+    type?: ColumnType | undefined;
     config?: unknown;
     position?: number | undefined;
 }, {
     name?: string | undefined;
-    type?: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | undefined;
+    type?: ColumnType | undefined;
     config?: unknown;
     position?: number | undefined;
 }>;
@@ -2059,6 +2067,240 @@ declare const updateViewDtoSchema: z.ZodEffects<z.ZodObject<{
         columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
 }>;
+declare const tableQueryFilterSchema: z.ZodObject<{
+    columnId: z.ZodString;
+    operator: z.ZodEnum<["eq", "neq", "contains", "lt", "lte", "gt", "gte", "in", "notIn", "isEmpty", "isNotEmpty"]>;
+    value: z.ZodOptional<z.ZodUnknown>;
+}, "strip", z.ZodTypeAny, {
+    columnId: string;
+    operator: "eq" | "neq" | "contains" | "lt" | "lte" | "gt" | "gte" | "in" | "notIn" | "isEmpty" | "isNotEmpty";
+    value?: unknown;
+}, {
+    columnId: string;
+    operator: "eq" | "neq" | "contains" | "lt" | "lte" | "gt" | "gte" | "in" | "notIn" | "isEmpty" | "isNotEmpty";
+    value?: unknown;
+}>;
+declare const tableQuerySortSchema: z.ZodObject<{
+    columnId: z.ZodString;
+    direction: z.ZodEnum<["asc", "desc"]>;
+}, "strip", z.ZodTypeAny, {
+    columnId: string;
+    direction: "asc" | "desc";
+}, {
+    columnId: string;
+    direction: "asc" | "desc";
+}>;
+declare const tableQueryRequestSchema: z.ZodObject<{
+    viewId: z.ZodOptional<z.ZodString>;
+    filters: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        columnId: z.ZodString;
+        operator: z.ZodEnum<["eq", "neq", "contains", "lt", "lte", "gt", "gte", "in", "notIn", "isEmpty", "isNotEmpty"]>;
+        value: z.ZodOptional<z.ZodUnknown>;
+    }, "strip", z.ZodTypeAny, {
+        columnId: string;
+        operator: "eq" | "neq" | "contains" | "lt" | "lte" | "gt" | "gte" | "in" | "notIn" | "isEmpty" | "isNotEmpty";
+        value?: unknown;
+    }, {
+        columnId: string;
+        operator: "eq" | "neq" | "contains" | "lt" | "lte" | "gt" | "gte" | "in" | "notIn" | "isEmpty" | "isNotEmpty";
+        value?: unknown;
+    }>, "many">>;
+    sorts: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        columnId: z.ZodString;
+        direction: z.ZodEnum<["asc", "desc"]>;
+    }, "strip", z.ZodTypeAny, {
+        columnId: string;
+        direction: "asc" | "desc";
+    }, {
+        columnId: string;
+        direction: "asc" | "desc";
+    }>, "many">>;
+    limit: z.ZodOptional<z.ZodNumber>;
+    offset: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    offset?: number | undefined;
+    viewId?: string | undefined;
+    filters?: {
+        columnId: string;
+        operator: "eq" | "neq" | "contains" | "lt" | "lte" | "gt" | "gte" | "in" | "notIn" | "isEmpty" | "isNotEmpty";
+        value?: unknown;
+    }[] | undefined;
+    sorts?: {
+        columnId: string;
+        direction: "asc" | "desc";
+    }[] | undefined;
+    limit?: number | undefined;
+}, {
+    offset?: number | undefined;
+    viewId?: string | undefined;
+    filters?: {
+        columnId: string;
+        operator: "eq" | "neq" | "contains" | "lt" | "lte" | "gt" | "gte" | "in" | "notIn" | "isEmpty" | "isNotEmpty";
+        value?: unknown;
+    }[] | undefined;
+    sorts?: {
+        columnId: string;
+        direction: "asc" | "desc";
+    }[] | undefined;
+    limit?: number | undefined;
+}>;
+declare const tableQueryResponseSchema: z.ZodObject<{
+    rows: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        tableId: z.ZodString;
+        position: z.ZodNumber;
+        cells: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            rowId: z.ZodString;
+            columnId: z.ZodString;
+            value: z.ZodOptional<z.ZodNullable<z.ZodUnknown>>;
+            createdAt: z.ZodString;
+            updatedAt: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            rowId: string;
+            columnId: string;
+            value?: unknown;
+        }, {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            rowId: string;
+            columnId: string;
+            value?: unknown;
+        }>, "many">;
+        createdBy: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        updatedBy: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        position: number;
+        cells: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            rowId: string;
+            columnId: string;
+            value?: unknown;
+        }[];
+        createdBy?: string | null | undefined;
+        updatedBy?: string | null | undefined;
+    }, {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        position: number;
+        cells: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            rowId: string;
+            columnId: string;
+            value?: unknown;
+        }[];
+        createdBy?: string | null | undefined;
+        updatedBy?: string | null | undefined;
+    }>, "many">;
+    columns: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        tableId: z.ZodString;
+        name: z.ZodString;
+        slug: z.ZodString;
+        type: z.ZodNativeEnum<typeof ColumnType>;
+        position: z.ZodNumber;
+        config: z.ZodOptional<z.ZodUnknown>;
+        createdAt: z.ZodString;
+        updatedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        name: string;
+        type: ColumnType;
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: unknown;
+    }, {
+        name: string;
+        type: ColumnType;
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: unknown;
+    }>, "many">;
+    total: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    columns: {
+        name: string;
+        type: ColumnType;
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: unknown;
+    }[];
+    rows: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        position: number;
+        cells: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            rowId: string;
+            columnId: string;
+            value?: unknown;
+        }[];
+        createdBy?: string | null | undefined;
+        updatedBy?: string | null | undefined;
+    }[];
+    total: number;
+}, {
+    columns: {
+        name: string;
+        type: ColumnType;
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        slug: string;
+        position: number;
+        config?: unknown;
+    }[];
+    rows: {
+        id: string;
+        createdAt: string;
+        updatedAt: string;
+        tableId: string;
+        position: number;
+        cells: {
+            id: string;
+            createdAt: string;
+            updatedAt: string;
+            rowId: string;
+            columnId: string;
+            value?: unknown;
+        }[];
+        createdBy?: string | null | undefined;
+        updatedBy?: string | null | undefined;
+    }[];
+    total: number;
+}>;
 type Org = z.infer<typeof orgSchema>;
 type Property = z.infer<typeof propertySchema>;
 type User = z.infer<typeof userSchema>;
@@ -2108,334 +2350,17 @@ type TableRowDto = z.infer<typeof tableRowDtoSchema>;
 type TableViewDto = z.infer<typeof tableViewDtoSchema>;
 type DataTableDto = z.infer<typeof dataTableDtoSchema>;
 type TableAuditDto = z.infer<typeof tableAuditDtoSchema>;
-declare const TableColumnSchema: z.ZodObject<{
-    id: z.ZodString;
-    tableId: z.ZodString;
-    name: z.ZodString;
-    slug: z.ZodString;
-    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
-    position: z.ZodNumber;
-    config: z.ZodOptional<z.ZodAny>;
-}, "strip", z.ZodTypeAny, {
-    name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-    id: string;
-    tableId: string;
-    slug: string;
-    position: number;
-    config?: any;
-}, {
-    name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-    id: string;
-    tableId: string;
-    slug: string;
-    position: number;
-    config?: any;
-}>;
-declare const TableRowSchema: z.ZodObject<{
-    id: z.ZodString;
-    tableId: z.ZodString;
-    position: z.ZodNumber;
-    createdAt: z.ZodString;
-    updatedAt: z.ZodString;
-}, "strip", z.ZodTypeAny, {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tableId: string;
-    position: number;
-}, {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    tableId: string;
-    position: number;
-}>;
-declare const TableCellSchema: z.ZodObject<{
-    id: z.ZodString;
-    rowId: z.ZodString;
-    columnId: z.ZodString;
-    value: z.ZodOptional<z.ZodAny>;
-}, "strip", z.ZodTypeAny, {
-    id: string;
-    rowId: string;
-    columnId: string;
-    value?: any;
-}, {
-    id: string;
-    rowId: string;
-    columnId: string;
-    value?: any;
-}>;
-declare const TableViewSchema: z.ZodObject<{
-    id: z.ZodString;
-    tableId: z.ZodString;
-    name: z.ZodString;
-    config: z.ZodAny;
-}, "strip", z.ZodTypeAny, {
-    name: string;
-    id: string;
-    tableId: string;
-    config?: any;
-}, {
-    name: string;
-    id: string;
-    tableId: string;
-    config?: any;
-}>;
-declare const DataTableSchema: z.ZodObject<{
-    id: z.ZodString;
-    orgId: z.ZodString;
-    name: z.ZodString;
-    description: z.ZodOptional<z.ZodString>;
-    columns: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        id: z.ZodString;
-        tableId: z.ZodString;
-        name: z.ZodString;
-        slug: z.ZodString;
-        type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
-        position: z.ZodNumber;
-        config: z.ZodOptional<z.ZodAny>;
-    }, "strip", z.ZodTypeAny, {
-        name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-        id: string;
-        tableId: string;
-        slug: string;
-        position: number;
-        config?: any;
-    }, {
-        name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-        id: string;
-        tableId: string;
-        slug: string;
-        position: number;
-        config?: any;
-    }>, "many">>;
-    views: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        id: z.ZodString;
-        tableId: z.ZodString;
-        name: z.ZodString;
-        config: z.ZodAny;
-    }, "strip", z.ZodTypeAny, {
-        name: string;
-        id: string;
-        tableId: string;
-        config?: any;
-    }, {
-        name: string;
-        id: string;
-        tableId: string;
-        config?: any;
-    }>, "many">>;
-}, "strip", z.ZodTypeAny, {
-    name: string;
-    id: string;
-    orgId: string;
-    description?: string | undefined;
-    columns?: {
-        name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-        id: string;
-        tableId: string;
-        slug: string;
-        position: number;
-        config?: any;
-    }[] | undefined;
-    views?: {
-        name: string;
-        id: string;
-        tableId: string;
-        config?: any;
-    }[] | undefined;
-}, {
-    name: string;
-    id: string;
-    orgId: string;
-    description?: string | undefined;
-    columns?: {
-        name: string;
-        type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-        id: string;
-        tableId: string;
-        slug: string;
-        position: number;
-        config?: any;
-    }[] | undefined;
-    views?: {
-        name: string;
-        id: string;
-        tableId: string;
-        config?: any;
-    }[] | undefined;
-}>;
 type CreateTableDto = z.infer<typeof createTableDtoSchema>;
-declare const CreateTableDto: z.ZodObject<{
-    name: z.ZodString;
-    description: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    name: string;
-    description?: string | undefined;
-}, {
-    name: string;
-    description?: string | undefined;
-}>;
 type CreateColumnDto = z.infer<typeof createColumnDtoSchema>;
-declare const CreateColumnDto: z.ZodObject<{
-    tableId: z.ZodString;
-    name: z.ZodString;
-    type: z.ZodEnum<["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT", "REFERENCE"]>;
-    config: z.ZodOptional<z.ZodAny>;
-    position: z.ZodOptional<z.ZodNumber>;
-}, "strip", z.ZodTypeAny, {
-    name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-    tableId: string;
-    config?: any;
-    position?: number | undefined;
-}, {
-    name: string;
-    type: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE";
-    tableId: string;
-    config?: any;
-    position?: number | undefined;
-}>;
 type UpdateColumnDto = z.infer<typeof updateColumnDtoSchema>;
-declare const UpdateColumnDto: z.ZodObject<{
-    name: z.ZodOptional<z.ZodString>;
-    position: z.ZodOptional<z.ZodNumber>;
-    config: z.ZodOptional<z.ZodAny>;
-}, "strip", z.ZodTypeAny, {
-    name?: string | undefined;
-    config?: any;
-    position?: number | undefined;
-}, {
-    name?: string | undefined;
-    config?: any;
-    position?: number | undefined;
-}>;
 type CreateRowDto = z.infer<typeof createRowDtoSchema>;
-declare const CreateRowDto: z.ZodObject<{
-    tableId: z.ZodString;
-    afterRowId: z.ZodOptional<z.ZodString>;
-}, "strip", z.ZodTypeAny, {
-    tableId: string;
-    afterRowId?: string | undefined;
-}, {
-    tableId: string;
-    afterRowId?: string | undefined;
-}>;
 type PatchCellsDto = z.infer<typeof patchCellsDtoSchema>;
-declare const PatchCellsDto: z.ZodObject<{
-    rowId: z.ZodString;
-    cells: z.ZodArray<z.ZodObject<{
-        columnId: z.ZodString;
-        value: z.ZodAny;
-    }, "strip", z.ZodTypeAny, {
-        columnId: string;
-        value?: any;
-    }, {
-        columnId: string;
-        value?: any;
-    }>, "many">;
-}, "strip", z.ZodTypeAny, {
-    rowId: string;
-    cells: {
-        columnId: string;
-        value?: any;
-    }[];
-}, {
-    rowId: string;
-    cells: {
-        columnId: string;
-        value?: any;
-    }[];
-}>;
 type ReorderRowsDto = z.infer<typeof reorderRowsDtoSchema>;
-declare const ReorderRowsDto: z.ZodObject<{
-    order: z.ZodArray<z.ZodObject<{
-        rowId: z.ZodString;
-        position: z.ZodNumber;
-    }, "strip", z.ZodTypeAny, {
-        rowId: string;
-        position: number;
-    }, {
-        rowId: string;
-        position: number;
-    }>, "many">;
-}, "strip", z.ZodTypeAny, {
-    order: {
-        rowId: string;
-        position: number;
-    }[];
-}, {
-    order: {
-        rowId: string;
-        position: number;
-    }[];
-}>;
 type CreateViewDto = z.infer<typeof createViewDtoSchema>;
-declare const CreateViewDto: z.ZodObject<{
-    tableId: z.ZodString;
-    name: z.ZodString;
-    config: z.ZodObject<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, z.ZodTypeAny, "passthrough">>;
-}, "strip", z.ZodTypeAny, {
-    name: string;
-    config: {
-        hidden?: string[] | undefined;
-        columnOrder?: string[] | undefined;
-    } & {
-        [k: string]: unknown;
-    };
-    tableId: string;
-}, {
-    name: string;
-    config: {
-        hidden?: string[] | undefined;
-        columnOrder?: string[] | undefined;
-    } & {
-        [k: string]: unknown;
-    };
-    tableId: string;
-}>;
 type UpdateViewDto = z.infer<typeof updateViewDtoSchema>;
-declare const UpdateViewDto: z.ZodObject<{
-    name: z.ZodOptional<z.ZodString>;
-    config: z.ZodOptional<z.ZodObject<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, "passthrough", z.ZodTypeAny, z.objectOutputType<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, z.ZodTypeAny, "passthrough">, z.objectInputType<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, z.ZodTypeAny, "passthrough">>>;
-}, "strip", z.ZodTypeAny, {
-    name?: string | undefined;
-    config?: z.objectOutputType<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, z.ZodTypeAny, "passthrough"> | undefined;
-}, {
-    name?: string | undefined;
-    config?: z.objectInputType<{
-        hidden: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-        columnOrder: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
-    }, z.ZodTypeAny, "passthrough"> | undefined;
-}>;
-type TColumnType = z.infer<typeof ColumnType>;
-type TDataTable = z.infer<typeof DataTableSchema>;
+type TableQueryFilter = z.infer<typeof tableQueryFilterSchema>;
+type TableQuerySort = z.infer<typeof tableQuerySortSchema>;
+type TableQueryRequest = z.infer<typeof tableQueryRequestSchema>;
+type TableQueryResponse = z.infer<typeof tableQueryResponseSchema>;
 
-export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, type ColumnTypeValue, type CostMetricsResponse, CreateColumnDto, type CreatePublicDashboardRequest, CreateRowDto, type CreateSourceRequest, CreateTableDto, CreateViewDto, type CredentialSummaryItem, type DataTableDto, DataTableSchema, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type MeResponse, type OccupancyMetricsResponse, type Org, PatchCellsDto, type PipelineMetricsResponse, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, ReorderRowsDto, type ReportSnapshot, type Review, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRunResponse, type SourceStatus, type SourceType, type TColumnType, type TDataTable, type TableAuditDto, type TableCellDto, TableCellSchema, type TableColumnDto, TableColumnSchema, type TableRowDto, TableRowSchema, type TableViewDto, TableViewSchema, UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, UpdateViewDto, type User, type WeeklyReportResponse, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };
+export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, ColumnTypeSchema, type ColumnTypeValue, type CostMetricsResponse, type CreateColumnDto, type CreatePublicDashboardRequest, type CreateRowDto, type CreateSourceRequest, type CreateTableDto, type CreateViewDto, type CredentialSummaryItem, type DataTableDto, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type MeResponse, type OccupancyMetricsResponse, type Org, type PatchCellsDto, type PipelineMetricsResponse, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, type ReorderRowsDto, type ReportSnapshot, type Review, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRunResponse, type SourceStatus, type SourceType, type TableAuditDto, type TableCellDto, type TableColumnDto, type TableQueryFilter, type TableQueryRequest, type TableQueryResponse, type TableQuerySort, type TableRowDto, type TableViewDto, type UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, type UpdateViewDto, type User, type WeeklyReportResponse, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableQueryFilterSchema, tableQueryRequestSchema, tableQueryResponseSchema, tableQuerySortSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };
