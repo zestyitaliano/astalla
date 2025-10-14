@@ -4,6 +4,8 @@ import {
   type CreateTableDto,
   type CreateViewDto,
   type DataTableDto,
+  type TableQueryRequest,
+  type TableQueryResponse,
   type TableColumnDto,
   type TableRowDto,
   type TableViewDto,
@@ -40,6 +42,37 @@ type TablesListResponse = DataTableDto[];
 type TableResponse = TableDetail;
 
 const TABLES_API_PATH = "/admin/tables";
+
+function buildTableQueryString(params: TableQueryRequest | undefined) {
+  if (!params) {
+    return "";
+  }
+
+  const searchParams = new URLSearchParams();
+
+  if (params.viewId) {
+    searchParams.set("viewId", params.viewId);
+  }
+
+  if (params.limit !== undefined) {
+    searchParams.set("limit", String(params.limit));
+  }
+
+  if (params.offset !== undefined) {
+    searchParams.set("offset", String(params.offset));
+  }
+
+  if (params.filters?.length) {
+    searchParams.set("filters", JSON.stringify(params.filters));
+  }
+
+  if (params.sorts?.length) {
+    searchParams.set("sorts", JSON.stringify(params.sorts));
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `?${queryString}` : "";
+}
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -156,6 +189,11 @@ async function deleteView(id: string) {
   return request<{ success: boolean }>(`${TABLES_API_PATH}/views/${id}`, {
     method: "DELETE"
   });
+}
+
+async function queryTable(tableId: string, params: TableQueryRequest = {}) {
+  const query = buildTableQueryString(params);
+  return request<TableQueryResponse>(`${TABLES_API_PATH}/${tableId}/query${query}`);
 }
 
 async function exportCsv(tableId: string, viewId?: string) {
@@ -368,6 +406,7 @@ export {
   createView,
   updateView,
   deleteView,
+  queryTable,
   exportCsv,
   importCsv
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Key } from "react";
 import {
   DndContext,
@@ -26,6 +26,7 @@ import {
   getFilteredRowModel,
   useReactTable
 } from "@tanstack/react-table";
+import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
 import {
@@ -42,6 +43,7 @@ import {
 
 import { ColumnTypeSchema, type TableColumnDto, type TableRowDto, type TableViewDto } from "@shared/api";
 import {
+  queryTable,
   useCreateColumnMutation,
   useCreateRowMutation,
   useCreateViewMutation,
@@ -1729,35 +1731,51 @@ interface ReferenceCellEditorProps {
   onCommit: (value: unknown) => void;
 }
 
-type ReferenceOption = { rowId: string; label: string };
+type ReferenceOption = { id: string; label: string };
 
 type ReferenceValue = {
-  tableId?: string | null;
-  rowId?: string | null;
+  id?: string | null;
   label?: string | null;
 };
 
 function parseReferenceValue(value: unknown): ReferenceValue {
-  if (!value || typeof value !== "object") {
-    if (typeof value === "string") {
-      return { label: value };
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return {};
     }
+    return { id: trimmed, label: value };
+  }
+
+  if (typeof value !== "object") {
     return {};
   }
 
   const record = value as Record<string, unknown>;
-  const tableId = typeof record.tableId === "string" ? record.tableId : null;
-  const rowId = typeof record.rowId === "string" ? record.rowId : null;
-  const label =
-    typeof record.label === "string"
-      ? record.label
-      : typeof record.name === "string"
-        ? record.name
-        : typeof record.value === "string"
-          ? record.value
-          : null;
 
-  return { tableId, rowId, label };
+  const idCandidate = [record.id, record.rowId, record.value]
+    .map((candidate) => (typeof candidate === "string" ? candidate.trim() : ""))
+    .find((candidate) => candidate.length > 0);
+
+  const labelCandidate = [
+    record.label,
+    record.name,
+    record.title,
+    record.value,
+    idCandidate
+  ].find((candidate) => typeof candidate === "string" && candidate.trim().length > 0);
+
+  const id = typeof idCandidate === "string" ? idCandidate : null;
+  const label =
+    typeof labelCandidate === "string" && labelCandidate.trim()
+      ? labelCandidate
+      : id ?? null;
+
+  return { id, label };
 }
 
 function buildReferenceOptions(
@@ -1768,117 +1786,251 @@ function buildReferenceOptions(
     return [];
   }
 
-  const columns = table.columns ?? [];
-  let referenceColumn = columns.find((column) => column.id === labelColumnId);
+  return buildReferenceOptionsFromRows(table.rows ?? [], table.columns ?? [], labelColumnId);
+}
 
-  if (!referenceColumn) {
-    referenceColumn = columns.find((column) => column.type === COLUMN_TYPE_ENUM.TEXT);
+function buildReferenceOptionsFromRows(
+  rows: TableRowDto[],
+  columns: TableColumnDto[],
+  labelColumnId?: string | null
+): ReferenceOption[] {
+  if (!rows.length) {
+    return [];
   }
 
-  if (!referenceColumn) {
-    referenceColumn = columns[0];
+  const effectiveColumnId =
+    labelColumnId && columns.some((column) => column.id === labelColumnId)
+      ? labelColumnId
+      : columns.find((column) => column.type === COLUMN_TYPE_ENUM.TEXT)?.id ?? columns[0]?.id;
+
+  const seen = new Set<string>();
+
+  return rows.reduce<ReferenceOption[]>((acc, row, index) => {
+    if (!row.id || seen.has(row.id)) {
+      return acc;
+    }
+
+    const label = resolveReferenceLabel(row, columns, effectiveColumnId, index);
+    acc.push({ id: row.id, label });
+    seen.add(row.id);
+    return acc;
+  }, []);
+}
+
+function resolveReferenceLabel(
+  row: TableRowDto,
+  columns: TableColumnDto[],
+  labelColumnId: string | undefined | null,
+  index: number
+) {
+  if (labelColumnId) {
+    const raw = getCellValue(row, labelColumnId);
+    if (raw !== null && raw !== undefined) {
+      const text = String(raw).trim();
+      if (text) {
+        return text;
+      }
+    }
   }
 
-  const labelColumn = referenceColumn;
+  for (const column of columns) {
+    const raw = getCellValue(row, column.id);
+    if (raw !== null && raw !== undefined) {
+      const text = String(raw).trim();
+      if (text) {
+        return text;
+      }
+    }
+  }
 
-  return (table.rows ?? []).map((row, index) => {
-    const rawValue = labelColumn ? getCellValue(row, labelColumn.id) : null;
-    const label = rawValue === null || rawValue === undefined || rawValue === ""
-      ? `Row ${index + 1}`
-      : String(rawValue);
-    return { rowId: row.id, label };
-  });
+  return row.id ?? `Row ${index + 1}`;
 }
 
 function ReferenceCellEditor({ column, value, onCommit }: ReferenceCellEditorProps) {
   const referenceConfig = parseReferenceConfig(column.config);
   const parsedValue = parseReferenceValue(value);
-  const datalistId = useId();
 
   const [draft, setDraft] = useState(parsedValue.label ?? "");
-  const [selectedRowId, setSelectedRowId] = useState(parsedValue.rowId ?? null);
+  const [selectedId, setSelectedId] = useState(parsedValue.id ?? null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setDraft(parsedValue.label ?? "");
-    setSelectedRowId(parsedValue.rowId ?? null);
-  }, [parsedValue.label, parsedValue.rowId, referenceConfig?.tableId]);
+    setSelectedId(parsedValue.id ?? null);
+  }, [parsedValue.id, parsedValue.label, referenceConfig?.tableId]);
 
-  const { data: referenceTable } = useTable(referenceConfig?.tableId);
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  const options = useMemo(
-    () => buildReferenceOptions(referenceTable, referenceConfig?.labelColumnId),
-    [referenceConfig?.labelColumnId, referenceTable]
+  const tableId = referenceConfig?.tableId ?? null;
+  const { data: referenceTable } = useTable(tableId ?? undefined);
+
+  const referenceColumns = useMemo(() => referenceTable?.columns ?? [], [referenceTable]);
+  const labelColumnId = useMemo(() => {
+    const configured = referenceConfig?.labelColumnId ?? null;
+    if (!referenceColumns.length) {
+      return configured;
+    }
+    if (configured && referenceColumns.some((column) => column.id === configured)) {
+      return configured;
+    }
+    const textColumn = referenceColumns.find((column) => column.type === COLUMN_TYPE_ENUM.TEXT);
+    return textColumn?.id ?? referenceColumns[0]?.id ?? null;
+  }, [referenceColumns, referenceConfig?.labelColumnId]);
+
+  const fallbackOptions = useMemo(
+    () => buildReferenceOptions(referenceTable, labelColumnId),
+    [labelColumnId, referenceTable]
   );
 
-  const filteredOptions = useMemo(() => {
-    const query = draft.trim().toLowerCase();
-    if (!query) {
-      return options;
+  const debouncedQuery = useDebouncedValue(draft, 250);
+  const trimmedQuery = debouncedQuery.trim();
+
+  useEffect(() => {
+    if (!tableId) {
+      setIsMenuOpen(false);
     }
-    return options.filter((option) => option.label.toLowerCase().includes(query));
-  }, [draft, options]);
+  }, [tableId]);
 
-  const commitSelection = useCallback(
-    (option: ReferenceOption | null) => {
-      if (!option) {
-        setSelectedRowId(null);
-        onCommit(null);
-        return;
+  const { data: searchResult, isFetching: isSearching } = useQuery({
+    queryKey: [
+      "tables",
+      tableId ?? "__none__",
+      "reference-options",
+      labelColumnId ?? "__none__",
+      trimmedQuery
+    ],
+    queryFn: async () => {
+      if (!tableId) {
+        return null;
       }
-
-      setSelectedRowId(option.rowId);
-      onCommit({
-        tableId: referenceConfig?.tableId ?? parsedValue.tableId ?? null,
-        rowId: option.rowId,
-        label: option.label
+      const filters =
+        trimmedQuery && labelColumnId
+          ? [{ columnId: labelColumnId, operator: "contains" as const, value: trimmedQuery }]
+          : undefined;
+      return queryTable(tableId, {
+        limit: 20,
+        filters,
+        sorts: labelColumnId ? [{ columnId: labelColumnId, direction: "asc" as const }] : undefined
       });
     },
-    [onCommit, parsedValue.tableId, referenceConfig?.tableId]
+    enabled: Boolean(tableId),
+    staleTime: 30_000
+  });
+
+  const remoteOptions = useMemo(
+    () =>
+      searchResult?.rows
+        ? buildReferenceOptionsFromRows(searchResult.rows, referenceColumns, labelColumnId)
+        : [],
+    [labelColumnId, referenceColumns, searchResult?.rows]
+  );
+
+  const options = useMemo(() => {
+    if (!tableId) {
+      return [];
+    }
+    if (!trimmedQuery) {
+      return fallbackOptions;
+    }
+    if (remoteOptions.length) {
+      return remoteOptions;
+    }
+    return [];
+  }, [fallbackOptions, remoteOptions, tableId, trimmedQuery]);
+
+  const clearSelection = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    setSelectedId(null);
+    onCommit(null);
+  }, [onCommit]);
+
+  const commitSelection = useCallback(
+    (option: ReferenceOption) => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+      setSelectedId(option.id);
+      setDraft(option.label);
+      onCommit({ id: option.id, label: option.label });
+      setIsMenuOpen(false);
+    },
+    [onCommit]
   );
 
   const handleCommit = useCallback(() => {
+    setIsMenuOpen(false);
     const trimmed = draft.trim();
 
     if (!trimmed) {
-      commitSelection(null);
       setDraft("");
+      clearSelection();
       return;
     }
 
-    const exactMatch = options.find((option) => option.label === trimmed);
-    const fallback =
-      selectedRowId ? options.find((option) => option.rowId === selectedRowId) : null;
+    const normalized = trimmed.toLowerCase();
+    const exactMatch = options.find((option) => option.label.toLowerCase() === normalized);
 
     if (exactMatch) {
       commitSelection(exactMatch);
-      setDraft(exactMatch.label);
       return;
     }
 
-    if (fallback) {
-      commitSelection(fallback);
-      setDraft(fallback.label);
-      return;
+    if (selectedId) {
+      const fallback = [...options, ...fallbackOptions].find((option) => option.id === selectedId);
+      if (fallback) {
+        commitSelection(fallback);
+        return;
+      }
     }
 
-    if (selectedRowId && parsedValue.label && trimmed === parsedValue.label) {
-      commitSelection({ rowId: selectedRowId, label: parsedValue.label });
-      setDraft(parsedValue.label);
-      return;
+    clearSelection();
+    setDraft(trimmed);
+  }, [clearSelection, commitSelection, draft, fallbackOptions, options, selectedId]);
+
+  const handleFocus = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
     }
+    setIsMenuOpen(true);
+  }, []);
 
-    commitSelection(null);
-  }, [commitSelection, draft, options, parsedValue.label, selectedRowId]);
+  const handleBlur = useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    blurTimeoutRef.current = setTimeout(() => {
+      handleCommit();
+    }, 120);
+  }, [handleCommit]);
 
-  if (!referenceConfig?.tableId) {
+  const displayedOptions = options;
+  const hasQuery = trimmedQuery.length > 0;
+  const showEmptyState = hasQuery && !displayedOptions.length && !isSearching;
+
+  if (!tableId) {
     return (
       <Input
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => onCommit(draft)}
+        autoComplete="off"
+        onBlur={() => {
+          const trimmed = draft.trim();
+          onCommit(trimmed || null);
+        }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
-            onCommit(draft);
+            const trimmed = draft.trim();
+            onCommit(trimmed || null);
           }
         }}
         className="h-8"
@@ -1889,25 +2041,71 @@ function ReferenceCellEditor({ column, value, onCommit }: ReferenceCellEditorPro
   return (
     <div className="relative flex-1">
       <Input
-        list={datalistId}
         value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={handleCommit}
+        autoComplete="off"
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          setSelectedId(null);
+          if (!isMenuOpen) {
+            setIsMenuOpen(true);
+          }
+        }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
             handleCommit();
           }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setIsMenuOpen(false);
+          }
         }}
-        placeholder={referenceTable ? `Search ${referenceTable.name}` : "Search records"}
         className="h-8"
+        placeholder={referenceColumns.length ? "Search…" : "Select"}
       />
-      <datalist id={datalistId}>
-        {filteredOptions.map((option) => (
-          <option key={option.rowId} value={option.label} />
-        ))}
-      </datalist>
+      {isMenuOpen ? (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-auto rounded-xl border border-border/70 bg-card shadow-card">
+          {isSearching ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
+          ) : null}
+          {displayedOptions.length ? (
+            displayedOptions.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={cn(
+                  "flex w-full items-center justify-start px-3 py-1.5 text-left text-sm",
+                  option.id === selectedId ? "bg-muted" : "hover:bg-muted/70"
+                )}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  commitSelection(option);
+                }}
+              >
+                {option.label}
+              </button>
+            ))
+          ) : showEmptyState ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">No matches found</div>
+          ) : (
+            <div className="px-3 py-2 text-xs text-muted-foreground">Start typing to search…</div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
 }
 
