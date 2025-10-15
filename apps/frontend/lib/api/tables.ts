@@ -41,7 +41,7 @@ type TablesListResponse = DataTableDto[];
 
 type TableResponse = TableDetail;
 
-const TABLES_API_PATH = "/api/tables";
+const TABLES_API_PATH = "/admin/tables";
 
 function buildTableQueryString(params: TableQueryRequest | undefined) {
   if (!params) {
