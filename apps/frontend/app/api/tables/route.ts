@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const targetUrl = new URL("/tables", backendBase);
+  const targetUrl = new URL("/admin/tables", backendBase);
   const headers = new Headers();
   headers.set("content-type", "application/json");
 
