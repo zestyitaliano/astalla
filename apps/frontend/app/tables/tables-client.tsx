@@ -39,7 +39,7 @@ export function TablesClient({ canManage }: TablesClientProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="rounded-3xl border border-border bg-card/80 p-4 shadow-card">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground">Tables</h2>
