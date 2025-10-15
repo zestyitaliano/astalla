@@ -17,7 +17,8 @@ function normalizeUrl(value: string | undefined) {
 
   try {
     const url = new URL(value);
-    return url.toString();
+    const normalized = url.toString().replace(/\/+$/, "");
+    return normalized;
   } catch (error) {
     console.warn("Invalid URL provided for NEXT_PUBLIC_API_BASE_URL", error);
     return null;
