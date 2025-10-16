@@ -10,6 +10,7 @@ import {
   type TableRowDto,
   type TableViewDto,
   type UpdateColumnDto,
+  type UpdateTableDto,
   type UpdateViewDto
 } from "@shared/api";
 
@@ -120,6 +121,13 @@ async function getTable(id: string) {
 async function createTable(payload: CreateTableDto) {
   return request<DataTableDto>(`${TABLES_API_PATH}`, {
     method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+async function updateTable(id: string, payload: UpdateTableDto) {
+  return request<DataTableDto>(`${TABLES_API_PATH}/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(payload)
   });
 }
@@ -293,6 +301,18 @@ export function useCreateTableMutation() {
   });
 }
 
+export function useUpdateTableMutation(tableId: string) {
+  const invalidateList = useInvalidateTableList();
+  const invalidateDetail = useInvalidateTableDetail();
+  return useMutation({
+    mutationFn: (payload: UpdateTableDto) => updateTable(tableId, payload),
+    onSuccess: () => {
+      invalidateList();
+      invalidateDetail(tableId);
+    }
+  });
+}
+
 export function useDeleteTableMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -411,6 +431,7 @@ export function useImportCsvMutation(tableId: string) {
 
 export {
   createTable,
+  updateTable,
   deleteTable,
   listTables,
   getTable,
