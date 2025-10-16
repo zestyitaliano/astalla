@@ -33,6 +33,7 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  Copy,
   Filter,
   FolderPlus,
   Plus,
@@ -491,11 +492,16 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [importSummary, setImportSummary] = useState<{ createdColumns: number; createdRows: number } | null>(null);
   const [importToast, setImportToast] = useState<string | null>(null);
   const importToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
+  const copyStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (importToastTimerRef.current) {
         clearTimeout(importToastTimerRef.current);
+      }
+      if (copyStatusTimerRef.current) {
+        clearTimeout(copyStatusTimerRef.current);
       }
     };
   }, []);
@@ -1139,6 +1145,25 @@ export function TableGrid({ tableId }: TableGridProps) {
   const hasColumns = columns.length > 0;
   const hasRows = gridRows.length > 0;
 
+  const handleCopyId = useCallback(async () => {
+    if (!data?.id) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(data.id);
+      setCopyStatus("copied");
+      if (copyStatusTimerRef.current) {
+        clearTimeout(copyStatusTimerRef.current);
+      }
+      copyStatusTimerRef.current = setTimeout(() => {
+        setCopyStatus("idle");
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy table id", error);
+    }
+  }, [data?.id]);
+
   if (isLoading) {
     return (
       <div className="flex h-[480px] items-center justify-center rounded-3xl border border-border bg-card/80 shadow-card">
@@ -1153,6 +1178,33 @@ export function TableGrid({ tableId }: TableGridProps) {
 
   return (
     <div className="flex h-full flex-col gap-4">
+      <div className="rounded-3xl border border-border/70 bg-card/80 p-4 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold text-text">{data.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="uppercase tracking-wide">ID</span>
+              <code className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                {data.id}
+              </code>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={handleCopyId}
+          >
+            {copyStatus === "copied" ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : (
+              <Copy className="mr-2 h-4 w-4" />
+            )}
+            <span aria-live="polite">{copyStatus === "copied" ? "Copied!" : "Copy ID"}</span>
+          </Button>
+        </div>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <ViewMenu
           views={views}
