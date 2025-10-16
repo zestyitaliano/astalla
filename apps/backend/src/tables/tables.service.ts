@@ -13,6 +13,7 @@ import {
   type TableQueryResponse,
   type TableQuerySort,
   UpdateColumnDto,
+  UpdateTableDto,
   UpdateViewDto
 } from "@shared/api";
 
@@ -70,6 +71,53 @@ export class TablesService {
     await this.logAudit(this.prisma, table.id, actorId, "CREATE_TABLE", { tableId: table.id });
 
     return table;
+  }
+
+  async updateTable(orgId: string, id: string, actorId: string | null, dto: UpdateTableDto) {
+    const data: Prisma.DataTableUpdateInput = {};
+    const changes: Record<string, unknown> = {};
+
+    if (dto.name !== undefined) {
+      data.name = dto.name;
+      changes.name = dto.name;
+    }
+
+    if (dto.description !== undefined) {
+      const description = dto.description ?? null;
+      data.description = description;
+      changes.description = description;
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const table = await tx.dataTable.findFirst({
+          where: { id, orgId },
+          select: { id: true }
+        });
+
+        if (!table) {
+          throw new NotFoundException("Table not found");
+        }
+
+        const updated = await tx.dataTable.update({
+          where: { id: table.id },
+          data
+        });
+
+        await this.logAudit(tx, updated.id, actorId, "UPDATE_TABLE", {
+          tableId: updated.id,
+          changes
+        });
+
+        return updated;
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new BadRequestException("A table with that name already exists for this organization");
+      }
+
+      throw error;
+    }
   }
 
   listTables(orgId: string) {
