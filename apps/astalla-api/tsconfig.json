@@ -11,7 +11,12 @@
     "rootDir": "src",
     "resolveJsonModule": true,
     "lib": ["es2022", "dom"],
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@shared/api": ["../../packages/shared/dist/index.d.ts"],
+      "@shared/api/*": ["../../packages/shared/dist/*.d.ts"]
+    }
   },
   "include": ["src"]
 }

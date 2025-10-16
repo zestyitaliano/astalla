@@ -1,8 +1,9 @@
 import express, { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import FormData from 'form-data';
-import { createHmac, randomUUID } from 'crypto';
+import { createHmac, createHash, randomUUID } from 'crypto';
 import { Site } from './types.js';
+import { getSchemaGraphForUser } from './schemaRegistry/registry.js';
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -10,6 +11,10 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.json());
 
 const sites = new Map<string, Site>();
+
+const computeEtag = (payload: string): string => {
+  return `"${createHash('sha256').update(payload).digest('base64')}"`;
+};
 
 type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
@@ -33,6 +38,25 @@ const requireSite = (id: string): Site => {
 
 app.get('/sites', (req, res) => {
   res.json(Array.from(sites.values()));
+});
+
+app.get('/api/schema/registry', (req, res) => {
+  const userId = (req as any).user?.id ?? req.header('x-user-id') ?? 'dev-user';
+  const graph = getSchemaGraphForUser(userId);
+  const payload = JSON.stringify(graph);
+  const etag = computeEtag(payload);
+
+  if (req.headers['if-none-match'] === etag) {
+    res.status(304).setHeader('ETag', etag).end();
+    return;
+  }
+
+  res
+    .status(200)
+    .setHeader('Content-Type', 'application/json')
+    .setHeader('Cache-Control', 'no-cache')
+    .setHeader('ETag', etag)
+    .send(payload);
 });
 
 app.post('/sites', (req, res) => {
@@ -160,7 +184,7 @@ app.post(
         'Content-Length': buffer.length.toString(),
         'x-astalla-signature': signBody(site.secret, buffer),
       },
-      body: buffer,
+      body: buffer as any,
     });
 
     const text = await response.text();
