@@ -25,6 +25,7 @@ import {
   type TableQueryRequest,
   type TableQuerySort,
   UpdateColumnDto,
+  UpdateTableDto,
   UpdateViewDto
 } from "@shared/api";
 import type { Response } from "express";
@@ -51,6 +52,13 @@ export class TablesController {
     const orgId = this.getOrgId();
     const actorId = this.getActorId();
     return this.tablesService.createTable(orgId, actorId, dto);
+  }
+
+  @Patch(":id")
+  update(@Param("id") id: string, @Body() dto: UpdateTableDto) {
+    const orgId = this.getOrgId();
+    const actorId = this.getActorId();
+    return this.tablesService.updateTable(orgId, id, actorId, dto);
   }
 
   @Get(":id")
