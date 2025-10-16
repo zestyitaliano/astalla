@@ -124,6 +124,12 @@ async function createTable(payload: CreateTableDto) {
   });
 }
 
+async function deleteTable(id: string) {
+  return request<void>(`${TABLES_API_PATH}/${id}`, {
+    method: "DELETE"
+  });
+}
+
 async function createColumn(tableId: string, payload: Omit<CreateColumnDto, "tableId">) {
   return request<TableColumnDto>(`${TABLES_API_PATH}/${tableId}/columns`, {
     method: "POST",
@@ -287,6 +293,17 @@ export function useCreateTableMutation() {
   });
 }
 
+export function useDeleteTableMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteTable(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: tableKeys.list() });
+      queryClient.invalidateQueries({ queryKey: tableKeys.detail(id) });
+    }
+  });
+}
+
 export function useCreateColumnMutation(tableId: string) {
   const invalidate = useInvalidateTableDetail();
   return useMutation({
@@ -394,6 +411,7 @@ export function useImportCsvMutation(tableId: string) {
 
 export {
   createTable,
+  deleteTable,
   listTables,
   getTable,
   createColumn,

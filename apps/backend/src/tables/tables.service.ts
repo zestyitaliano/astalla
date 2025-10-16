@@ -106,6 +106,23 @@ export class TablesService {
     return table;
   }
 
+  async deleteTable(orgId: string, id: string, actorId?: string | null) {
+    await this.prisma.$transaction(async (tx) => {
+      const table = await tx.dataTable.findFirst({
+        where: { id, orgId },
+        select: { id: true }
+      });
+
+      if (!table) {
+        throw new NotFoundException("Table not found");
+      }
+
+      await tx.dataTable.delete({ where: { id: table.id } });
+
+      await this.logAudit(tx, table.id, actorId, "DELETE_TABLE", { tableId: table.id });
+    });
+  }
+
   async createColumn(orgId: string, dto: CreateColumnDto, actorId?: string | null) {
     return this.prisma.$transaction(async (tx) => {
       const table = await tx.dataTable.findFirst({

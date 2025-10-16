@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -56,6 +57,14 @@ export class TablesController {
   getTable(@Param("id") id: string) {
     const orgId = this.getOrgId();
     return this.tablesService.getTable(orgId, id);
+  }
+
+  @Delete(":id")
+  @HttpCode(204)
+  async deleteTable(@Param("id") id: string) {
+    const orgId = this.getOrgId();
+    const actorId = this.getActorId();
+    await this.tablesService.deleteTable(orgId, id, actorId);
   }
 
   @Get(":id/query")

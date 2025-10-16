@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 
-import { useTables } from "@/lib/api/tables";
+import { useDeleteTableMutation, useTables } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TableGrid } from "@/components/tables/TableGrid";
@@ -18,6 +18,7 @@ export function TablesClient({ canManage }: TablesClientProps) {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const deleteTableMutation = useDeleteTableMutation();
 
   useEffect(() => {
     if (!selectedTableId && data && data.length) {
@@ -35,6 +36,31 @@ export function TablesClient({ canManage }: TablesClientProps) {
     }
     return data.filter((table) => table.name.toLowerCase().includes(query));
   }, [data, search]);
+
+  const handleDeleteTable = async () => {
+    if (!selectedTableId) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this table? This action cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const tableId = selectedTableId;
+
+    try {
+      await deleteTableMutation.mutateAsync(tableId);
+      const remainingTables = (data ?? []).filter((table) => table.id !== tableId);
+      setSelectedTableId(remainingTables[0]?.id ?? null);
+    } catch (error) {
+      console.error(error);
+      window.alert(error instanceof Error ? error.message : "Failed to delete table");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,7 +124,22 @@ export function TablesClient({ canManage }: TablesClientProps) {
         </div>
         <div className="space-y-4">
           {selectedTableId ? (
-            <TableGrid tableId={selectedTableId} />
+            <>
+              {canManage ? (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDeleteTable}
+                    disabled={deleteTableMutation.isPending}
+                    className="rounded-full"
+                  >
+                    Delete table
+                  </Button>
+                </div>
+              ) : null}
+              <TableGrid tableId={selectedTableId} />
+            </>
           ) : (
             <div className="flex h-[480px] items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/80 p-10 text-center shadow-card">
               <div className="space-y-3">
