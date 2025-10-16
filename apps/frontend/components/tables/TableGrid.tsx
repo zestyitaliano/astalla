@@ -493,7 +493,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [importToast, setImportToast] = useState<string | null>(null);
   const importToastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
-  const copyStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const copyStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -1156,7 +1156,7 @@ export function TableGrid({ tableId }: TableGridProps) {
       if (copyStatusTimerRef.current) {
         clearTimeout(copyStatusTimerRef.current);
       }
-      copyStatusTimerRef.current = window.setTimeout(() => {
+      copyStatusTimerRef.current = setTimeout(() => {
         setCopyStatus("idle");
       }, 2000);
     } catch (error) {
