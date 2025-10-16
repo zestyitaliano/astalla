@@ -313,14 +313,18 @@ export function useCreateTableMutation() {
   });
 }
 
-export function useUpdateTableMutation(tableId: string) {
+export function useUpdateTableMutation() {
   const invalidateList = useInvalidateTableList();
   const invalidateDetail = useInvalidateTableDetail();
   return useMutation({
-    mutationFn: (payload: UpdateTableDto) => updateTable(tableId, payload),
-    onSuccess: () => {
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateTableDto }) => updateTable(id, payload),
+    onSuccess: (_, variables) => {
+      if (!variables) {
+        return;
+      }
+
       invalidateList();
-      invalidateDetail(tableId);
+      invalidateDetail(variables.id);
     }
   });
 }
