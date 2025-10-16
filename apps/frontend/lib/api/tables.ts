@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UseMutationResult } from "@tanstack/react-query";
 import {
   type CreateColumnDto,
   type CreateTableDto,
@@ -10,6 +11,7 @@ import {
   type TableRowDto,
   type TableViewDto,
   type UpdateColumnDto,
+  type UpdateTableDto,
   type UpdateViewDto
 } from "@shared/api";
 
@@ -41,7 +43,19 @@ type TablesListResponse = DataTableDto[];
 
 type TableResponse = TableDetail;
 
+type UpdateTableMutationVariables = { id: string; payload: UpdateTableDto };
+type UpdateTableMutationInput = UpdateTableDto | UpdateTableMutationVariables;
+
 const TABLES_API_PATH = "/admin/tables";
+
+function isUpdateTableMutationVariables(value: UpdateTableMutationInput): value is UpdateTableMutationVariables {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<UpdateTableMutationVariables>;
+  return typeof candidate.id === "string" && candidate.payload !== undefined;
+}
 
 function buildTableQueryString(params: TableQueryRequest | undefined) {
   if (!params) {
@@ -120,6 +134,13 @@ async function getTable(id: string) {
 async function createTable(payload: CreateTableDto) {
   return request<DataTableDto>(`${TABLES_API_PATH}`, {
     method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+async function updateTable(id: string, payload: UpdateTableDto) {
+  return request<DataTableDto>(`${TABLES_API_PATH}/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(payload)
   });
 }
@@ -293,6 +314,43 @@ export function useCreateTableMutation() {
   });
 }
 
+type UpdateTableMutationResult<TVariables> = UseMutationResult<DataTableDto, Error, TVariables>;
+
+export function useUpdateTableMutation(tableId: string): UpdateTableMutationResult<UpdateTableDto>;
+export function useUpdateTableMutation(): UpdateTableMutationResult<UpdateTableMutationVariables>;
+export function useUpdateTableMutation(tableId?: string) {
+  const invalidateList = useInvalidateTableList();
+  const invalidateDetail = useInvalidateTableDetail();
+
+  const mutation = useMutation<DataTableDto, Error, UpdateTableMutationInput>({
+    mutationFn: (variables) => {
+      if (isUpdateTableMutationVariables(variables)) {
+        return updateTable(variables.id, variables.payload);
+      }
+
+      if (!tableId) {
+        throw new Error("Missing table id for updateTable mutation");
+      }
+
+      return updateTable(tableId, variables);
+    },
+    onSuccess: (_, variables) => {
+      invalidateList();
+
+      const id = tableId ?? (isUpdateTableMutationVariables(variables) ? variables.id : undefined);
+      if (id) {
+        invalidateDetail(id);
+      }
+    }
+  });
+
+  if (tableId) {
+    return mutation as UpdateTableMutationResult<UpdateTableDto>;
+  }
+
+  return mutation as UpdateTableMutationResult<UpdateTableMutationVariables>;
+}
+
 export function useDeleteTableMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -411,6 +469,7 @@ export function useImportCsvMutation(tableId: string) {
 
 export {
   createTable,
+  updateTable,
   deleteTable,
   listTables,
   getTable,
