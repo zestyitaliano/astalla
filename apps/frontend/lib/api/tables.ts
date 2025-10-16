@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UseMutationResult } from "@tanstack/react-query";
 import {
   type CreateColumnDto,
   type CreateTableDto,
@@ -42,12 +43,19 @@ type TablesListResponse = DataTableDto[];
 
 type TableResponse = TableDetail;
 
-type UpdateTableDto = {
-  name?: string;
-  description?: string | null;
-};
+type UpdateTableMutationVariables = { id: string; payload: UpdateTableDto };
+type UpdateTableMutationInput = UpdateTableDto | UpdateTableMutationVariables;
 
 const TABLES_API_PATH = "/admin/tables";
+
+function isUpdateTableMutationVariables(value: UpdateTableMutationInput): value is UpdateTableMutationVariables {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<UpdateTableMutationVariables>;
+  return typeof candidate.id === "string" && candidate.payload !== undefined;
+}
 
 function buildTableQueryString(params: TableQueryRequest | undefined) {
   if (!params) {
@@ -313,20 +321,41 @@ export function useCreateTableMutation() {
   });
 }
 
-export function useUpdateTableMutation() {
+type UpdateTableMutationResult<TVariables> = UseMutationResult<DataTableDto, Error, TVariables>;
+
+export function useUpdateTableMutation(tableId: string): UpdateTableMutationResult<UpdateTableDto>;
+export function useUpdateTableMutation(): UpdateTableMutationResult<UpdateTableMutationVariables>;
+export function useUpdateTableMutation(tableId?: string) {
   const invalidateList = useInvalidateTableList();
   const invalidateDetail = useInvalidateTableDetail();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateTableDto }) => updateTable(id, payload),
-    onSuccess: (_, variables) => {
-      if (!variables) {
-        return;
+
+  const mutation = useMutation<DataTableDto, Error, UpdateTableMutationInput>({
+    mutationFn: (variables) => {
+      if (isUpdateTableMutationVariables(variables)) {
+        return updateTable(variables.id, variables.payload);
       }
 
+      if (!tableId) {
+        throw new Error("Missing table id for updateTable mutation");
+      }
+
+      return updateTable(tableId, variables);
+    },
+    onSuccess: (_, variables) => {
       invalidateList();
-      invalidateDetail(variables.id);
+
+      const id = tableId ?? (isUpdateTableMutationVariables(variables) ? variables.id : undefined);
+      if (id) {
+        invalidateDetail(id);
+      }
     }
   });
+
+  if (tableId) {
+    return mutation as UpdateTableMutationResult<UpdateTableDto>;
+  }
+
+  return mutation as UpdateTableMutationResult<UpdateTableMutationVariables>;
 }
 
 export function useDeleteTableMutation() {
