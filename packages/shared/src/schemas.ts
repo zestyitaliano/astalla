@@ -459,6 +459,15 @@ export const createTableDtoSchema = z.object({
   description: z.string().optional()
 });
 
+export const updateTableDtoSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    description: z.string().nullable().optional()
+  })
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: "Update payload cannot be empty"
+  });
+
 export const createColumnDtoSchema = z.object({
   tableId: z.string(),
   name: z.string().min(1),
@@ -612,6 +621,7 @@ export type TableViewDto = z.infer<typeof tableViewDtoSchema>;
 export type DataTableDto = z.infer<typeof dataTableDtoSchema>;
 export type TableAuditDto = z.infer<typeof tableAuditDtoSchema>;
 export type CreateTableDto = z.infer<typeof createTableDtoSchema>;
+export type UpdateTableDto = z.infer<typeof updateTableDtoSchema>;
 export type CreateColumnDto = z.infer<typeof createColumnDtoSchema>;
 export type UpdateColumnDto = z.infer<typeof updateColumnDtoSchema>;
 export type CreateRowDto = z.infer<typeof createRowDtoSchema>;

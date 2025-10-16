@@ -83,6 +83,7 @@ __export(index_exports, {
   updateColumnDtoSchema: () => updateColumnDtoSchema,
   updatePublicDashboardRequestSchema: () => updatePublicDashboardRequestSchema,
   updateSourceRequestSchema: () => updateSourceRequestSchema,
+  updateTableDtoSchema: () => updateTableDtoSchema,
   updateViewDtoSchema: () => updateViewDtoSchema,
   userSchema: () => userSchema,
   weeklyReportSchema: () => weeklyReportSchema
@@ -483,6 +484,12 @@ var createTableDtoSchema = import_zod.z.object({
   name: import_zod.z.string().min(1),
   description: import_zod.z.string().optional()
 });
+var updateTableDtoSchema = import_zod.z.object({
+  name: import_zod.z.string().min(1).optional(),
+  description: import_zod.z.string().nullable().optional()
+}).refine((payload) => Object.keys(payload).length > 0, {
+  message: "Update payload cannot be empty"
+});
 var createColumnDtoSchema = import_zod.z.object({
   tableId: import_zod.z.string(),
   name: import_zod.z.string().min(1),
@@ -632,6 +639,7 @@ var tableQueryResponseSchema = import_zod.z.object({
   updateColumnDtoSchema,
   updatePublicDashboardRequestSchema,
   updateSourceRequestSchema,
+  updateTableDtoSchema,
   updateViewDtoSchema,
   userSchema,
   weeklyReportSchema

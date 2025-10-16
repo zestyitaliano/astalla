@@ -513,7 +513,7 @@ model DataTable {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  @@index([orgId, name])
+  @@unique([orgId, name])
 }
 
 model TableColumn {
