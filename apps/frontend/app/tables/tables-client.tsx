@@ -108,11 +108,13 @@ export function TablesClient({ canManage }: TablesClientProps) {
                           ? "border-primary bg-primary/10 text-primary shadow-cardHover"
                           : "border-border/60 bg-card/80 text-text hover:border-primary/50 hover:shadow-card"
                       }`}
+                      title={`ID: ${table.id}`}
                     >
                       <div className="font-medium">{table.name}</div>
                       {table.description ? (
                         <div className="text-xs text-muted-foreground">{table.description}</div>
                       ) : null}
+                      <div className="mt-1 text-[11px] font-mono text-muted-foreground/80">ID: {table.id}</div>
                     </button>
                   );
                 })
