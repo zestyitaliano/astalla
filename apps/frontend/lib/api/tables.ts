@@ -42,6 +42,11 @@ type TablesListResponse = DataTableDto[];
 
 type TableResponse = TableDetail;
 
+type UpdateTableDto = {
+  name?: string;
+  description?: string | null;
+};
+
 const TABLES_API_PATH = "/admin/tables";
 
 function buildTableQueryString(params: TableQueryRequest | undefined) {
@@ -135,6 +140,13 @@ async function updateTable(id: string, payload: UpdateTableDto) {
 async function deleteTable(id: string) {
   return request<void>(`${TABLES_API_PATH}/${id}`, {
     method: "DELETE"
+  });
+}
+
+async function updateTable(id: string, payload: UpdateTableDto) {
+  return request<DataTableDto>(`${TABLES_API_PATH}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
   });
 }
 
@@ -320,6 +332,17 @@ export function useDeleteTableMutation() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: tableKeys.list() });
       queryClient.invalidateQueries({ queryKey: tableKeys.detail(id) });
+    }
+  });
+}
+
+export function useUpdateTableMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateTableDto }) => updateTable(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: tableKeys.list() });
+      queryClient.invalidateQueries({ queryKey: tableKeys.detail(variables.id) });
     }
   });
 }

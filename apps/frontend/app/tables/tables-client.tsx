@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { Edit3, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 
-import { useDeleteTableMutation, useTables } from "@/lib/api/tables";
+import { useDeleteTableMutation, useTables, useUpdateTableMutation } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { TableGrid } from "@/components/tables/TableGrid";
 import { TablesCreateModal } from "@/components/tables/TablesCreateModal";
+import type { DataTableDto } from "@shared/api";
 
 interface TablesClientProps {
   canManage: boolean;
@@ -18,7 +26,16 @@ export function TablesClient({ canManage }: TablesClientProps) {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const deleteTableMutation = useDeleteTableMutation();
+  const updateTableMutation = useUpdateTableMutation();
+
+  const selectedTable = useMemo(() => {
+    if (!data || !selectedTableId) {
+      return null;
+    }
+    return data.find((table) => table.id === selectedTableId) ?? null;
+  }, [data, selectedTableId]);
 
   useEffect(() => {
     if (!selectedTableId && data && data.length) {
@@ -59,6 +76,20 @@ export function TablesClient({ canManage }: TablesClientProps) {
     } catch (error) {
       console.error(error);
       window.alert(error instanceof Error ? error.message : "Failed to delete table");
+    }
+  };
+
+  const handleRenameTable = async (payload: { name: string; description: string | null }) => {
+    if (!selectedTableId) {
+      return;
+    }
+
+    try {
+      await updateTableMutation.mutateAsync({ id: selectedTableId, payload });
+      setIsRenameDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      window.alert(error instanceof Error ? error.message : "Failed to rename table");
     }
   };
 
@@ -127,19 +158,47 @@ export function TablesClient({ canManage }: TablesClientProps) {
         <div className="space-y-4">
           {selectedTableId ? (
             <>
-              {canManage ? (
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={handleDeleteTable}
-                    disabled={deleteTableMutation.isPending}
-                    className="rounded-full"
-                  >
-                    Delete table
-                  </Button>
-                </div>
-              ) : null}
+              <div className="flex justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full border border-border/60 bg-card/80 shadow-sm"
+                      disabled={!selectedTableId}
+                      aria-label="Table actions"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="min-w-[10rem]" align="end">
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        if (!canManage) {
+                          return;
+                        }
+                        setIsRenameDialogOpen(true);
+                      }}
+                      disabled={!canManage}
+                    >
+                      <Edit3 className="mr-2 h-4 w-4" /> Rename table…
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        if (!canManage) {
+                          return;
+                        }
+                        void handleDeleteTable();
+                      }}
+                      disabled={!canManage || deleteTableMutation.isPending}
+                      className="text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete table…
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <TableGrid tableId={selectedTableId} />
             </>
           ) : (
@@ -162,6 +221,104 @@ export function TablesClient({ canManage }: TablesClientProps) {
         onOpenChange={setIsModalOpen}
         onCreated={(tableId) => setSelectedTableId(tableId)}
       />
+      <RenameTableDialog
+        open={isRenameDialogOpen && Boolean(selectedTable)}
+        table={selectedTable}
+        onOpenChange={(next) => setIsRenameDialogOpen(next)}
+        onSubmit={handleRenameTable}
+        isSubmitting={updateTableMutation.isPending}
+      />
     </div>
+  );
+}
+
+interface RenameTableDialogProps {
+  open: boolean;
+  table: DataTableDto | null;
+  onOpenChange: (next: boolean) => void;
+  onSubmit: (payload: { name: string; description: string | null }) => void | Promise<void>;
+  isSubmitting: boolean;
+}
+
+function RenameTableDialog({ open, table, onOpenChange, onSubmit, isSubmitting }: RenameTableDialogProps) {
+  const [mounted, setMounted] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (open && table) {
+      setName(table.name ?? "");
+      setDescription(table.description ?? "");
+    }
+  }, [open, table?.name, table?.description, table]);
+
+  if (!mounted || !open || !table) {
+    return null;
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!name.trim()) {
+      return;
+    }
+
+    await onSubmit({
+      name: name.trim(),
+      description: description.trim() ? description.trim() : null
+    });
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 px-4 backdrop-blur">
+      <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-xl">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-text">Rename table</h3>
+          <p className="text-sm text-muted-foreground">
+            Update the table name and description to help your team identify it.
+          </p>
+        </div>
+        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-text" htmlFor="table-name">
+              Table name
+            </label>
+            <Input
+              id="table-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. Growth experiments"
+              autoFocus
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-text" htmlFor="table-description">
+              Description (optional)
+            </label>
+            <textarea
+              id="table-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Add a short summary for your teammates"
+              className="min-h-[96px] w-full rounded-2xl border border-border/60 bg-card/80 px-3 py-2 text-sm text-text shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !name.trim()}>
+              {isSubmitting ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
   );
 }
