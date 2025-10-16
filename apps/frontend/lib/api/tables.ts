@@ -151,13 +151,6 @@ async function deleteTable(id: string) {
   });
 }
 
-async function updateTable(id: string, payload: UpdateTableDto) {
-  return request<DataTableDto>(`${TABLES_API_PATH}/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload)
-  });
-}
-
 async function createColumn(tableId: string, payload: Omit<CreateColumnDto, "tableId">) {
   return request<TableColumnDto>(`${TABLES_API_PATH}/${tableId}/columns`, {
     method: "POST",
@@ -365,17 +358,6 @@ export function useDeleteTableMutation() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: tableKeys.list() });
       queryClient.invalidateQueries({ queryKey: tableKeys.detail(id) });
-    }
-  });
-}
-
-export function useUpdateTableMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateTableDto }) => updateTable(id, payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: tableKeys.list() });
-      queryClient.invalidateQueries({ queryKey: tableKeys.detail(variables.id) });
     }
   });
 }
