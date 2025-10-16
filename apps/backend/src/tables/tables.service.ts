@@ -96,6 +96,10 @@ export class TablesService {
       changes.description = description;
     }
 
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException("Update payload must include at least one field");
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const table = await tx.dataTable.findFirst({
