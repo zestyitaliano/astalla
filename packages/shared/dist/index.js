@@ -392,6 +392,12 @@ var createTableDtoSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional()
 });
+var updateTableDtoSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().nullable().optional()
+}).refine((payload) => Object.keys(payload).length > 0, {
+  message: "Update payload cannot be empty"
+});
 var createColumnDtoSchema = z.object({
   tableId: z.string(),
   name: z.string().min(1),
@@ -540,6 +546,7 @@ export {
   updateColumnDtoSchema,
   updatePublicDashboardRequestSchema,
   updateSourceRequestSchema,
+  updateTableDtoSchema,
   updateViewDtoSchema,
   userSchema,
   weeklyReportSchema
