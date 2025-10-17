@@ -4,11 +4,14 @@ import FormData from 'form-data';
 import { createHmac, createHash, randomUUID } from 'crypto';
 import { Site } from './types.js';
 import { getSchemaGraphForUser } from './schemaRegistry/registry.js';
+import { registerReferenceRoutes } from './routes/references.js';
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.json());
+
+registerReferenceRoutes(app);
 
 const sites = new Map<string, Site>();
 

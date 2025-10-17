@@ -1,0 +1,42 @@
+import type { Application, Request, Response } from 'express';
+import { Router } from 'express';
+import { getSchemaGraphForUser } from '../schemaRegistry/registry.js';
+import { buildSchemaCandidates, rankReferences, type ReferenceCursorContext } from '../references/ranker.js';
+
+interface SuggestRequestBody {
+  cursorContext?: ReferenceCursorContext;
+  tokensSoFar?: string;
+}
+
+export const registerReferenceRoutes = (app: Application): void => {
+  const router = Router();
+
+  router.post('/suggest', (req: Request, res: Response) => {
+    const body = (req.body ?? {}) as SuggestRequestBody;
+
+    if (typeof body.tokensSoFar !== 'string') {
+      res.status(400).json({ message: '"tokensSoFar" must be a string.' });
+      return;
+    }
+
+    const tokensSoFar = body.tokensSoFar;
+
+    if (tokensSoFar.trim().length === 0) {
+      res.status(200).json({ suggestions: [] });
+      return;
+    }
+
+    const userId = (req as any).user?.id ?? req.header('x-user-id') ?? 'dev-user';
+    const graph = getSchemaGraphForUser(userId);
+    const candidates = buildSchemaCandidates(graph.tables);
+    const suggestions = rankReferences({
+      candidates,
+      tokensSoFar,
+      cursorContext: body.cursorContext,
+    });
+
+    res.json({ suggestions });
+  });
+
+  app.use('/api/references', router);
+};
