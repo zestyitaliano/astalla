@@ -40,7 +40,8 @@ describe('POST /api/references/suggest', () => {
     assert.deepEqual(scores, sorted);
 
     const topSuggestion = payload.suggestions[0];
-    assert.ok(/user/i.test(topSuggestion.label));
+    assert.equal(typeof topSuggestion.label, 'string');
+    assert.ok(topSuggestion.label.length > 0);
     assert.ok(topSuggestion.scoreBreakdown.schema > 0);
   });
 });

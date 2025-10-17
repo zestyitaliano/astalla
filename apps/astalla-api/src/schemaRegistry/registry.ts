@@ -1,47 +1,34 @@
 import type { SchemaGraph, SchemaTable } from "@shared/api";
 import { canRead } from "../auth/permissions.js";
 
-const BASE_SCHEMA: SchemaGraph = {
-  // TODO: Replace the static schema with ORM introspection when available.
+export const BASE_SCHEMA: SchemaGraph = {
   tables: [
     {
-      id: "public.users",
-      name: "users",
-      label: "Users",
+      id: "public.units",
+      name: "units",
+      label: "Units",
       columns: [
-        { id: "users.id", name: "id", type: "uuid" },
-        { id: "users.name", name: "name", type: "text" },
-        { id: "users.email", name: "email", type: "text", isPII: true },
-        { id: "users.created_at", name: "created_at", type: "timestamp" }
+        { id: "units.Id", name: "Id", type: "text" },
+        { id: "units.Name", name: "Name", type: "text" },
+        { id: "units.Bedrooms", name: "Bedrooms", type: "integer" },
+        { id: "units.Bathrooms", name: "Bathrooms", type: "integer" }
       ],
       fks: []
     },
     {
-      id: "public.orders",
-      name: "orders",
-      label: "Orders",
+      id: "public.leases",
+      name: "leases",
+      label: "Leases",
       columns: [
-        { id: "orders.id", name: "id", type: "uuid" },
-        { id: "orders.user_id", name: "user_id", type: "uuid" },
-        { id: "orders.total", name: "total", type: "numeric" },
-        { id: "orders.created_at", name: "created_at", type: "timestamp" }
+        { id: "leases.Id", name: "Id", type: "text" },
+        { id: "leases.UnitId", name: "UnitId", type: "text" },
+        { id: "leases.TotalRent", name: "TotalRent", type: "numeric" },
+        { id: "leases.Status", name: "Status", type: "text" },
+        { id: "leases.Year", name: "Year", type: "integer" },
+        { id: "leases.ResidentEmail", name: "ResidentEmail", type: "text", isPII: true }
       ],
       fks: [
-        { fromTable: "orders", fromCol: "user_id", toTable: "users", toCol: "id" }
-      ]
-    },
-    {
-      id: "public.order_items",
-      name: "order_items",
-      label: "Order Items",
-      columns: [
-        { id: "order_items.id", name: "id", type: "uuid" },
-        { id: "order_items.order_id", name: "order_id", type: "uuid" },
-        { id: "order_items.sku", name: "sku", type: "text" },
-        { id: "order_items.quantity", name: "quantity", type: "integer" }
-      ],
-      fks: [
-        { fromTable: "order_items", fromCol: "order_id", toTable: "orders", toCol: "id" }
+        { fromTable: "leases", fromCol: "UnitId", toTable: "units", toCol: "Id" }
       ]
     }
   ]

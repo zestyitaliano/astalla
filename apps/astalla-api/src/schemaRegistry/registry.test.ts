@@ -8,23 +8,22 @@ describe('getSchemaGraphForUser', () => {
 
     assert.ok(graph.tables.length > 0);
 
-    const usersTable = graph.tables.find((table) => table.name === 'users');
-    assert.ok(usersTable);
-    assert.ok(!usersTable.columns.some((column) => column.name === 'email'));
+    const leasesTable = graph.tables.find((table) => table.name === 'leases');
+    assert.ok(leasesTable);
+    assert.ok(!leasesTable.columns.some((column) => column.name === 'ResidentEmail'));
 
-    const ordersTable = graph.tables.find((table) => table.name === 'orders');
-    assert.ok(ordersTable);
-    assert.ok(ordersTable.columns.some((column) => column.name === 'user_id'));
-    assert.deepEqual(ordersTable.fks, [
-      { fromTable: 'orders', fromCol: 'user_id', toTable: 'users', toCol: 'id' }
+    const unitsTable = graph.tables.find((table) => table.name === 'units');
+    assert.ok(unitsTable);
+    assert.deepEqual(leasesTable?.fks, [
+      { fromTable: 'leases', fromCol: 'UnitId', toTable: 'units', toCol: 'Id' }
     ]);
   });
 
   it('includes PII columns for privileged users', () => {
     const graph = getSchemaGraphForUser('admin');
-    const usersTable = graph.tables.find((table) => table.name === 'users');
+    const leasesTable = graph.tables.find((table) => table.name === 'leases');
 
-    assert.ok(usersTable);
-    assert.ok(usersTable.columns.some((column) => column.name === 'email'));
+    assert.ok(leasesTable);
+    assert.ok(leasesTable.columns.some((column) => column.name === 'ResidentEmail'));
   });
 });
