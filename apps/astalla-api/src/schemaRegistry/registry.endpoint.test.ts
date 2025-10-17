@@ -35,9 +35,9 @@ describe('GET /api/schema/registry', () => {
     const payload = await response.json();
     assert.ok(Array.isArray(payload.tables));
 
-    const usersTable = payload.tables.find((table: any) => table.name === 'users');
-    assert.ok(usersTable);
-    assert.ok(!usersTable.columns.some((column: any) => column.name === 'email'));
+    const leasesTable = payload.tables.find((table: any) => table.name === 'leases');
+    assert.ok(leasesTable);
+    assert.ok(!leasesTable.columns.some((column: any) => column.name === 'ResidentEmail'));
   });
 
   it('returns 304 when the ETag matches', async () => {
