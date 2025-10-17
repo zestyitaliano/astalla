@@ -42,6 +42,8 @@ type TokenType =
   | "NEQ"
   | "GT"
   | "LT"
+  | "GTE"
+  | "LTE"
   | "EOF";
 
 type Token = {
@@ -126,12 +128,20 @@ class Tokenizer {
       }
 
       if (current === ">") {
-        tokens.push(this.createToken("GT", ">", 1));
+        if (this.peek(1) === "=") {
+          tokens.push(this.createToken("GTE", ">=", 2));
+        } else {
+          tokens.push(this.createToken("GT", ">", 1));
+        }
         continue;
       }
 
       if (current === "<") {
-        tokens.push(this.createToken("LT", "<", 1));
+        if (this.peek(1) === "=") {
+          tokens.push(this.createToken("LTE", "<=", 2));
+        } else {
+          tokens.push(this.createToken("LT", "<", 1));
+        }
         continue;
       }
 
@@ -409,7 +419,7 @@ class ReferenceParser {
       };
     }
 
-    const operatorToken = this.expectAny("EQ", "NEQ", "GT", "LT");
+    const operatorToken = this.expectAny("EQ", "NEQ", "GT", "LT", "GTE", "LTE");
     const operator = this.mapOperator(operatorToken.type);
     const right = this.parseOperand();
 
@@ -487,6 +497,10 @@ class ReferenceParser {
         return ">";
       case "LT":
         return "<";
+      case "GTE":
+        return ">=";
+      case "LTE":
+        return "<=";
       default:
         throw new ParseError(`Unsupported operator token: ${tokenType}`, this.previous().start);
     }

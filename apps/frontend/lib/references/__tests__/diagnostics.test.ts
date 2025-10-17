@@ -79,14 +79,24 @@ describe("reference diagnostics", () => {
     );
   });
 
-  it("normalises date strings to ISO format", () => {
+  it("offers a quick fix for non-ISO date strings", () => {
     const expression = "sum(@Leases.TotalRent where @Leases.MoveInDate >= '01/31/2024')";
     const { diagnostics } = getDiagnostics(expression, schema);
-    const diagnostic = diagnostics.find((item) => item.code === "invalid_date");
+    const diagnostic = diagnostics.find((item) => item.code === "bad_date");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.fix).toBeDefined();
+    expect(diagnostic?.severity).toBe("warning");
+    expect(diagnostic?.fix?.label).toBe("Reformat to 2024-01-31");
     const fixed = diagnostic!.fix!.apply(expression);
     expect(fixed).toBe("sum(@Leases.TotalRent where @Leases.MoveInDate >= '2024-01-31')");
+  });
+
+  it("detects human readable dates", () => {
+    const expression = "sum(@Leases.TotalRent where @Leases.MoveInDate >= 'Sep 5, 2025')";
+    const { diagnostics } = getDiagnostics(expression, schema);
+    const diagnostic = diagnostics.find((item) => item.code === "bad_date");
+    expect(diagnostic).toBeDefined();
+    const fixed = diagnostic!.fix!.apply(expression);
+    expect(fixed).toBe("sum(@Leases.TotalRent where @Leases.MoveInDate >= '2025-09-05')");
   });
 
   it("auto-closes unbalanced parentheses", () => {

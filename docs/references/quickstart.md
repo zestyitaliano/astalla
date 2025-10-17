@@ -60,3 +60,18 @@ A `type_mismatch` error pops up when you call an aggregation that is not compati
 2. Re-run the expression to verify the diagnostic no longer appears.
 
 Once the diagnostics panel is clear, you are ready to promote the reference from the dev playground into production workflows.
+
+## Editing references in cells/columns
+
+The dev playground now includes a lightweight expression editor that mirrors what eventually lands in grids and calculated colu
+mns. A few tips:
+
+- Chips render beneath the editor for every detected function, table, and column so you can double-check the canonical pieces a
+fter accepting suggestions.
+- Autocomplete supports both `@` lookups and humanized phrases. Selecting a suggestion either inserts the canonical text or con
+verts the phrase for you.
+- Quick fixes surface inline for warnings and errors. Dates such as `9/5/2025` trigger a `bad_date` warning—click **Reformat to
+ 2025-09-05** to swap in the ISO literal automatically.
+
+> 💡 Open `/dev/references` in your local build to experiment with the editor. It uses the seeded demo schema from this guide, s
+o the examples above work out of the box.

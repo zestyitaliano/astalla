@@ -61,7 +61,7 @@ export function DiagnosticsInline({ value, diagnostics, onChange, className }: D
             <div className="pointer-events-auto flex flex-col gap-2">
               <p className="font-medium text-danger">{diagnostic.message}</p>
               {diagnostic.fix?.label ? (
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{diagnostic.fix.label}</p>
+                <p className="text-xs text-muted-foreground">{diagnostic.fix.label}</p>
               ) : null}
               {diagnostic.fix && onChange ? (
                 <Button
@@ -76,7 +76,7 @@ export function DiagnosticsInline({ value, diagnostics, onChange, className }: D
                     onChange(next);
                   }}
                 >
-                  Apply Fix
+                  {diagnostic.fix.label ?? "Apply Fix"}
                 </Button>
               ) : null}
             </div>
