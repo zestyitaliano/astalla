@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
-import { after, before, describe, it } from 'node:test';
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
+import { REF_AUTOCOMPLETE_V1 } from '@shared/api';
+
 import { app } from '../index.js';
+import { resetFeatureFlagOverrides, setFeatureFlagOverride } from '../featureFlags.js';
+import { referencesTelemetry } from '../telemetry/references.js';
 
 const buildAst = () => ({
   type: 'Program',
@@ -28,6 +32,11 @@ describe('POST /api/references/execute', () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
   });
 
+  beforeEach(() => {
+    setFeatureFlagOverride(REF_AUTOCOMPLETE_V1, true);
+    referencesTelemetry.drain();
+  });
+
   after(async () => {
     if (!server) return;
     await new Promise<void>((resolve, reject) => {
@@ -36,6 +45,23 @@ describe('POST /api/references/execute', () => {
         else resolve();
       });
     });
+  });
+
+  afterEach(() => {
+    resetFeatureFlagOverrides();
+    referencesTelemetry.drain();
+  });
+
+  it('returns 404 when feature is disabled', async () => {
+    setFeatureFlagOverride(REF_AUTOCOMPLETE_V1, false);
+
+    const response = await fetch(`${baseUrl}/api/references/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ast: buildAst() }),
+    });
+
+    assert.equal(response.status, 404);
   });
 
   it('returns aggregated results for a valid AST', async () => {
@@ -62,6 +88,9 @@ describe('POST /api/references/execute', () => {
     assert.equal(response.status, 400);
     const payload = await response.json();
     assert.ok(Array.isArray(payload.issues));
+
+    const events = referencesTelemetry.drain();
+    assert.ok(events.some((event) => event.type === 'parseError'));
   });
 
   it('enforces permission checks', async () => {
@@ -89,5 +118,8 @@ describe('POST /api/references/execute', () => {
     assert.equal(response.status, 403);
     const payload = await response.json();
     assert.match(payload.message, /permission/i);
+
+    const events = referencesTelemetry.drain();
+    assert.ok(events.some((event) => event.type === 'execError'));
   });
 });

@@ -5,6 +5,7 @@ import { AlertsModule } from "./alerts/alerts.module";
 import { AuthModule } from "./auth/auth.module";
 import { DevProvidersModule } from "./dev-providers/dev-providers.module";
 import { HealthModule } from "./health/health.module";
+import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -62,7 +63,8 @@ import { TablesModule } from "./tables/tables.module";
     DevProvidersModule,
     SourcesModule,
     TablesModule,
-    HealthModule
+    HealthModule,
+    FeatureFlagsModule
   ]
 })
 export class AppModule {}
