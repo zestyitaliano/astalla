@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,12 +50,15 @@ export function ReferencePopover({
   const isOpen = isControlled ? open : internalOpen;
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleOpenChange = (next: boolean) => {
-    if (!isControlled) {
-      setInternalOpen(next);
-    }
-    onOpenChange?.(next);
-  };
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!isControlled) {
+        setInternalOpen(next);
+      }
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -66,7 +69,7 @@ export function ReferencePopover({
     };
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [isOpen]);
+  }, [handleOpenChange, isOpen]);
 
   const hasSuggestions = suggestions.length > 0;
   const totalScoreLabel = useMemo(() => {

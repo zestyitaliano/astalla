@@ -26,7 +26,9 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 
 type Monaco = typeof import("monaco-editor");
 
-type SerializableValue = string | number | boolean | null;
+type SerializablePrimitive = string | number | boolean | null;
+type SerializableLiteral = SerializablePrimitive | SerializablePrimitive[];
+type SerializableValue = SerializablePrimitive;
 type SerializableRow = Record<string, SerializableValue>;
 type SerializableDataset = Record<string, ReadonlyArray<SerializableRow>>;
 
@@ -622,7 +624,7 @@ function matchesWhere(condition: ConditionNode | undefined, context: EvaluationC
     return condition.operator === "and" ? left && right : left || right;
   }
   if (condition.type === "Comparison") {
-    const left = resolveValue(condition.left, context);
+    const left = toComparableValue(resolveValue(condition.left, context));
     const right = resolveComparisonRight(condition, context);
     switch (condition.operator) {
       case "=":
@@ -665,15 +667,18 @@ function resolveComparisonRight(
 ): SerializableValue | SerializableValue[] | null {
   const right = comparison.right;
   if (Array.isArray(right)) {
-    return right.map((node) => resolveValue(node, context));
+    return right.map((node) => toComparableValue(resolveValue(node, context)));
   }
   if (right.type === "Ref") {
     return resolveReferenceValue(right, context);
   }
-  return normalizeLiteral(right.value);
+  return toComparableValue(normalizeLiteral(right.value));
 }
 
-function resolveValue(node: RefNode | ValueNode | ConditionNode, context: EvaluationContext): SerializableValue | null {
+function resolveValue(
+  node: RefNode | ValueNode | ConditionNode,
+  context: EvaluationContext
+): SerializableLiteral | null {
   if (node.type === "Value") {
     return normalizeLiteral(node.value);
   }
@@ -767,9 +772,16 @@ function findRowByColumn(rows: ReadonlyArray<SerializableRow>, column: string, v
   return rows.find((row) => row[column] === value) ?? null;
 }
 
-function normalizeLiteral(value: SerializableValue | SerializableValue[]): SerializableValue | SerializableValue[] {
+function toComparableValue(value: SerializableLiteral | null): SerializableValue {
   if (Array.isArray(value)) {
-    return value.map((item) => normalizeLiteral(item as SerializableValue)) as SerializableValue[];
+    return value.length > 0 ? (value[0] ?? null) : null;
+  }
+  return value;
+}
+
+function normalizeLiteral(value: SerializableLiteral): SerializableLiteral {
+  if (Array.isArray(value)) {
+    return value.map((item) => (item ?? null)) as SerializablePrimitive[];
   }
   return value ?? null;
 }
