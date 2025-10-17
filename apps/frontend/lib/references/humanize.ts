@@ -38,6 +38,14 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
 
   const index = buildSchemaIndex(schema);
 
+  const trailingWhere = trimmed.match(/^(?<base>.+?)\s+where\s*$/i);
+  if (trailingWhere?.groups?.base) {
+    const baseExpression = trailingWhere.groups.base;
+    if (isParsableWithoutFilters(baseExpression, index)) {
+      throw new Error("WHERE clause is empty.");
+    }
+  }
+
   const patterns: Array<{
     regex: RegExp;
     columnGroup: string;
@@ -69,14 +77,6 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
       throw new Error(`Unsupported function "${match.groups.func}".`);
     }
 
-    if (
-      pattern.filtersGroup &&
-      match.groups[pattern.filtersGroup] === undefined &&
-      /\bwhere\s*$/i.test(trimmed)
-    ) {
-      throw new Error("WHERE clause is empty.");
-    }
-
     const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
     const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
 
@@ -101,6 +101,41 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
   }
 
   throw new Error("Unable to translate input to canonical form.");
+}
+
+function isParsableWithoutFilters(input: string, index: SchemaIndex): boolean {
+  const basePatterns: Array<{ regex: RegExp; tableGroup: string; columnGroup: string }> = [
+    {
+      regex: /^(?<func>[a-z]+)\s+of\s+(?<column>.+?)\s+in\s+(?<table>[^,]+?)$/i,
+      columnGroup: "column",
+      tableGroup: "table",
+    },
+    {
+      regex: /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)$/i,
+      columnGroup: "column",
+      tableGroup: "table",
+    },
+  ];
+
+  for (const pattern of basePatterns) {
+    const match = input.trim().match(pattern.regex);
+    if (!match || !match.groups) continue;
+
+    const func = mapFunction(match.groups.func);
+    if (!func) {
+      continue;
+    }
+
+    try {
+      const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
+      resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
+      return true;
+    } catch {
+      continue;
+    }
+  }
+
+  return false;
 }
 
 function mapFunction(raw: string): string | undefined {
