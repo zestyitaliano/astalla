@@ -626,9 +626,13 @@ function matchesWhere(condition: ConditionNode | undefined, context: EvaluationC
     const right = resolveComparisonRight(condition, context);
     switch (condition.operator) {
       case "=":
-        return compareValues(left, right) === 0;
+        return Array.isArray(right)
+          ? right.some((value) => compareValues(left, value) === 0)
+          : compareValues(left, right) === 0;
       case "!=":
-        return compareValues(left, right) !== 0;
+        return Array.isArray(right)
+          ? right.every((value) => compareValues(left, value) !== 0)
+          : compareValues(left, right) !== 0;
       case ">":
         return typeof left === "number" && typeof right === "number" ? left > right : String(left) > String(right ?? "");
       case "<":
