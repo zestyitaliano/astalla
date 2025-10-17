@@ -124,4 +124,16 @@ describe("translateHumanToCanonical", () => {
       expect(() => parseExpression(canonical)).not.toThrow();
     });
   });
+
+  it("throws when where clause is present but empty", () => {
+    expect(() => translateHumanToCanonical("Sum of Total Rent in Leases where ", schema)).toThrow(
+      "WHERE clause is empty.",
+    );
+  });
+
+  it("throws when dot notation where clause is empty", () => {
+    expect(() => translateHumanToCanonical("sum leases.TotalRent where ", schema)).toThrow(
+      "WHERE clause is empty.",
+    );
+  });
 });
