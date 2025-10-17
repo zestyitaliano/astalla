@@ -46,57 +46,43 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
     }
   }
 
-  const patterns: Array<{
-    regex: RegExp;
-    columnGroup: string;
-    tableGroup: string;
-    filtersGroup?: string;
-  }> = [
-    {
-      regex:
-        /^(?<func>[a-z]+)\s+of\s+(?<column>.+?)\s+in\s+(?<table>[^,]+?)(?:\s+where\s+(?<filters>.+))?$/i,
-      columnGroup: "column",
-      tableGroup: "table",
-      filtersGroup: "filters",
-    },
-    {
-      regex:
-        /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)(?:\s+where\s+(?<filters>.+))?$/i,
-      columnGroup: "column",
-      tableGroup: "table",
-      filtersGroup: "filters",
-    },
-  ];
+  const { head, filters } = splitWhereClause(trimmed);
 
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern.regex);
-    if (!match || !match.groups) continue;
-
-    const func = mapFunction(match.groups.func ?? "");
+  const ofMatch = head.match(/^(?<func>[a-z]+)\s+of\s+(?<rest>.+)$/i);
+  if (ofMatch?.groups) {
+    const func = mapFunction(ofMatch.groups.func ?? "");
     if (!func) {
-      throw new Error(`Unsupported function "${match.groups.func}".`);
+      throw new Error(`Unsupported function "${ofMatch.groups.func}".`);
     }
 
-    const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
-    const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
-
-    const whereRaw = pattern.filtersGroup ? match.groups[pattern.filtersGroup] : undefined;
-    const filtersInput = whereRaw?.trim();
-
-    if (pattern.filtersGroup && match.groups[pattern.filtersGroup] !== undefined) {
-      if (!filtersInput) {
-        throw new Error("WHERE clause is empty.");
-      }
+    const split = splitColumnAndTable(ofMatch.groups.rest ?? "");
+    if (!split) {
+      throw new Error("Unable to translate input to canonical form.");
     }
 
-    const whereClause = filtersInput
-      ? translateFilters(filtersInput, tableName, index)
-      : undefined;
-
+    const tableName = resolveTable(split.table, index);
+    const columnRef = resolveColumn(split.column, tableName, index);
+    const whereClause = filters ? translateFilters(filters, tableName, index) : undefined;
     const canonical = whereClause
       ? `${func}(@${columnRef.table}.${columnRef.column} where ${whereClause})`
       : `${func}(@${columnRef.table}.${columnRef.column})`;
+    parseExpression(canonical);
+    return canonical;
+  }
 
+  const dotMatch = head.match(/^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)$/i);
+  if (dotMatch?.groups) {
+    const func = mapFunction(dotMatch.groups.func ?? "");
+    if (!func) {
+      throw new Error(`Unsupported function "${dotMatch.groups.func}".`);
+    }
+
+    const tableName = resolveTable(dotMatch.groups.table ?? "", index);
+    const columnRef = resolveColumn(dotMatch.groups.column ?? "", tableName, index);
+    const whereClause = filters ? translateFilters(filters, tableName, index) : undefined;
+    const canonical = whereClause
+      ? `${func}(@${columnRef.table}.${columnRef.column} where ${whereClause})`
+      : `${func}(@${columnRef.table}.${columnRef.column})`;
     parseExpression(canonical);
     return canonical;
   }
@@ -105,38 +91,70 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
 }
 
 function isParsableWithoutFilters(input: string, index: SchemaIndex): boolean {
-  const basePatterns: Array<{ regex: RegExp; tableGroup: string; columnGroup: string }> = [
-    {
-      regex: /^(?<func>[a-z]+)\s+of\s+(?<column>.+?)\s+in\s+(?<table>[^,]+?)$/i,
-      columnGroup: "column",
-      tableGroup: "table",
-    },
-    {
-      regex: /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)$/i,
-      columnGroup: "column",
-      tableGroup: "table",
-    },
-  ];
-
-  for (const pattern of basePatterns) {
-    const match = input.trim().match(pattern.regex);
-    if (!match || !match.groups) continue;
-
-    const func = mapFunction(match.groups.func);
+  const trimmed = input.trim();
+  const ofMatch = trimmed.match(/^(?<func>[a-z]+)\s+of\s+(?<rest>.+)$/i);
+  if (ofMatch?.groups) {
+    const func = mapFunction(ofMatch.groups.func ?? "");
     if (!func) {
-      continue;
+      return false;
+    }
+
+    const split = splitColumnAndTable(ofMatch.groups.rest ?? "");
+    if (!split) {
+      return false;
     }
 
     try {
-      const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
-      resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
+      const tableName = resolveTable(split.table, index);
+      resolveColumn(split.column, tableName, index);
       return true;
     } catch {
-      continue;
+      return false;
+    }
+  }
+
+  const dotMatch = trimmed.match(/^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)$/i);
+  if (dotMatch?.groups) {
+    const func = mapFunction(dotMatch.groups.func ?? "");
+    if (!func) {
+      return false;
+    }
+
+    try {
+      const tableName = resolveTable(dotMatch.groups.table ?? "", index);
+      resolveColumn(dotMatch.groups.column ?? "", tableName, index);
+      return true;
+    } catch {
+      return false;
     }
   }
 
   return false;
+}
+
+function splitWhereClause(value: string): { head: string; filters?: string } {
+  const match = value.match(/^(?<head>.+?)\s+where\s+(?<filters>.+)$/i);
+  if (match?.groups) {
+    const head = match.groups.head?.trim() ?? "";
+    const filters = match.groups.filters?.trim();
+    return filters ? { head, filters } : { head };
+  }
+  return { head: value.trim() };
+}
+
+function splitColumnAndTable(value: string): { column: string; table: string } | null {
+  const match = value.match(/^(.*)\s+in\s+(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const column = match[1]?.trim() ?? "";
+  const table = match[2]?.trim() ?? "";
+  if (!column || !table) {
+    return null;
+  }
+
+  return { column, table };
 }
 
 function mapFunction(raw: string): string | undefined {

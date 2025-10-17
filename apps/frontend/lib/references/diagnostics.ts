@@ -19,6 +19,7 @@ export type DiagnosticCode =
   | "unknown_column"
   | "type_mismatch"
   | "missing_join"
+  | "bad_date"
   | "invalid_date"
   | "unbalanced_parentheses"
   | "syntax_error";
@@ -603,14 +604,18 @@ function createDateDiagnostic(
     };
   }
 
+  if (iso === valueNode.value) {
+    return undefined;
+  }
+
   const replacement = wrapWithOriginalQuotes(expression, valueNode.range, iso);
-  const fix = createReplacementFix(valueNode.range, replacement, `Use ${iso}`);
+  const fix = createReplacementFix(valueNode.range, replacement, `Reformat to ${iso}`);
 
   return {
-    code: "invalid_date",
+    code: "bad_date",
     message: `Use ISO date (YYYY-MM-DD) for column "${column.name}".`,
     range: ensureRange(valueNode.range, expression.length),
-    severity: "error",
+    severity: "warning",
     fix,
   };
 }

@@ -22,7 +22,7 @@ describe("DiagnosticsInline", () => {
 
     render(<DiagnosticsInline value="sum(@Lease.TotalRent)" diagnostics={diagnostics} onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /apply fix/i }));
+    fireEvent.click(screen.getByRole("button", { name: /use "leases"/i }));
 
     expect(onChange).toHaveBeenCalledWith("sum(@Leases.TotalRent)");
   });

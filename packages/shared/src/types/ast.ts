@@ -25,7 +25,7 @@ export interface ValueNode {
   range?: SourceRange;
 }
 
-export type ComparisonOperator = "=" | "!=" | ">" | "<" | "in" | "between";
+export type ComparisonOperator = "=" | "!=" | ">" | "<" | ">=" | "<=" | "in" | "between";
 
 export type ComparisonRight = RefNode | ValueNode | Array<RefNode | ValueNode>;
 
