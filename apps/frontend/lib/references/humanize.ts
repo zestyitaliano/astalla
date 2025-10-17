@@ -73,9 +73,14 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
     const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
 
     const whereRaw = pattern.filtersGroup ? match.groups[pattern.filtersGroup] : undefined;
-    const whereClause = whereRaw
-      ? translateFilters(whereRaw, tableName, index)
-      : undefined;
+
+    if (pattern.filtersGroup && match.groups[pattern.filtersGroup] !== undefined) {
+      if (!whereRaw || !whereRaw.trim()) {
+        throw new Error("WHERE clause is empty.");
+      }
+    }
+
+    const whereClause = whereRaw ? translateFilters(whereRaw, tableName, index) : undefined;
 
     const canonical = whereClause
       ? `${func}(@${columnRef.table}.${columnRef.column} where ${whereClause})`
