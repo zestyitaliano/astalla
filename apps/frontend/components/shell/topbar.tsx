@@ -1,5 +1,8 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+
 import { Menu, Search, UserCircle2, X } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -21,6 +24,28 @@ export function Topbar({ onToggleSidebar, isSidebarOpen }: TopbarProps) {
         >
           {isSidebarOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
+
+        <Link href="/" className="flex items-center gap-2" aria-label="Home">
+          {/* Auto-wired by script: light theme uses /brand/astalla_logo_dark.svg, dark theme uses /brand/astalla_logo_light.svg. */}
+          {/* Light theme: dark-ink logo */}
+          <Image
+            src="/brand/astalla_logo_dark.svg"
+            alt="Astalla"
+            width={120}
+            height={28}
+            priority
+            className="block dark:hidden"
+          />
+          {/* Dark theme: light-ink logo */}
+          <Image
+            src="/brand/astalla_logo_light.svg"
+            alt="Astalla"
+            width={120}
+            height={28}
+            priority
+            className="hidden dark:block"
+          />
+        </Link>
 
         <div className="ml-auto flex items-center gap-3">
           <div className="relative hidden md:block">
