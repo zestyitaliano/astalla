@@ -299,6 +299,9 @@ function detectDateIssues(
     if (comparison.operator === "in" && Array.isArray(comparison.right)) {
       if (leftColumn && isDateType(leftColumn.type)) {
         for (const valueNode of comparison.right) {
+          if (!isValueNode(valueNode)) {
+            continue;
+          }
           const diag = createDateDiagnostic(expression, valueNode, leftColumn);
           if (diag) {
             diagnostics.push(diag);

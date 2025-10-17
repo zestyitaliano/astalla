@@ -34,12 +34,10 @@ export class FeatureFlagsService {
         : null,
     ]);
 
-    const workspaceEnabled = workspaceId
-      ? (workspaceRecord?.enabled ?? null)
-      : null;
-    const userEnabled = userId ? (userRecord?.enabled ?? null) : null;
+    const workspaceEnabled = workspaceId ? Boolean(workspaceRecord?.enabled) : null;
+    const userEnabled = userId ? Boolean(userRecord?.enabled) : null;
 
-    const effectiveEnabled = (workspaceEnabled ?? false) && (userEnabled ?? true);
+    const effectiveEnabled = (workspaceEnabled ?? true) && (userEnabled ?? true);
 
     return {
       flag,
