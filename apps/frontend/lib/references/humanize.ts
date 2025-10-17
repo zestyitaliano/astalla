@@ -38,9 +38,34 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
 
   const index = buildSchemaIndex(schema);
 
-  const attempts: Array<(value: string) => HumanParseResult | null> = [
-    parseOfInStructure,
-    parseDirectStructure,
+  const trailingWhere = trimmed.match(/^(?<base>.+?)\s+where\s*$/i);
+  if (trailingWhere?.groups?.base) {
+    const baseExpression = trailingWhere.groups.base;
+    if (isParsableWithoutFilters(baseExpression, index)) {
+      throw new Error("WHERE clause is empty.");
+    }
+  }
+
+  const patterns: Array<{
+    regex: RegExp;
+    columnGroup: string;
+    tableGroup: string;
+    filtersGroup?: string;
+  }> = [
+    {
+      regex:
+        /^(?<func>[a-z]+)\s+of\s+(?<column>.+?)\s+in\s+(?<table>[^,]+?)(?:\s+where\s+(?<filters>.+))?$/i,
+      columnGroup: "column",
+      tableGroup: "table",
+      filtersGroup: "filters",
+    },
+    {
+      regex:
+        /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)(?:\s+where\s+(?<filters>.+))?$/i,
+      columnGroup: "column",
+      tableGroup: "table",
+      filtersGroup: "filters",
+    },
   ];
 
   for (const attempt of attempts) {
@@ -52,8 +77,16 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
       throw new Error(`Unsupported function "${parsed.func}".`);
     }
 
-    const tableName = resolveTable(parsed.table, index);
-    const columnRef = resolveColumn(parsed.column, tableName, index);
+    const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
+    const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
+
+    const whereRaw = pattern.filtersGroup ? match.groups[pattern.filtersGroup] : undefined;
+
+    if (pattern.filtersGroup && match.groups[pattern.filtersGroup] !== undefined) {
+      if (!whereRaw || !whereRaw.trim()) {
+        throw new Error("WHERE clause is empty.");
+      }
+    }
 
     const whereClause = parsed.filters
       ? translateFilters(parsed.filters, tableName, index)
@@ -70,65 +103,40 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
   throw new Error("Unable to translate input to canonical form.");
 }
 
-type HumanParseResult = {
-  func: string;
-  column: string;
-  table: string;
-  filters?: string;
-};
+function isParsableWithoutFilters(input: string, index: SchemaIndex): boolean {
+  const basePatterns: Array<{ regex: RegExp; tableGroup: string; columnGroup: string }> = [
+    {
+      regex: /^(?<func>[a-z]+)\s+of\s+(?<column>.+?)\s+in\s+(?<table>[^,]+?)$/i,
+      columnGroup: "column",
+      tableGroup: "table",
+    },
+    {
+      regex: /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)$/i,
+      columnGroup: "column",
+      tableGroup: "table",
+    },
+  ];
 
-const WHERE_KEYWORD = " where ";
+  for (const pattern of basePatterns) {
+    const match = input.trim().match(pattern.regex);
+    if (!match || !match.groups) continue;
 
-const parseOfInStructure = (value: string): HumanParseResult | null => {
-  const funcMatch = value.match(/^(?<func>[a-z]+)\s+of\s+/i);
-  const func = funcMatch?.groups?.func;
-  if (!funcMatch || !func) {
-    return null;
+    const func = mapFunction(match.groups.func);
+    if (!func) {
+      continue;
+    }
+
+    try {
+      const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
+      resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
+      return true;
+    } catch {
+      continue;
+    }
   }
 
-  const remainder = value.slice(funcMatch[0]!.length);
-  const lowerRemainder = remainder.toLowerCase();
-  const whereIndex = lowerRemainder.indexOf(WHERE_KEYWORD);
-  const head = whereIndex === -1 ? remainder : remainder.slice(0, whereIndex);
-  const filtersRaw = whereIndex === -1 ? undefined : remainder.slice(whereIndex + WHERE_KEYWORD.length);
-
-  const headLower = head.toLowerCase();
-  const separatorIndex = headLower.lastIndexOf(" in ");
-  if (separatorIndex === -1) {
-    return null;
-  }
-
-  const column = head.slice(0, separatorIndex).trim();
-  const table = head.slice(separatorIndex + 4).trim();
-  if (!column || !table) {
-    return null;
-  }
-
-  const filters = filtersRaw?.trim();
-  return {
-    func,
-    column,
-    table,
-    filters: filters ? filters : undefined,
-  };
-};
-
-const parseDirectStructure = (value: string): HumanParseResult | null => {
-  const match = value.match(
-    /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)(?:\s+where\s+(?<filters>.+))?$/i,
-  );
-  if (!match?.groups) {
-    return null;
-  }
-
-  const filters = match.groups.filters?.trim();
-  return {
-    func: match.groups.func,
-    table: match.groups.table.trim(),
-    column: match.groups.column,
-    filters: filters ? filters : undefined,
-  };
-};
+  return false;
+}
 
 function mapFunction(raw: string): string | undefined {
   return FUNCTION_ALIASES[raw.toLowerCase()];
