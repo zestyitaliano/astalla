@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Unknown table diagnostic demo</title>
+  <desc id="desc">Mock editor window that highlights an unknown table error with a quick fix suggestion.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <style>
+      .window { fill: #1e293b; stroke: #334155; stroke-width: 2; rx: 24; }
+      .header { fill: #111827; }
+      .header-label { fill: #94a3b8; font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 14px; }
+      .code-area { fill: #0f172a; rx: 18; }
+      .code-line { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 18px; fill: #e2e8f0; }
+      .gutter { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 16px; fill: #64748b; }
+      .highlight { fill: rgba(59,130,246,0.25); stroke: #60a5fa; stroke-width: 2; rx: 6; }
+      .panel { fill: #111827; stroke: #1e293b; stroke-width: 2; rx: 14; }
+      .panel-title { font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 16px; fill: #e2e8f0; font-weight: 600; }
+      .panel-body { font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 14px; fill: #cbd5f5; }
+      .quick-fix-button { fill: #38bdf8; stroke: #0ea5e9; stroke-width: 1.5; rx: 10; }
+      .quick-fix-label { fill: #082f49; font-size: 14px; font-weight: 600; font-family: 'Inter', 'Segoe UI', sans-serif; }
+    </style>
+  </defs>
+  <rect width="720" height="420" fill="url(#bg)" rx="32"/>
+  <rect x="48" y="44" width="624" height="332" class="window"/>
+  <rect x="48" y="44" width="624" height="52" class="header" rx="24" ry="24"/>
+  <text x="72" y="76" class="header-label">reference.tsx · dev playground</text>
+  <rect x="72" y="120" width="408" height="216" class="code-area"/>
+  <text x="92" y="168" class="gutter">1</text>
+  <text x="122" y="168" class="code-line">sum(@Leasez.Rent)</text>
+  <rect x="116" y="140" width="244" height="52" class="highlight"/>
+  <rect x="504" y="120" width="140" height="216" class="panel"/>
+  <text x="522" y="154" class="panel-title">Diagnostics</text>
+  <text x="522" y="186" class="panel-body">• unknown_table: Leasez</text>
+  <rect x="522" y="210" width="112" height="36" class="quick-fix-button"/>
+  <text x="534" y="232" class="quick-fix-label">Use “Leases”</text>
+</svg>

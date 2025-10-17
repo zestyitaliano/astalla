@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Type mismatch diagnostic demo</title>
+  <desc id="desc">Mock editor window highlighting a type mismatch error with the suggested aggregation fix.</desc>
+  <defs>
+    <style>
+      .background { fill: #0b1120; }
+      .window { fill: #1f2937; stroke: #334155; stroke-width: 2; rx: 28; }
+      .titlebar { fill: #111827; }
+      .titlebar-label { fill: #94a3b8; font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 14px; }
+      .code-area { fill: #0f172a; rx: 20; }
+      .code-line { font-family: 'JetBrains Mono', 'Menlo', monospace; font-size: 18px; fill: #e2e8f0; }
+      .error { fill: rgba(248,113,113,0.2); stroke: #f87171; stroke-width: 2; rx: 6; }
+      .panel { fill: #111827; stroke: #1e293b; stroke-width: 2; rx: 14; }
+      .panel-title { font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 16px; fill: #f8fafc; font-weight: 600; }
+      .panel-body { font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 14px; fill: #f87171; }
+      .fix { fill: #f97316; stroke: #ea580c; stroke-width: 1.5; rx: 10; }
+      .fix-label { fill: #1f2937; font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 600; font-size: 14px; }
+    </style>
+  </defs>
+  <rect width="720" height="420" class="background" rx="32"/>
+  <rect x="48" y="44" width="624" height="332" class="window"/>
+  <rect x="48" y="44" width="624" height="52" class="titlebar" rx="28" ry="28"/>
+  <text x="72" y="76" class="titlebar-label">references.dev · playground</text>
+  <rect x="72" y="120" width="408" height="216" class="code-area"/>
+  <text x="96" y="168" class="code-line">count(@Leases.Rent where @Leases.Status = 'active')</text>
+  <rect x="90" y="138" width="360" height="64" class="error"/>
+  <rect x="504" y="120" width="140" height="216" class="panel"/>
+  <text x="522" y="154" class="panel-title">Diagnostics</text>
+  <text x="522" y="186" class="panel-body">type_mismatch</text>
+  <rect x="522" y="210" width="112" height="36" class="fix"/>
+  <text x="538" y="232" class="fix-label">Use avg()</text>
+</svg>
