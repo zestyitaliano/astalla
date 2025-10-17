@@ -165,6 +165,21 @@ var costMetricsSchema = z.object({
   spendChange: z.number(),
   trend: z.array(metricPointSchema)
 });
+var featureFlagScopeSchema = z.enum(["workspace", "user"]);
+var featureFlagStateSchema = z.object({
+  flag: z.string(),
+  workspaceId: z.string().nullable(),
+  workspaceEnabled: z.boolean().nullable(),
+  userId: z.string().nullable(),
+  userEnabled: z.boolean().nullable(),
+  effectiveEnabled: z.boolean()
+});
+var updateFeatureFlagRequestSchema = z.object({
+  scope: featureFlagScopeSchema,
+  enabled: z.boolean(),
+  workspaceId: z.string().nullable().optional(),
+  userId: z.string().nullable().optional()
+});
 var latestReviewsSchema = z.object({
   summary: z.object({
     averageRating: z.number(),
@@ -482,11 +497,15 @@ var tableQueryResponseSchema = z.object({
   columns: z.array(tableColumnDtoSchema),
   total: z.number().int().min(0)
 });
+
+// src/flags.ts
+var REF_AUTOCOMPLETE_V1 = "ref-autocomplete-v1";
 export {
   ColumnType,
   ColumnTypeSchema,
   ProviderActionParam,
   ProviderManifest,
+  REF_AUTOCOMPLETE_V1,
   ScriptStatusEnum,
   alertSchema,
   alertsResponseSchema,
@@ -504,6 +523,8 @@ export {
   createViewDtoSchema,
   credentialSummaryItemSchema,
   dataTableDtoSchema,
+  featureFlagScopeSchema,
+  featureFlagStateSchema,
   latestReviewsSchema,
   leadEventSchema,
   leadSchema,
@@ -544,6 +565,7 @@ export {
   tableRowDtoSchema,
   tableViewDtoSchema,
   updateColumnDtoSchema,
+  updateFeatureFlagRequestSchema,
   updatePublicDashboardRequestSchema,
   updateSourceRequestSchema,
   updateTableDtoSchema,

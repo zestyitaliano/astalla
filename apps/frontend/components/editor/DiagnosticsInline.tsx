@@ -4,6 +4,7 @@ import { Fragment, type ReactNode } from "react";
 
 import type { ReferenceDiagnostic } from "@/lib/references/diagnostics";
 import { Button } from "@/components/ui/button";
+import { logQuickFixApplied } from "@/lib/references/telemetry";
 import { cn } from "@/lib/utils";
 
 interface DiagnosticsInlineProps {
@@ -71,6 +72,7 @@ export function DiagnosticsInline({ value, diagnostics, onChange, className }: D
                     event.preventDefault();
                     event.stopPropagation();
                     const next = diagnostic.fix!.apply(value);
+                    logQuickFixApplied(next);
                     onChange(next);
                   }}
                 >

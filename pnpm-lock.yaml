@@ -10,6 +10,9 @@ importers:
 
   apps/astalla-api:
     dependencies:
+      '@shared/api':
+        specifier: workspace:*
+        version: link:../../packages/shared
       express:
         specifier: ^4.18.2
         version: 4.21.2

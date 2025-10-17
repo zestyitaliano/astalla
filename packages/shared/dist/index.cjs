@@ -24,6 +24,7 @@ __export(index_exports, {
   ColumnTypeSchema: () => ColumnTypeSchema,
   ProviderActionParam: () => ProviderActionParam,
   ProviderManifest: () => ProviderManifest,
+  REF_AUTOCOMPLETE_V1: () => REF_AUTOCOMPLETE_V1,
   ScriptStatusEnum: () => ScriptStatusEnum,
   alertSchema: () => alertSchema,
   alertsResponseSchema: () => alertsResponseSchema,
@@ -41,6 +42,8 @@ __export(index_exports, {
   createViewDtoSchema: () => createViewDtoSchema,
   credentialSummaryItemSchema: () => credentialSummaryItemSchema,
   dataTableDtoSchema: () => dataTableDtoSchema,
+  featureFlagScopeSchema: () => featureFlagScopeSchema,
+  featureFlagStateSchema: () => featureFlagStateSchema,
   latestReviewsSchema: () => latestReviewsSchema,
   leadEventSchema: () => leadEventSchema,
   leadSchema: () => leadSchema,
@@ -81,6 +84,7 @@ __export(index_exports, {
   tableRowDtoSchema: () => tableRowDtoSchema,
   tableViewDtoSchema: () => tableViewDtoSchema,
   updateColumnDtoSchema: () => updateColumnDtoSchema,
+  updateFeatureFlagRequestSchema: () => updateFeatureFlagRequestSchema,
   updatePublicDashboardRequestSchema: () => updatePublicDashboardRequestSchema,
   updateSourceRequestSchema: () => updateSourceRequestSchema,
   updateTableDtoSchema: () => updateTableDtoSchema,
@@ -256,6 +260,21 @@ var costMetricsSchema = import_zod.z.object({
   marketingSpend: import_zod.z.number(),
   spendChange: import_zod.z.number(),
   trend: import_zod.z.array(metricPointSchema)
+});
+var featureFlagScopeSchema = import_zod.z.enum(["workspace", "user"]);
+var featureFlagStateSchema = import_zod.z.object({
+  flag: import_zod.z.string(),
+  workspaceId: import_zod.z.string().nullable(),
+  workspaceEnabled: import_zod.z.boolean().nullable(),
+  userId: import_zod.z.string().nullable(),
+  userEnabled: import_zod.z.boolean().nullable(),
+  effectiveEnabled: import_zod.z.boolean()
+});
+var updateFeatureFlagRequestSchema = import_zod.z.object({
+  scope: featureFlagScopeSchema,
+  enabled: import_zod.z.boolean(),
+  workspaceId: import_zod.z.string().nullable().optional(),
+  userId: import_zod.z.string().nullable().optional()
 });
 var latestReviewsSchema = import_zod.z.object({
   summary: import_zod.z.object({
@@ -574,12 +593,16 @@ var tableQueryResponseSchema = import_zod.z.object({
   columns: import_zod.z.array(tableColumnDtoSchema),
   total: import_zod.z.number().int().min(0)
 });
+
+// src/flags.ts
+var REF_AUTOCOMPLETE_V1 = "ref-autocomplete-v1";
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ColumnType,
   ColumnTypeSchema,
   ProviderActionParam,
   ProviderManifest,
+  REF_AUTOCOMPLETE_V1,
   ScriptStatusEnum,
   alertSchema,
   alertsResponseSchema,
@@ -597,6 +620,8 @@ var tableQueryResponseSchema = import_zod.z.object({
   createViewDtoSchema,
   credentialSummaryItemSchema,
   dataTableDtoSchema,
+  featureFlagScopeSchema,
+  featureFlagStateSchema,
   latestReviewsSchema,
   leadEventSchema,
   leadSchema,
@@ -637,6 +662,7 @@ var tableQueryResponseSchema = import_zod.z.object({
   tableRowDtoSchema,
   tableViewDtoSchema,
   updateColumnDtoSchema,
+  updateFeatureFlagRequestSchema,
   updatePublicDashboardRequestSchema,
   updateSourceRequestSchema,
   updateTableDtoSchema,

@@ -545,6 +545,45 @@ declare const costMetricsSchema: z.ZodObject<{
     marketingSpend: number;
     spendChange: number;
 }>;
+declare const featureFlagScopeSchema: z.ZodEnum<["workspace", "user"]>;
+declare const featureFlagStateSchema: z.ZodObject<{
+    flag: z.ZodString;
+    workspaceId: z.ZodNullable<z.ZodString>;
+    workspaceEnabled: z.ZodNullable<z.ZodBoolean>;
+    userId: z.ZodNullable<z.ZodString>;
+    userEnabled: z.ZodNullable<z.ZodBoolean>;
+    effectiveEnabled: z.ZodBoolean;
+}, "strip", z.ZodTypeAny, {
+    flag: string;
+    workspaceId: string | null;
+    workspaceEnabled: boolean | null;
+    userId: string | null;
+    userEnabled: boolean | null;
+    effectiveEnabled: boolean;
+}, {
+    flag: string;
+    workspaceId: string | null;
+    workspaceEnabled: boolean | null;
+    userId: string | null;
+    userEnabled: boolean | null;
+    effectiveEnabled: boolean;
+}>;
+declare const updateFeatureFlagRequestSchema: z.ZodObject<{
+    scope: z.ZodEnum<["workspace", "user"]>;
+    enabled: z.ZodBoolean;
+    workspaceId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    userId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    scope: "workspace" | "user";
+    enabled: boolean;
+    workspaceId?: string | null | undefined;
+    userId?: string | null | undefined;
+}, {
+    scope: "workspace" | "user";
+    enabled: boolean;
+    workspaceId?: string | null | undefined;
+    userId?: string | null | undefined;
+}>;
 declare const latestReviewsSchema: z.ZodObject<{
     summary: z.ZodObject<{
         averageRating: z.ZodNumber;
@@ -2462,4 +2501,11 @@ interface ProgramNode {
 type ConditionNode = ComparisonNode | LogicalNode;
 type ExpressionNode = FunctionCallNode | RefNode | ValueNode | ComparisonNode | LogicalNode;
 
-export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, ColumnTypeSchema, type ColumnTypeValue, type ComparisonNode, type ComparisonOperator, type ComparisonRight, type ConditionNode, type CostMetricsResponse, type CreateColumnDto, type CreatePublicDashboardRequest, type CreateRowDto, type CreateSourceRequest, type CreateTableDto, type CreateViewDto, type CredentialSummaryItem, type DataTableDto, type ExpressionNode, type FunctionCallNode, type FunctionName, type IdentifierNode, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type LogicalNode, type MeResponse, type OccupancyMetricsResponse, type Org, type PatchCellsDto, type PipelineMetricsResponse, type ProgramNode, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RefNode, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, type ReorderRowsDto, type ReportSnapshot, type Review, type SchemaColumn, type SchemaForeignKey, type SchemaGraph, type SchemaTable, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRange, type SourceRunResponse, type SourceStatus, type SourceType, type TableAuditDto, type TableCellDto, type TableColumnDto, type TableQueryFilter, type TableQueryRequest, type TableQueryResponse, type TableQuerySort, type TableRowDto, type TableViewDto, type UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, type UpdateTableDto, type UpdateViewDto, type User, type ValueNode, type ValuePrimitive, type WeeklyReportResponse, type WhereNode, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableQueryFilterSchema, tableQueryRequestSchema, tableQueryResponseSchema, tableQuerySortSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateTableDtoSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };
+declare const REF_AUTOCOMPLETE_V1: "ref-autocomplete-v1";
+type FeatureFlagName = typeof REF_AUTOCOMPLETE_V1;
+
+type FeatureFlagScope = z.infer<typeof featureFlagScopeSchema>;
+type FeatureFlagState = z.infer<typeof featureFlagStateSchema>;
+type UpdateFeatureFlagRequest = z.infer<typeof updateFeatureFlagRequestSchema>;
+
+export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, ColumnTypeSchema, type ColumnTypeValue, type ComparisonNode, type ComparisonOperator, type ComparisonRight, type ConditionNode, type CostMetricsResponse, type CreateColumnDto, type CreatePublicDashboardRequest, type CreateRowDto, type CreateSourceRequest, type CreateTableDto, type CreateViewDto, type CredentialSummaryItem, type DataTableDto, type ExpressionNode, type FeatureFlagName, type FeatureFlagScope, type FeatureFlagState, type FunctionCallNode, type FunctionName, type IdentifierNode, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type LogicalNode, type MeResponse, type OccupancyMetricsResponse, type Org, type PatchCellsDto, type PipelineMetricsResponse, type ProgramNode, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, REF_AUTOCOMPLETE_V1, type RefNode, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, type ReorderRowsDto, type ReportSnapshot, type Review, type SchemaColumn, type SchemaForeignKey, type SchemaGraph, type SchemaTable, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRange, type SourceRunResponse, type SourceStatus, type SourceType, type TableAuditDto, type TableCellDto, type TableColumnDto, type TableQueryFilter, type TableQueryRequest, type TableQueryResponse, type TableQuerySort, type TableRowDto, type TableViewDto, type UpdateColumnDto, type UpdateFeatureFlagRequest, type UpdatePublicDashboardRequest, type UpdateSourceRequest, type UpdateTableDto, type UpdateViewDto, type User, type ValueNode, type ValuePrimitive, type WeeklyReportResponse, type WhereNode, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, featureFlagScopeSchema, featureFlagStateSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableQueryFilterSchema, tableQueryRequestSchema, tableQueryResponseSchema, tableQuerySortSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updateFeatureFlagRequestSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateTableDtoSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };

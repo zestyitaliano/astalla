@@ -198,6 +198,24 @@ export const costMetricsSchema = z.object({
   trend: z.array(metricPointSchema)
 });
 
+export const featureFlagScopeSchema = z.enum(["workspace", "user"]);
+
+export const featureFlagStateSchema = z.object({
+  flag: z.string(),
+  workspaceId: z.string().nullable(),
+  workspaceEnabled: z.boolean().nullable(),
+  userId: z.string().nullable(),
+  userEnabled: z.boolean().nullable(),
+  effectiveEnabled: z.boolean()
+});
+
+export const updateFeatureFlagRequestSchema = z.object({
+  scope: featureFlagScopeSchema,
+  enabled: z.boolean(),
+  workspaceId: z.string().nullable().optional(),
+  userId: z.string().nullable().optional()
+});
+
 export const latestReviewsSchema = z.object({
   summary: z.object({
     averageRating: z.number(),
