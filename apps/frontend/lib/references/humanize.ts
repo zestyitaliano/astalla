@@ -68,28 +68,29 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
     },
   ];
 
-  for (const attempt of attempts) {
-    const parsed = attempt(trimmed);
-    if (!parsed) continue;
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern.regex);
+    if (!match || !match.groups) continue;
 
-    const func = mapFunction(parsed.func);
+    const func = mapFunction(match.groups.func ?? "");
     if (!func) {
-      throw new Error(`Unsupported function "${parsed.func}".`);
+      throw new Error(`Unsupported function "${match.groups.func}".`);
     }
 
     const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
     const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
 
     const whereRaw = pattern.filtersGroup ? match.groups[pattern.filtersGroup] : undefined;
+    const filtersInput = whereRaw?.trim();
 
     if (pattern.filtersGroup && match.groups[pattern.filtersGroup] !== undefined) {
-      if (!whereRaw || !whereRaw.trim()) {
+      if (!filtersInput) {
         throw new Error("WHERE clause is empty.");
       }
     }
 
-    const whereClause = parsed.filters
-      ? translateFilters(parsed.filters, tableName, index)
+    const whereClause = filtersInput
+      ? translateFilters(filtersInput, tableName, index)
       : undefined;
 
     const canonical = whereClause
