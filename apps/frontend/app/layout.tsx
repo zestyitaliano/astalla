@@ -43,7 +43,7 @@ export default function RootLayout({
       <head>
         <meta name="color-scheme" content="light dark" />
       </head>
-      <body className="min-h-screen bg-bg font-sans text-text antialiased transition-colors">
+      <body className="min-h-screen bg-bg font-sans font-base text-text antialiased transition-colors">
         <ThemeProvider>
           <AppProviders>
             {isPublicHost ? (
