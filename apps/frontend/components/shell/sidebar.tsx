@@ -26,8 +26,25 @@ export function Sidebar({ variant = "desktop", onNavigate, onClose }: SidebarPro
     <aside className={containerClasses}>
       <div className="flex h-16 items-center justify-between gap-4 border-b border-border/60 px-6">
         <Link href="/" className="flex items-center gap-2" aria-label="Home">
-          {/* To activate the logo, upload /public/brand/logo.svg (or .png and adjust the extension). */}
-          <Image src="/brand/logo.svg" alt="Astalla" width={120} height={28} priority />
+          {/* Auto-wired by script: light theme uses /brand/astalla_logo_dark.svg, dark theme uses /brand/astalla_logo_light.svg. */}
+          {/* Light theme: dark-ink logo */}
+          <Image
+            src="/brand/astalla_logo_dark.svg"
+            alt="Astalla"
+            width={120}
+            height={28}
+            priority
+            className="block dark:hidden"
+          />
+          {/* Dark theme: light-ink logo */}
+          <Image
+            src="/brand/astalla_logo_light.svg"
+            alt="Astalla"
+            width={120}
+            height={28}
+            priority
+            className="hidden dark:block"
+          />
         </Link>
         {variant === "mobile" ? (
           <button
