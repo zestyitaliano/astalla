@@ -68,13 +68,13 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
     },
   ];
 
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern.regex);
-    if (!match || !match.groups) continue;
+  for (const attempt of attempts) {
+    const parsed = attempt(trimmed);
+    if (!parsed) continue;
 
-    const func = mapFunction(match.groups.func);
+    const func = mapFunction(parsed.func);
     if (!func) {
-      throw new Error(`Unsupported function "${match.groups.func}".`);
+      throw new Error(`Unsupported function "${parsed.func}".`);
     }
 
     const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
@@ -88,15 +88,15 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
       }
     }
 
-    const whereClause = whereRaw ? translateFilters(whereRaw, tableName, index) : undefined;
+    const whereClause = parsed.filters
+      ? translateFilters(parsed.filters, tableName, index)
+      : undefined;
 
     const canonical = whereClause
       ? `${func}(@${columnRef.table}.${columnRef.column} where ${whereClause})`
       : `${func}(@${columnRef.table}.${columnRef.column})`;
 
-    // Ensure the generated string parses without errors.
     parseExpression(canonical);
-
     return canonical;
   }
 
@@ -214,6 +214,7 @@ function tokenizeFilters(value: string): FilterToken[] {
 
 function parseSingleCondition(clause: string, defaultTable: string, index: SchemaIndex): string {
   const trimmed = clause.trim();
+  const hasBetweenKeyword = /\sbetween\s/i.test(trimmed);
   const between = trimmed.match(/^(?<column>.+?)\s+between\s+(?<start>.+?)\s+and\s+(?<end>.+)$/i);
   if (between?.groups) {
     const column = resolveColumn(between.groups.column ?? "", defaultTable, index);
@@ -222,16 +223,8 @@ function parseSingleCondition(clause: string, defaultTable: string, index: Schem
     return `@${column.table}.${column.column} between ${start} and ${end}`;
   }
 
-  const inMatch = trimmed.match(/^(?<column>.+?)\s+in\s+(?<values>.+)$/i);
-  if (inMatch?.groups) {
-    const column = resolveColumn(inMatch.groups.column ?? "", defaultTable, index);
-    const values = parseValueList(inMatch.groups.values ?? "").map((item) =>
-      formatOperand(item, index, column.table),
-    );
-    if (values.length === 0) {
-      throw new Error("IN clause requires at least one value.");
-    }
-    return `@${column.table}.${column.column} in (${values.join(", ")})`;
+  if (hasBetweenKeyword) {
+    throw new Error(`Unsupported condition: "${clause}"`);
   }
 
   const after = trimmed.match(/^(?<column>.+?)\s+after\s+(?<value>.+)$/i);
@@ -246,6 +239,18 @@ function parseSingleCondition(clause: string, defaultTable: string, index: Schem
     const column = resolveColumn(before.groups.column ?? "", defaultTable, index);
     const value = formatOperand(before.groups.value ?? "", index, column.table);
     return `@${column.table}.${column.column} < ${value}`;
+  }
+
+  const inMatch = trimmed.match(/^(?<column>.+?)\s+in\s+(?<values>.+)$/i);
+  if (inMatch?.groups) {
+    const column = resolveColumn(inMatch.groups.column ?? "", defaultTable, index);
+    const values = parseValueList(inMatch.groups.values ?? "").map((item) =>
+      formatOperand(item, index, column.table),
+    );
+    if (values.length === 0) {
+      throw new Error("IN clause requires at least one value.");
+    }
+    return `@${column.table}.${column.column} in (${values.join(", ")})`;
   }
 
   const equals = trimmed.match(/^(?<column>.+?)\s+(?:is|equals)\s+(?<value>.+)$/i);

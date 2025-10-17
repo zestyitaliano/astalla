@@ -161,4 +161,34 @@ describe("reference parser", () => {
     const ast = parseExpression("sum(@Metrics.value where (@Metrics.year = 2024))");
     expect(ast.body.where!.condition).toMatchObject({ type: "Comparison" });
   });
+
+  it("parses not-equal comparisons", () => {
+    const ast = parseExpression("sum(@Leases.TotalRent where @Leases.Status != Pending)");
+    const comparison = ast.body.where!.condition as any;
+    expect(comparison.operator).toBe("!=");
+    expect(comparison.right).toMatchObject({ type: "Value", value: "Pending" });
+  });
+
+  it("parses IN clauses that mix references and literals", () => {
+    const ast = parseExpression("sum(@Units.Bedrooms where @Units.Bedrooms in (@Units.Bathrooms, 3))");
+    const comparison = ast.body.where!.condition as any;
+    expect(comparison.operator).toBe("in");
+    expect(comparison.right).toHaveLength(2);
+    expect(comparison.right[0]).toMatchObject({ type: "Ref" });
+    expect(comparison.right[1]).toMatchObject({ type: "Value", value: 3 });
+  });
+
+  it("parses nested logical groups with between comparisons", () => {
+    const ast = parseExpression(
+      "sum(@Leases.TotalRent where (@Leases.Year between 2024 and 2025 or @Leases.Status = 'Active') and @Units.Bedrooms = 2)",
+    );
+    const where = ast.body.where!.condition as any;
+    expect(where.type).toBe("Logical");
+    expect(where.operator).toBe("and");
+    expect(where.left.type).toBe("Logical");
+    expect(where.left.operator).toBe("or");
+    expect(where.left.left.operator).toBe("between");
+    expect(where.left.left.right).toHaveLength(2);
+    expect(where.right.operator).toBe("=");
+  });
 });

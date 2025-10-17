@@ -2464,7 +2464,7 @@ interface ValueNode {
     range?: SourceRange;
 }
 type ComparisonOperator = "=" | "!=" | ">" | "<" | "in" | "between";
-type ComparisonRight = RefNode | ValueNode | ValueNode[];
+type ComparisonRight = RefNode | ValueNode | Array<RefNode | ValueNode>;
 interface ComparisonNode {
     type: "Comparison";
     operator: ComparisonOperator;

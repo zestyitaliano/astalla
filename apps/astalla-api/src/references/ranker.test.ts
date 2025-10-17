@@ -58,4 +58,53 @@ describe('rankReferences', () => {
     assert.ok(suggestion.scoreBreakdown.context > 0);
     assert.ok(suggestion.scoreBreakdown.data > 0);
   });
+
+  it('sorts suggestions alphabetically when scores match', () => {
+    const candidates: ReferenceCandidate[] = [
+      { id: 'tbl:beta', kind: 'table', name: 'beta', label: 'Beta' },
+      { id: 'tbl:alpha', kind: 'table', name: 'alpha', label: 'Alpha' },
+      { id: 'tbl:charlie', kind: 'table', name: 'charlie', label: 'Charlie' },
+    ];
+
+    const suggestions = rankReferences({ candidates, tokensSoFar: '' });
+
+    assert.deepEqual(
+      suggestions.map((item) => item.label),
+      ['Alpha', 'Beta', 'Charlie'],
+    );
+    const totals = suggestions.map((item) => item.totalScore);
+    assert.ok(totals.every((score) => Math.abs(score - totals[0]!) < 1e-9));
+  });
+
+  it('prioritises context matches when schema scores tie', () => {
+    const candidates: ReferenceCandidate[] = [
+      {
+        id: 'users.status',
+        kind: 'column',
+        name: 'status',
+        label: 'Status',
+        tableId: 'public.users',
+        tableName: 'users',
+        dataType: 'text',
+      },
+      {
+        id: 'orders.status',
+        kind: 'column',
+        name: 'status',
+        label: 'Status',
+        tableId: 'public.orders',
+        tableName: 'orders',
+        dataType: 'text',
+      },
+    ];
+
+    const suggestions = rankReferences({
+      candidates,
+      tokensSoFar: 'status',
+      cursorContext: { tableId: 'public.users', editingFieldType: 'expr' },
+    });
+
+    assert.equal(suggestions[0]?.id, 'users.status');
+    assert.ok(suggestions[0]!.scoreBreakdown.context > suggestions[1]!.scoreBreakdown.context);
+  });
 });

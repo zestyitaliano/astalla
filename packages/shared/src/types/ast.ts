@@ -27,7 +27,7 @@ export interface ValueNode {
 
 export type ComparisonOperator = "=" | "!=" | ">" | "<" | "in" | "between";
 
-export type ComparisonRight = RefNode | ValueNode | ValueNode[];
+export type ComparisonRight = RefNode | ValueNode | Array<RefNode | ValueNode>;
 
 export interface ComparisonNode {
   type: "Comparison";

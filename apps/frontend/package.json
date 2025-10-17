@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "pnpm e2e",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build",
     "e2e:install": "npx playwright install --with-deps",
     "e2e": "playwright test"
   },
@@ -48,6 +50,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.41.2",
+    "@storybook/addon-essentials": "^8.3.5",
+    "@storybook/addon-interactions": "^8.3.5",
+    "@storybook/react-vite": "^8.3.5",
+    "@storybook/test": "^8.3.5",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
@@ -60,6 +66,7 @@
     "eslint-config-next": "^14.2.15",
     "jsdom": "^25.0.1",
     "typescript": "^5.6.3",
+    "vite-tsconfig-paths": "^4.3.1",
     "vitest": "^2.1.6"
   }
 }
