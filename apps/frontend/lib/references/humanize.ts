@@ -69,6 +69,14 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
       throw new Error(`Unsupported function "${match.groups.func}".`);
     }
 
+    if (
+      pattern.filtersGroup &&
+      match.groups[pattern.filtersGroup] === undefined &&
+      /\bwhere\s*$/i.test(trimmed)
+    ) {
+      throw new Error("WHERE clause is empty.");
+    }
+
     const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
     const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
 
