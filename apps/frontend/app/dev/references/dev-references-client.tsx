@@ -485,10 +485,12 @@ function SchemaTablePreview({ table }: { table: SchemaTable }) {
   );
 }
 
-function createCompletionProvider(monaco: Monaco, summary: SchemaSummary) {
+type CompletionProvider = Parameters<Monaco["languages"]["registerCompletionItemProvider"]>[1];
+
+function createCompletionProvider(monaco: Monaco, summary: SchemaSummary): CompletionProvider {
   return {
     triggerCharacters: ["@", "."],
-    provideCompletionItems(model: MonacoEditorType.ITextModel, position: MonacoEditorType.IPosition) {
+    provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: 1,
         startColumn: 1,
@@ -539,7 +541,7 @@ function createCompletionProvider(monaco: Monaco, summary: SchemaSummary) {
 
       return { suggestions: [] };
     }
-  };
+  } satisfies CompletionProvider;
 }
 
 function evaluateAggregation(
