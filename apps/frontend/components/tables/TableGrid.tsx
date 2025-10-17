@@ -64,6 +64,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { logSuggestionAccepted } from "@/lib/references/telemetry";
 
 import { ColumnMenu } from "./ColumnMenu";
 import { ImportCsvModal } from "./ImportCsvModal";
@@ -2039,12 +2040,17 @@ function ReferenceCellEditor({ column, value, onCommit }: ReferenceCellEditorPro
       if (blurTimeoutRef.current) {
         clearTimeout(blurTimeoutRef.current);
       }
+      const typedBefore = draft;
       setSelectedId(option.id);
       setDraft(option.label);
       onCommit({ id: option.id, label: option.label });
       setIsMenuOpen(false);
+
+      const normalized = typedBefore.trim();
+      const distance = normalized ? calculateEditDistance(normalized, option.label) : null;
+      logSuggestionAccepted('reference', distance);
     },
-    [onCommit]
+    [draft, onCommit]
   );
 
   const handleCommit = useCallback(() => {
@@ -2187,5 +2193,30 @@ function useDebouncedValue<T>(value: T, delay: number) {
   }, [value, delay]);
 
   return debounced;
+}
+
+function calculateEditDistance(a: string, b: string): number {
+  const source = a.toLowerCase();
+  const target = b.toLowerCase();
+
+  const rows = source.length + 1;
+  const cols = target.length + 1;
+  const dp = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
+
+  for (let i = 0; i < rows; i += 1) {
+    dp[i][0] = i;
+  }
+  for (let j = 0; j < cols; j += 1) {
+    dp[0][j] = j;
+  }
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = source[i - 1] === target[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+
+  return dp[rows - 1][cols - 1];
 }
 
