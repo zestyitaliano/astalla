@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
@@ -23,8 +24,11 @@ export function Sidebar({ variant = "desktop", onNavigate, onClose }: SidebarPro
 
   return (
     <aside className={containerClasses}>
-      <div className="flex h-16 items-center justify-between gap-4 border-b border-border/60 px-6 text-lg font-heading uppercase tracking-[0.2em]">
-        <span className="text-accent">Astalla</span>
+      <div className="flex h-16 items-center justify-between gap-4 border-b border-border/60 px-6">
+        <Link href="/" className="flex items-center gap-2" aria-label="Home">
+          {/* To activate the logo, upload /public/brand/logo.svg (or .png and adjust the extension). */}
+          <Image src="/brand/logo.svg" alt="Astalla" width={120} height={28} priority />
+        </Link>
         {variant === "mobile" ? (
           <button
             type="button"
