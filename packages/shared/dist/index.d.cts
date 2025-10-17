@@ -2403,4 +2403,63 @@ interface SchemaGraph {
     tables: SchemaTable[];
 }
 
-export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, ColumnTypeSchema, type ColumnTypeValue, type CostMetricsResponse, type CreateColumnDto, type CreatePublicDashboardRequest, type CreateRowDto, type CreateSourceRequest, type CreateTableDto, type CreateViewDto, type CredentialSummaryItem, type DataTableDto, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type MeResponse, type OccupancyMetricsResponse, type Org, type PatchCellsDto, type PipelineMetricsResponse, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, type ReorderRowsDto, type ReportSnapshot, type Review, type SchemaColumn, type SchemaForeignKey, type SchemaGraph, type SchemaTable, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRunResponse, type SourceStatus, type SourceType, type TableAuditDto, type TableCellDto, type TableColumnDto, type TableQueryFilter, type TableQueryRequest, type TableQueryResponse, type TableQuerySort, type TableRowDto, type TableViewDto, type UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, type UpdateTableDto, type UpdateViewDto, type User, type WeeklyReportResponse, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableQueryFilterSchema, tableQueryRequestSchema, tableQueryResponseSchema, tableQuerySortSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateTableDtoSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };
+type FunctionName = "sum" | "count" | "avg" | "min" | "max";
+interface SourceRange {
+    start: number;
+    end: number;
+}
+interface IdentifierNode {
+    type: "Identifier";
+    name: string;
+    range?: SourceRange;
+}
+interface RefNode {
+    type: "Ref";
+    path: IdentifierNode[];
+    range?: SourceRange;
+}
+type ValuePrimitive = string | number | boolean | null;
+interface ValueNode {
+    type: "Value";
+    value: ValuePrimitive | ValuePrimitive[];
+    range?: SourceRange;
+}
+type ComparisonOperator = "=" | "!=" | ">" | "<" | "in" | "between";
+type ComparisonRight = RefNode | ValueNode | ValueNode[];
+interface ComparisonNode {
+    type: "Comparison";
+    operator: ComparisonOperator;
+    left: RefNode | ValueNode;
+    right: ComparisonRight;
+    range?: SourceRange;
+}
+interface LogicalNode {
+    type: "Logical";
+    operator: "and" | "or";
+    left: ConditionNode;
+    right: ConditionNode;
+    range?: SourceRange;
+}
+interface WhereNode {
+    type: "Where";
+    condition: ConditionNode;
+    range?: SourceRange;
+}
+interface FunctionCallNode {
+    type: "FunctionCall";
+    name: FunctionName;
+    argument: RefNode | ValueNode;
+    where?: WhereNode;
+    range?: SourceRange;
+    nameRange?: SourceRange;
+    closeRange?: SourceRange;
+}
+interface ProgramNode {
+    type: "Program";
+    body: FunctionCallNode;
+    range?: SourceRange;
+}
+type ConditionNode = ComparisonNode | LogicalNode;
+type ExpressionNode = FunctionCallNode | RefNode | ValueNode | ComparisonNode | LogicalNode;
+
+export { type Alert, type AlertsResponse, type Application, type BasicAuthAccount, type BasicAuthLoginRequest, type BasicAuthLoginResponse, ColumnType, ColumnTypeSchema, type ColumnTypeValue, type ComparisonNode, type ComparisonOperator, type ComparisonRight, type ConditionNode, type CostMetricsResponse, type CreateColumnDto, type CreatePublicDashboardRequest, type CreateRowDto, type CreateSourceRequest, type CreateTableDto, type CreateViewDto, type CredentialSummaryItem, type DataTableDto, type ExpressionNode, type FunctionCallNode, type FunctionName, type IdentifierNode, type LatestReviewsResponse, type Lead, type LeadEvent, type Lease, type ListSourcesResponse, type LogicalNode, type MeResponse, type OccupancyMetricsResponse, type Org, type PatchCellsDto, type PipelineMetricsResponse, type ProgramNode, type PropertiesResponse, type Property, ProviderActionParam, ProviderManifest, type ProviderRunResponse, type ProviderScriptResponse, type ProviderValidateResponse, type PublicDashboard, type PublicDashboardListResponse, type RefNode, type RegisterBasicAuthRequest, type RegisterBasicAuthResponse, type ReorderRowsDto, type ReportSnapshot, type Review, type SchemaColumn, type SchemaForeignKey, type SchemaGraph, type SchemaTable, ScriptStatusEnum, type SourceAccount, type SourceActionLogEntry, type SourceActionLogPage, type SourceDetail, type SourceMutationResponse, type SourceRange, type SourceRunResponse, type SourceStatus, type SourceType, type TableAuditDto, type TableCellDto, type TableColumnDto, type TableQueryFilter, type TableQueryRequest, type TableQueryResponse, type TableQuerySort, type TableRowDto, type TableViewDto, type UpdateColumnDto, type UpdatePublicDashboardRequest, type UpdateSourceRequest, type UpdateTableDto, type UpdateViewDto, type User, type ValueNode, type ValuePrimitive, type WeeklyReportResponse, type WhereNode, alertSchema, alertsResponseSchema, applicationSchema, basicAuthAccountSchema, basicAuthLoginRequestSchema, basicAuthLoginResponseSchema, columnTypeSchema, costMetricsSchema, createColumnDtoSchema, createPublicDashboardRequestSchema, createRowDtoSchema, createSourceRequestSchema, createTableDtoSchema, createViewDtoSchema, credentialSummaryItemSchema, dataTableDtoSchema, latestReviewsSchema, leadEventSchema, leadSchema, leaseSchema, listSourcesResponseSchema, meResponseSchema, occupancyMetricsSchema, orgSchema, patchCellsDtoSchema, pipelineMetricsSchema, propertiesResponseSchema, propertySchema, providerRunResponseSchema, providerScriptSchema, providerValidateResponseSchema, publicDashboardListResponseSchema, publicDashboardSchema, registerBasicAuthRequestSchema, registerBasicAuthResponseSchema, reorderRowsDtoSchema, reportSnapshotSchema, reviewSchema, sourceAccountSchema, sourceActionLogListSchema, sourceActionLogSchema, sourceDetailSchema, sourceMutationResponseSchema, sourceRunResponseSchema, sourceStatusSchema, sourceTypeSchema, tableAuditDtoSchema, tableCellDtoSchema, tableColumnDtoSchema, tableQueryFilterSchema, tableQueryRequestSchema, tableQueryResponseSchema, tableQuerySortSchema, tableRowDtoSchema, tableViewDtoSchema, updateColumnDtoSchema, updatePublicDashboardRequestSchema, updateSourceRequestSchema, updateTableDtoSchema, updateViewDtoSchema, userSchema, weeklyReportSchema };

@@ -7,6 +7,8 @@ import {
   ComparisonNode,
   LogicalNode,
   ConditionNode,
+  SourceRange,
+  WhereNode,
 } from "@shared/ast";
 
 export class ParseError extends Error {
@@ -252,12 +254,16 @@ class ReferenceParser {
     this.current = 0;
 
     const body = this.parseFunctionCall();
-    this.expect("EOF");
+    const eofToken = this.expect("EOF");
 
     return {
       type: "Program",
       body,
-    };
+      range: {
+        start: body.range?.start ?? 0,
+        end: eofToken.start,
+      },
+    } satisfies ProgramNode;
   }
 
   private parseFunctionCall(): FunctionCallNode {
@@ -268,13 +274,16 @@ class ReferenceParser {
     if (this.check("WHERE")) {
       whereClause = this.parseWhereClause();
     }
-    this.expect("RPAREN");
+    const closingParen = this.expect("RPAREN");
 
     return {
       type: "FunctionCall",
       name: fnToken.value as FunctionCallNode["name"],
       argument,
       where: whereClause,
+      range: { start: fnToken.start, end: closingParen.end },
+      nameRange: { start: fnToken.start, end: fnToken.end },
+      closeRange: { start: closingParen.start, end: closingParen.end },
     };
   }
 
@@ -287,21 +296,28 @@ class ReferenceParser {
   }
 
   private parseWhereClause(): FunctionCallNode["where"] {
-    this.expect("WHERE");
+    const whereToken = this.expect("WHERE");
     const condition = this.parseOrExpression();
-    return { type: "Where", condition };
+    const end = condition.range?.end ?? this.previous().end;
+    return {
+      type: "Where",
+      condition,
+      range: { start: whereToken.start, end },
+    } satisfies WhereNode;
   }
 
   private parseOrExpression(): ConditionNode {
     let left = this.parseAndExpression();
 
     while (this.match("OR")) {
+      const operatorToken = this.previous();
       const right = this.parseAndExpression();
       left = {
         type: "Logical",
         operator: "or",
         left,
         right,
+        range: this.combineRange(left.range, right.range, operatorToken.start, this.previous().end),
       } satisfies LogicalNode;
     }
 
@@ -312,12 +328,14 @@ class ReferenceParser {
     let left = this.parseCondition();
 
     while (this.match("AND")) {
+      const operatorToken = this.previous();
       const right = this.parseCondition();
       left = {
         type: "Logical",
         operator: "and",
         left,
         right,
+        range: this.combineRange(left.range, right.range, operatorToken.start, this.previous().end),
       } satisfies LogicalNode;
     }
 
@@ -326,8 +344,15 @@ class ReferenceParser {
 
   private parseCondition(): ConditionNode {
     if (this.match("LPAREN")) {
+      const open = this.previous();
       const expression = this.parseOrExpression();
-      this.expect("RPAREN");
+      const close = this.expect("RPAREN");
+      const range = { start: open.start, end: close.end } satisfies SourceRange;
+      if (expression.range) {
+        expression.range = range;
+      } else {
+        (expression as LogicalNode | ComparisonNode).range = range;
+      }
       return expression;
     }
 
@@ -338,18 +363,26 @@ class ReferenceParser {
     const left = this.parseOperand();
 
     if (this.match("IN")) {
-      this.expect("LPAREN");
+      const inToken = this.previous();
+      const openParen = this.expect("LPAREN");
       const values = this.parseValueList();
-      this.expect("RPAREN");
+      const closeParen = this.expect("RPAREN");
       return {
         type: "Comparison",
         operator: "in",
         left,
         right: values,
+        range: this.combineRange(
+          left.range,
+          { start: closeParen.start, end: closeParen.end },
+          left.range?.start ?? inToken.start,
+          closeParen.end,
+        ),
       };
     }
 
     if (this.match("BETWEEN")) {
+      const betweenToken = this.previous();
       const start = this.parseValue();
       this.expect("AND");
       const end = this.parseValue();
@@ -358,6 +391,12 @@ class ReferenceParser {
         operator: "between",
         left,
         right: [start, end],
+        range: this.combineRange(
+          left.range,
+          end.range,
+          left.range?.start ?? betweenToken.start,
+          end.range?.end ?? this.previous().end,
+        ),
       };
     }
 
@@ -370,6 +409,7 @@ class ReferenceParser {
       operator,
       left,
       right,
+      range: this.combineRange(left.range, right.range, operatorToken.start, this.previous().end),
     };
   }
 
@@ -382,7 +422,7 @@ class ReferenceParser {
   }
 
   private parseRef(): RefNode {
-    this.expect("AT");
+    const atToken = this.expect("AT");
     const identifiers: IdentifierNode[] = [];
     identifiers.push(this.parseIdentifier());
 
@@ -390,9 +430,12 @@ class ReferenceParser {
       identifiers.push(this.parseIdentifier());
     }
 
+    const end = identifiers[identifiers.length - 1]?.range?.end ?? this.previous().end;
+
     return {
       type: "Ref",
       path: identifiers,
+      range: { start: atToken.start, end },
     };
   }
 
@@ -401,23 +444,25 @@ class ReferenceParser {
     return {
       type: "Identifier",
       name: token.value,
+      range: { start: token.start, end: token.end },
     };
   }
 
   private parseValue(): ValueNode {
     const token = this.advance();
+    const range: SourceRange = { start: token.start, end: token.end };
 
     switch (token.type) {
       case "STRING":
-        return { type: "Value", value: token.value };
+        return { type: "Value", value: token.value, range };
       case "NUMBER":
-        return { type: "Value", value: Number(token.value) };
+        return { type: "Value", value: Number(token.value), range };
       case "BOOLEAN":
-        return { type: "Value", value: token.value === "true" };
+        return { type: "Value", value: token.value === "true", range };
       case "NULL":
-        return { type: "Value", value: null };
+        return { type: "Value", value: null, range };
       case "IDENTIFIER":
-        return { type: "Value", value: token.value };
+        return { type: "Value", value: token.value, range };
       default:
         throw this.error(token, "Expected a value");
     }
@@ -499,6 +544,17 @@ class ReferenceParser {
 
   private error(token: Token, message: string): ParseError {
     return new ParseError(message, token.start);
+  }
+
+  private combineRange(
+    left: SourceRange | undefined,
+    right: SourceRange | undefined,
+    fallbackStart: number,
+    fallbackEnd: number,
+  ): SourceRange {
+    const start = left?.start ?? fallbackStart;
+    const end = right?.end ?? fallbackEnd;
+    return { start, end };
   }
 }
 
