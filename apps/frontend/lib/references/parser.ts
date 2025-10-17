@@ -364,8 +364,17 @@ class ReferenceParser {
 
     if (this.match("IN")) {
       const inToken = this.previous();
-      const openParen = this.expect("LPAREN");
-      const values = this.parseValueList();
+      this.expect("LPAREN");
+      if (this.check("RPAREN")) {
+        throw this.error(this.peek(), "Expected a value");
+      }
+
+      const values: Array<RefNode | ValueNode> = [];
+      values.push(this.parseOperand());
+      while (this.match("COMMA")) {
+        values.push(this.parseOperand());
+      }
+
       const closeParen = this.expect("RPAREN");
       return {
         type: "Comparison",
@@ -374,7 +383,7 @@ class ReferenceParser {
         right: values,
         range: this.combineRange(
           left.range,
-          { start: closeParen.start, end: closeParen.end },
+          values[values.length - 1]?.range ?? { start: closeParen.start, end: closeParen.end },
           left.range?.start ?? inToken.start,
           closeParen.end,
         ),
@@ -466,17 +475,6 @@ class ReferenceParser {
       default:
         throw this.error(token, "Expected a value");
     }
-  }
-
-  private parseValueList(): ValueNode[] {
-    const values: ValueNode[] = [];
-    values.push(this.parseValue());
-
-    while (this.match("COMMA")) {
-      values.push(this.parseValue());
-    }
-
-    return values;
   }
 
   private mapOperator(tokenType: TokenType): ComparisonOperator {

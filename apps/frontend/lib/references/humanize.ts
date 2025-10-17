@@ -38,57 +38,97 @@ export function translateHumanToCanonical(input: string, schema: SchemaGraph): s
 
   const index = buildSchemaIndex(schema);
 
-  const patterns: Array<{
-    regex: RegExp;
-    columnGroup: string;
-    tableGroup: string;
-    filtersGroup?: string;
-  }> = [
-    {
-      regex:
-        /^(?<func>[a-z]+)\s+of\s+(?<column>.+?)\s+in\s+(?<table>[^,]+?)(?:\s+where\s+(?<filters>.+))?$/i,
-      columnGroup: "column",
-      tableGroup: "table",
-      filtersGroup: "filters",
-    },
-    {
-      regex:
-        /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)(?:\s+where\s+(?<filters>.+))?$/i,
-      columnGroup: "column",
-      tableGroup: "table",
-      filtersGroup: "filters",
-    },
+  const attempts: Array<(value: string) => HumanParseResult | null> = [
+    parseOfInStructure,
+    parseDirectStructure,
   ];
 
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern.regex);
-    if (!match || !match.groups) continue;
+  for (const attempt of attempts) {
+    const parsed = attempt(trimmed);
+    if (!parsed) continue;
 
-    const func = mapFunction(match.groups.func);
+    const func = mapFunction(parsed.func);
     if (!func) {
-      throw new Error(`Unsupported function "${match.groups.func}".`);
+      throw new Error(`Unsupported function "${parsed.func}".`);
     }
 
-    const tableName = resolveTable(match.groups[pattern.tableGroup] ?? "", index);
-    const columnRef = resolveColumn(match.groups[pattern.columnGroup] ?? "", tableName, index);
+    const tableName = resolveTable(parsed.table, index);
+    const columnRef = resolveColumn(parsed.column, tableName, index);
 
-    const whereRaw = pattern.filtersGroup ? match.groups[pattern.filtersGroup] : undefined;
-    const whereClause = whereRaw
-      ? translateFilters(whereRaw, tableName, index)
+    const whereClause = parsed.filters
+      ? translateFilters(parsed.filters, tableName, index)
       : undefined;
 
     const canonical = whereClause
       ? `${func}(@${columnRef.table}.${columnRef.column} where ${whereClause})`
       : `${func}(@${columnRef.table}.${columnRef.column})`;
 
-    // Ensure the generated string parses without errors.
     parseExpression(canonical);
-
     return canonical;
   }
 
   throw new Error("Unable to translate input to canonical form.");
 }
+
+type HumanParseResult = {
+  func: string;
+  column: string;
+  table: string;
+  filters?: string;
+};
+
+const WHERE_KEYWORD = " where ";
+
+const parseOfInStructure = (value: string): HumanParseResult | null => {
+  const funcMatch = value.match(/^(?<func>[a-z]+)\s+of\s+/i);
+  const func = funcMatch?.groups?.func;
+  if (!funcMatch || !func) {
+    return null;
+  }
+
+  const remainder = value.slice(funcMatch[0]!.length);
+  const lowerRemainder = remainder.toLowerCase();
+  const whereIndex = lowerRemainder.indexOf(WHERE_KEYWORD);
+  const head = whereIndex === -1 ? remainder : remainder.slice(0, whereIndex);
+  const filtersRaw = whereIndex === -1 ? undefined : remainder.slice(whereIndex + WHERE_KEYWORD.length);
+
+  const headLower = head.toLowerCase();
+  const separatorIndex = headLower.lastIndexOf(" in ");
+  if (separatorIndex === -1) {
+    return null;
+  }
+
+  const column = head.slice(0, separatorIndex).trim();
+  const table = head.slice(separatorIndex + 4).trim();
+  if (!column || !table) {
+    return null;
+  }
+
+  const filters = filtersRaw?.trim();
+  return {
+    func,
+    column,
+    table,
+    filters: filters ? filters : undefined,
+  };
+};
+
+const parseDirectStructure = (value: string): HumanParseResult | null => {
+  const match = value.match(
+    /^(?<func>[a-z]+)\s+(?<table>[a-z0-9_ ]+)\.(?<column>[a-z0-9_]+)(?:\s+where\s+(?<filters>.+))?$/i,
+  );
+  if (!match?.groups) {
+    return null;
+  }
+
+  const filters = match.groups.filters?.trim();
+  return {
+    func: match.groups.func,
+    table: match.groups.table.trim(),
+    column: match.groups.column,
+    filters: filters ? filters : undefined,
+  };
+};
 
 function mapFunction(raw: string): string | undefined {
   return FUNCTION_ALIASES[raw.toLowerCase()];
@@ -166,6 +206,7 @@ function tokenizeFilters(value: string): FilterToken[] {
 
 function parseSingleCondition(clause: string, defaultTable: string, index: SchemaIndex): string {
   const trimmed = clause.trim();
+  const hasBetweenKeyword = /\sbetween\s/i.test(trimmed);
   const between = trimmed.match(/^(?<column>.+?)\s+between\s+(?<start>.+?)\s+and\s+(?<end>.+)$/i);
   if (between?.groups) {
     const column = resolveColumn(between.groups.column ?? "", defaultTable, index);
@@ -174,16 +215,8 @@ function parseSingleCondition(clause: string, defaultTable: string, index: Schem
     return `@${column.table}.${column.column} between ${start} and ${end}`;
   }
 
-  const inMatch = trimmed.match(/^(?<column>.+?)\s+in\s+(?<values>.+)$/i);
-  if (inMatch?.groups) {
-    const column = resolveColumn(inMatch.groups.column ?? "", defaultTable, index);
-    const values = parseValueList(inMatch.groups.values ?? "").map((item) =>
-      formatOperand(item, index, column.table),
-    );
-    if (values.length === 0) {
-      throw new Error("IN clause requires at least one value.");
-    }
-    return `@${column.table}.${column.column} in (${values.join(", ")})`;
+  if (hasBetweenKeyword) {
+    throw new Error(`Unsupported condition: "${clause}"`);
   }
 
   const after = trimmed.match(/^(?<column>.+?)\s+after\s+(?<value>.+)$/i);
@@ -198,6 +231,18 @@ function parseSingleCondition(clause: string, defaultTable: string, index: Schem
     const column = resolveColumn(before.groups.column ?? "", defaultTable, index);
     const value = formatOperand(before.groups.value ?? "", index, column.table);
     return `@${column.table}.${column.column} < ${value}`;
+  }
+
+  const inMatch = trimmed.match(/^(?<column>.+?)\s+in\s+(?<values>.+)$/i);
+  if (inMatch?.groups) {
+    const column = resolveColumn(inMatch.groups.column ?? "", defaultTable, index);
+    const values = parseValueList(inMatch.groups.values ?? "").map((item) =>
+      formatOperand(item, index, column.table),
+    );
+    if (values.length === 0) {
+      throw new Error("IN clause requires at least one value.");
+    }
+    return `@${column.table}.${column.column} in (${values.join(", ")})`;
   }
 
   const equals = trimmed.match(/^(?<column>.+?)\s+(?:is|equals)\s+(?<value>.+)$/i);
