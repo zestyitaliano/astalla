@@ -20,6 +20,16 @@ const leasesRows: TableRow[] = [
   { Id: 'lease-4', UnitId: 'unit-3', TotalRent: 3100, Status: 'Active', Year: 2025, ResidentEmail: 'dave@example.com' },
 ];
 
+const hgdgfsRows: TableRow[] = [
+  { Id: 'hgdgfs-1', Name: 'Sample HG 1', Value: 12 },
+  { Id: 'hgdgfs-2', Name: 'Sample HG 2', Value: 24 },
+];
+
+const lteoiruh9Rows: TableRow[] = [
+  { Id: 'lteoiruh9-1', Name: 'LTE 1', Amount: 5 },
+  { Id: 'lteoiruh9-2', Name: 'LTE 2', Amount: 10 },
+];
+
 const tables: Record<string, TableData> = {
   units: {
     rows: unitsRows,
@@ -28,6 +38,14 @@ const tables: Record<string, TableData> = {
   leases: {
     rows: leasesRows,
     columns: ['Id', 'UnitId', 'TotalRent', 'Status', 'Year', 'ResidentEmail'],
+  },
+  hgdgfs: {
+    rows: hgdgfsRows,
+    columns: ['Id', 'Name', 'Value'],
+  },
+  lteoiruh9: {
+    rows: lteoiruh9Rows,
+    columns: ['Id', 'Name', 'Amount'],
   },
 };
 

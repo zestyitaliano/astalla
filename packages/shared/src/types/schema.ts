@@ -1,8 +1,18 @@
+export type ReferenceCardinality = 'single' | 'multi';
+
+export interface ReferenceConfig {
+  targetTableId: string;
+  displayColumnId: string | null;
+  cardinality: ReferenceCardinality;
+  enforceForeignKey: boolean;
+}
+
 export interface SchemaColumn {
   id: string;
   name: string;
-  type: string;
+  type: 'reference' | string;
   isPII?: boolean;
+  referenceConfig?: ReferenceConfig;
 }
 
 export interface SchemaForeignKey {
