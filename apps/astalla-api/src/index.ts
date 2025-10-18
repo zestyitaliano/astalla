@@ -6,6 +6,7 @@ import { Site } from './types.js';
 import { getSchemaGraphForUser } from './schemaRegistry/registry.js';
 import { registerColumnRoutes } from './routes/columns.js';
 import { registerReferenceRoutes } from './routes/references.js';
+import { registerRowRoutes } from './routes/rows.js';
 
 const computeEtag = (payload: string): string => {
   return `"${createHash('sha256').update(payload).digest('base64')}"`;
@@ -46,6 +47,7 @@ export const createApp = (options?: { beforeRoutes?: RequestHandler[] }) => {
 
   registerReferenceRoutes(app);
   registerColumnRoutes(app);
+  registerRowRoutes(app);
 
   app.get('/sites', (req, res) => {
     res.json(Array.from(sites.values()));
