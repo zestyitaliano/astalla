@@ -498,6 +498,14 @@ export function TableGrid({ tableId }: TableGridProps) {
   const copyStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeColumnSettings, setActiveColumnSettings] = useState<{ columnId: string } | null>(null);
 
+  const openColumnSettings = useCallback((columnId: string) => {
+    setActiveColumnSettings({ columnId });
+  }, []);
+
+  const closeColumnSettings = useCallback(() => {
+    setActiveColumnSettings(null);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (importToastTimerRef.current) {
@@ -963,14 +971,6 @@ export function TableGrid({ tableId }: TableGridProps) {
   }, [activeColumnSettings, columns]);
 
   const settingsColumnType = settingsColumn?.type;
-
-  const openColumnSettings = useCallback((columnId: string) => {
-    setActiveColumnSettings({ columnId });
-  }, []);
-
-  const closeColumnSettings = useCallback(() => {
-    setActiveColumnSettings(null);
-  }, []);
 
   useEffect(() => {
     if (activeColumnSettings && !settingsColumn) {
