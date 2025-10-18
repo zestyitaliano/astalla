@@ -172,6 +172,11 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
     setError(null);
 
     try {
+      const referenceTypeValue =
+        column && typeof column.type === "string"
+          ? column.type.toLowerCase()
+          : "reference";
+
       const response = await fetch(
         `${apiBaseUrl}/api/tables/${encodeURIComponent(tableId)}/columns/${encodeURIComponent(column.id)}`,
         {
@@ -179,7 +184,7 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            type: ColumnTypeSchema.enum.REFERENCE,
+            type: referenceTypeValue,
             referenceConfig: {
               targetTableId: referenceState.targetTableId,
               displayColumnId: referenceState.displayColumnId || null,

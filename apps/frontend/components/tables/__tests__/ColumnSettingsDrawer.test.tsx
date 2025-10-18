@@ -134,7 +134,7 @@ describe("ColumnSettingsDrawer", () => {
     const body = patchCall?.[1]?.body;
     expect(typeof body).toBe("string");
     const parsed = JSON.parse(body as string);
-    expect(parsed.type).toBe("REFERENCE");
+    expect(parsed.type).toBe("reference");
     expect(parsed.referenceConfig).toMatchObject({
       targetTableId: "public.units",
       displayColumnId: "units.Name",
