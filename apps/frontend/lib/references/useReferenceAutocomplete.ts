@@ -3,7 +3,7 @@ import type { KeyboardEvent } from "react";
 
 import { buildApiUrl } from "@/lib/env";
 
-type ReferenceKind = "table" | "column" | "function" | "view" | "translation";
+type ReferenceKind = "table" | "column" | "function" | "view" | "action" | "translation";
 
 type CursorContext = {
   tableId?: string;

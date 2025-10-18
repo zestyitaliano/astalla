@@ -193,6 +193,10 @@ export function ExpressionEditor({
 
   const applySuggestion = useCallback(
     (suggestion: ReferenceAutocompleteSuggestion) => {
+      if (suggestion.kind === "action") {
+        return;
+      }
+
       if (suggestion.id === "translation" || suggestion.kind === "translation") {
         logSuggestionAccepted("translation", null);
         const canonical = suggestion.label;

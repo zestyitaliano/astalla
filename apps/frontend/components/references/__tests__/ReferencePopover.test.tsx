@@ -9,8 +9,8 @@ afterEach(() => {
 });
 
 const suggestions: ReferenceSuggestionItem[] = [
-  { id: "leases.total_rent", label: "Leases • Total Rent" },
-  { id: "leases.status", label: "Leases • Status" },
+  { id: "leases.total_rent", label: "Leases • Total Rent", kind: "column" },
+  { id: "leases.status", label: "Leases • Status", kind: "column" },
 ];
 
 describe("ReferencePopover", () => {
@@ -61,5 +61,39 @@ describe("ReferencePopover", () => {
 
     expect(handleSelect).toHaveBeenCalledWith(suggestions[0]);
     expect(screen.queryByRole("button", { name: /total rent/i })).not.toBeInTheDocument();
+  });
+
+  it("splits nested labels for reference suggestions", async () => {
+    render(
+      <ReferencePopover
+        triggerLabel="Open"
+        suggestions={[{ id: "unit::name", label: "Unit › Units › Name", kind: "column" }]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /open/i }));
+
+    expect(screen.getByText("Unit › Units")).toBeInTheDocument();
+    expect(screen.getByText("Name")).toBeInTheDocument();
+  });
+
+  it("invokes the action callback when selecting an action suggestion", async () => {
+    const handleSelect = vi.fn();
+    const handleAction = vi.fn();
+    render(
+      <ReferencePopover
+        triggerLabel="Actions"
+        suggestions={[{ id: "leases.unit::configure", label: "Set target table…", kind: "action" }]}
+        onSelect={handleSelect}
+        onActionSelect={handleAction}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /actions/i }));
+    const action = await screen.findByRole("button", { name: /set target table/i });
+    await userEvent.click(action);
+
+    expect(handleAction).toHaveBeenCalledTimes(1);
+    expect(handleSelect).not.toHaveBeenCalled();
   });
 });

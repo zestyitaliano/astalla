@@ -10,6 +10,7 @@ const suggestions: ReferenceSuggestionItem[] = [
     breadcrumb: ["Leases"],
     description: "Numeric column",
     scoreBreakdown: { schema: 0.9, context: 0.3, semantic: 0.2, data: 0.1 },
+    kind: "column",
   },
   {
     id: "leases.status",
@@ -17,13 +18,21 @@ const suggestions: ReferenceSuggestionItem[] = [
     breadcrumb: ["Leases"],
     description: "Text column",
     scoreBreakdown: { schema: 0.7, context: 0.1, semantic: 0.05, data: 0 },
+    kind: "column",
   },
   {
-    id: "units.bedrooms",
-    label: "Units • Bedrooms",
-    breadcrumb: ["Units"],
-    description: "Numeric column",
+    id: "leases.unit::units.name",
+    label: "Unit › Units › Name",
+    breadcrumb: ["Leases", "Unit"],
+    description: "Reference column → Units",
     scoreBreakdown: { schema: 0.65, context: 0.2, semantic: 0.1, data: 0.15 },
+    kind: "column",
+  },
+  {
+    id: "leases.unit::configure",
+    label: "Set target table…",
+    description: "Configure the reference target table",
+    kind: "action",
   },
 ];
 
@@ -34,9 +43,11 @@ const meta: Meta<typeof ReferencePopover> = {
     triggerLabel: "Show suggestions",
     suggestions,
     onSelect: fn(),
+    onActionSelect: fn(),
   },
   argTypes: {
     onSelect: { action: "select" },
+    onActionSelect: { action: "action" },
   },
 };
 
