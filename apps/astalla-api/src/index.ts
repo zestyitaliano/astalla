@@ -4,6 +4,7 @@ import FormData from 'form-data';
 import { createHmac, createHash, randomUUID } from 'crypto';
 import { Site } from './types.js';
 import { getSchemaGraphForUser } from './schemaRegistry/registry.js';
+import { registerColumnRoutes } from './routes/columns.js';
 import { registerReferenceRoutes } from './routes/references.js';
 
 const computeEtag = (payload: string): string => {
@@ -44,6 +45,7 @@ export const createApp = (options?: { beforeRoutes?: RequestHandler[] }) => {
   }
 
   registerReferenceRoutes(app);
+  registerColumnRoutes(app);
 
   app.get('/sites', (req, res) => {
     res.json(Array.from(sites.values()));
