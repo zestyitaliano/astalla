@@ -41,6 +41,10 @@ export const createApp = (options?: CreateAppOptions) => {
     return site;
   };
 
+  app.get('/health', (_req, res) => {
+    res.status(200).type('text/plain').send('ok');
+  });
+
   app.use((req, _res, next) => {
     console.log('[API]', req.method, req.originalUrl);
     next();
@@ -203,6 +207,10 @@ export const createApp = (options?: CreateAppOptions) => {
     })
   );
 
+  app.use((_req, res) => {
+    res.status(404).json({ message: 'Not Found', error: 'Not Found', statusCode: 404 });
+  });
+
   app.use((error: any, req: Request, res: Response, _next: NextFunction) => {
     const status = typeof error.status === 'number' ? error.status : 500;
     res.status(status).json({ message: error.message ?? 'Internal Server Error' });
@@ -213,10 +221,23 @@ export const createApp = (options?: CreateAppOptions) => {
 
 export const app = createApp();
 
-const port = Number(process.env.PORT ?? 3333);
-
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
-    console.log(`Astalla API listening on port ${port}`);
+  const PORT = Number(process.env.PORT) || 3001;
+  const HOST = '0.0.0.0';
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`[API] listening on http://${HOST}:${PORT}`);
   });
+
+  const shutdown = (signal: string) => () => {
+    console.log(`[API] received ${signal}, shutting down...`);
+    server.close(() => {
+      console.log('[API] server closed');
+      process.exit(0);
+    });
+
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+
+  process.on('SIGTERM', shutdown('SIGTERM'));
+  process.on('SIGINT', shutdown('SIGINT'));
 }
