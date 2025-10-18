@@ -1,6 +1,17 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, Edit3, Eye, EyeOff, MoreHorizontal, Type, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Edit3,
+  Eye,
+  EyeOff,
+  Link2,
+  MoreHorizontal,
+  Type,
+  Trash2
+} from "lucide-react";
 
 import { ColumnTypeSchema } from "@shared/api";
 import { type TableColumnDto } from "@/lib/api/tables";
@@ -28,6 +39,8 @@ interface ColumnMenuProps {
   onMoveRight: () => void;
   canMoveLeft: boolean;
   canMoveRight: boolean;
+  onOpenReferenceSettings?: () => void;
+  showReferenceSettings?: boolean;
 }
 
 const COLUMN_TYPE_ENUM = ColumnTypeSchema.enum;
@@ -51,7 +64,9 @@ export function ColumnMenu({
   onMoveLeft,
   onMoveRight,
   canMoveLeft,
-  canMoveRight
+  canMoveRight,
+  onOpenReferenceSettings,
+  showReferenceSettings
 }: ColumnMenuProps) {
   return (
     <DropdownMenu>
@@ -83,6 +98,15 @@ export function ColumnMenu({
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {showReferenceSettings ? (
+          <DropdownMenuItem
+            onSelect={() => {
+              onOpenReferenceSettings?.();
+            }}
+          >
+            <Link2 className="mr-2 h-4 w-4" /> Reference settings…
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onMoveLeft} disabled={!canMoveLeft}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Move left
