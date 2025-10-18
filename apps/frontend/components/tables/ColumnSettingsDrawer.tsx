@@ -139,21 +139,26 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
   const columnChoices = columnChoicesQuery.data ?? [];
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !referenceState.targetTableId || !columnChoices.length) {
       return;
     }
-    if (!referenceState.targetTableId) {
-      return;
+
+    const hasDisplayColumn = columnChoices.some(
+      (choice) => choice.id === referenceState.displayColumnId
+    );
+
+    if (!hasDisplayColumn) {
+      const next = pickDisplayColumn(columnChoices);
+      setReferenceState((prev) => ({ ...prev, displayColumnId: next }));
+      setDisplayColumnManuallySet(Boolean(next));
     }
-    if (!columnChoices.length) {
-      return;
-    }
-    if (displayColumnManuallySet) {
-      return;
-    }
-    const next = pickDisplayColumn(columnChoices);
-    setReferenceState((prev) => ({ ...prev, displayColumnId: next }));
-  }, [open, columnChoices, referenceState.targetTableId, displayColumnManuallySet]);
+  }, [
+    open,
+    columnChoices,
+    referenceState.targetTableId,
+    referenceState.displayColumnId,
+    displayColumnManuallySet
+  ]);
 
   const handleOverlayClick = () => {
     if (!isSaving) {

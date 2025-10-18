@@ -142,4 +142,60 @@ describe("ColumnSettingsDrawer", () => {
       enforceForeignKey: false
     });
   });
+
+  it("auto-selects a display column when the saved value is unavailable", async () => {
+    const tableChoices = [
+      { id: "public.units", name: "units", label: "Units" }
+    ];
+    const columnChoices = [
+      { id: "units.Id", name: "Id", type: "text" },
+      { id: "units.Name", name: "Name", type: "text" }
+    ];
+
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url.includes("/api/tables/choices")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(tableChoices), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          })
+        );
+      }
+
+      if (url.includes("/api/tables/public.units/columns/choices")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(columnChoices), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          })
+        );
+      }
+
+      return Promise.reject(new Error(`Unhandled fetch request for ${url}`));
+    });
+
+    renderWithClient(
+      <ColumnSettingsDrawer
+        tableId="public.leases"
+        column={{
+          ...baseColumn,
+          referenceConfig: {
+            targetTableId: "public.units",
+            displayColumnId: "units.Display",
+            cardinality: "single",
+            enforceForeignKey: false
+          }
+        }}
+        open
+        onClose={vi.fn()}
+      />
+    );
+
+    const displaySelect = await screen.findByLabelText(/display column/i);
+
+    await waitFor(() => expect(displaySelect).not.toBeDisabled());
+    expect(displaySelect).toHaveValue("units.Name");
+  });
 });
