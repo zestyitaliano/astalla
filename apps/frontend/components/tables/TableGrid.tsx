@@ -44,7 +44,6 @@ import {
 
 import { ColumnTypeSchema, type TableColumnDto, type TableRowDto, type TableViewDto } from "@shared/api";
 import {
-  queryTable,
   useCreateColumnMutation,
   useCreateRowMutation,
   useCreateViewMutation,
@@ -64,7 +63,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { logSuggestionAccepted } from "@/lib/references/telemetry";
+import { ReferenceCell } from "@/components/cells/ReferenceCell";
 
 import { ColumnMenu } from "./ColumnMenu";
 import { ColumnSettingsDrawer } from "./ColumnSettingsDrawer";
@@ -274,28 +273,6 @@ function stringifyValueForSearch(column: TableColumnDto, value: unknown) {
   }
 
   return String(value);
-}
-
-type ReferenceConfig = {
-  tableId: string;
-  labelColumnId?: string | null;
-};
-
-function parseReferenceConfig(value: unknown): ReferenceConfig | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const config = value as Record<string, unknown>;
-  const tableId = typeof config.tableId === "string" ? config.tableId : undefined;
-  const labelColumnId =
-    typeof config.labelColumnId === "string" ? config.labelColumnId : undefined;
-
-  if (!tableId) {
-    return null;
-  }
-
-  return { tableId, labelColumnId };
 }
 
 function normalizeValue(type: ColumnKind, value: unknown) {
@@ -1744,9 +1721,78 @@ interface CellEditorProps {
   onCommit: (value: unknown) => void;
 }
 
+function normalizeReferenceCellValue(value: unknown): string | string[] | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item) => {
+        if (typeof item === "string") {
+          const trimmed = item.trim();
+          return trimmed ? trimmed : null;
+        }
+        if (typeof item === "number" || typeof item === "boolean") {
+          const text = String(item).trim();
+          return text ? text : null;
+        }
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          const idCandidate = [record.id, record.value, record.rowId]
+            .map((candidate) => (typeof candidate === "string" ? candidate.trim() : ""))
+            .find((candidate) => candidate.length > 0);
+          if (idCandidate) {
+            return idCandidate;
+          }
+        }
+        return null;
+      })
+      .filter((item): item is string => Boolean(item));
+
+    return normalized.length ? normalized : [];
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    const text = String(value).trim();
+    return text ? text : null;
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    if (Array.isArray(record.values)) {
+      return normalizeReferenceCellValue(record.values);
+    }
+    if (Array.isArray(record.ids)) {
+      return normalizeReferenceCellValue(record.ids);
+    }
+
+    const idCandidate = [record.id, record.value, record.rowId]
+      .map((candidate) => (typeof candidate === "string" ? candidate.trim() : ""))
+      .find((candidate) => candidate.length > 0);
+
+    return idCandidate ?? null;
+  }
+
+  return null;
+}
+
 function CellEditor({ column, value, onCommit }: CellEditorProps) {
-  if (column.type === "REFERENCE") {
-    return <ReferenceCellEditor column={column} value={value} onCommit={onCommit} />;
+  if (column.type === COLUMN_TYPE_ENUM.REFERENCE) {
+    const normalizedValue = normalizeReferenceCellValue(value);
+    return (
+      <ReferenceCell
+        column={column as any}
+        value={normalizedValue}
+        onChange={(next) => onCommit(next)}
+      />
+    );
   }
 
   return <PrimitiveCellEditor column={column} value={value} onCommit={onCommit} />;
@@ -1852,417 +1898,5 @@ function PrimitiveCellEditor({ column, value, onCommit }: Omit<CellEditorProps, 
   );
 }
 
-interface ReferenceCellEditorProps {
-  column: TableColumnDto;
-  value: unknown;
-  onCommit: (value: unknown) => void;
-}
 
-type ReferenceOption = { id: string; label: string };
-
-type ReferenceValue = {
-  id?: string | null;
-  label?: string | null;
-};
-
-function parseReferenceValue(value: unknown): ReferenceValue {
-  if (!value) {
-    return {};
-  }
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return {};
-    }
-    return { id: trimmed, label: value };
-  }
-
-  if (typeof value !== "object") {
-    return {};
-  }
-
-  const record = value as Record<string, unknown>;
-
-  const idCandidate = [record.id, record.rowId, record.value]
-    .map((candidate) => (typeof candidate === "string" ? candidate.trim() : ""))
-    .find((candidate) => candidate.length > 0);
-
-  const labelCandidate = [
-    record.label,
-    record.name,
-    record.title,
-    record.value,
-    idCandidate
-  ].find((candidate) => typeof candidate === "string" && candidate.trim().length > 0);
-
-  const id = typeof idCandidate === "string" ? idCandidate : null;
-  const label =
-    typeof labelCandidate === "string" && labelCandidate.trim()
-      ? labelCandidate
-      : id ?? null;
-
-  return { id, label };
-}
-
-function buildReferenceOptions(
-  table: TableDetail | undefined,
-  labelColumnId?: string | null
-): ReferenceOption[] {
-  if (!table) {
-    return [];
-  }
-
-  return buildReferenceOptionsFromRows(table.rows ?? [], table.columns ?? [], labelColumnId);
-}
-
-function buildReferenceOptionsFromRows(
-  rows: TableRowDto[],
-  columns: TableColumnDto[],
-  labelColumnId?: string | null
-): ReferenceOption[] {
-  if (!rows.length) {
-    return [];
-  }
-
-  const effectiveColumnId =
-    labelColumnId && columns.some((column) => column.id === labelColumnId)
-      ? labelColumnId
-      : columns.find((column) => column.type === COLUMN_TYPE_ENUM.TEXT)?.id ?? columns[0]?.id;
-
-  const seen = new Set<string>();
-
-  return rows.reduce<ReferenceOption[]>((acc, row, index) => {
-    if (!row.id || seen.has(row.id)) {
-      return acc;
-    }
-
-    const label = resolveReferenceLabel(row, columns, effectiveColumnId, index);
-    acc.push({ id: row.id, label });
-    seen.add(row.id);
-    return acc;
-  }, []);
-}
-
-function resolveReferenceLabel(
-  row: TableRowDto,
-  columns: TableColumnDto[],
-  labelColumnId: string | undefined | null,
-  index: number
-) {
-  if (labelColumnId) {
-    const raw = getCellValue(row, labelColumnId);
-    if (raw !== null && raw !== undefined) {
-      const text = String(raw).trim();
-      if (text) {
-        return text;
-      }
-    }
-  }
-
-  for (const column of columns) {
-    const raw = getCellValue(row, column.id);
-    if (raw !== null && raw !== undefined) {
-      const text = String(raw).trim();
-      if (text) {
-        return text;
-      }
-    }
-  }
-
-  return row.id ?? `Row ${index + 1}`;
-}
-
-function ReferenceCellEditor({ column, value, onCommit }: ReferenceCellEditorProps) {
-  const referenceConfig = parseReferenceConfig(column.config);
-  const parsedValue = parseReferenceValue(value);
-
-  const [draft, setDraft] = useState(parsedValue.label ?? "");
-  const [selectedId, setSelectedId] = useState(parsedValue.id ?? null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setDraft(parsedValue.label ?? "");
-    setSelectedId(parsedValue.id ?? null);
-  }, [parsedValue.id, parsedValue.label, referenceConfig?.tableId]);
-
-  useEffect(() => {
-    return () => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const tableId = referenceConfig?.tableId ?? null;
-  const { data: referenceTable } = useTable(tableId ?? undefined);
-
-  const referenceColumns = useMemo(() => referenceTable?.columns ?? [], [referenceTable]);
-  const labelColumnId = useMemo(() => {
-    const configured = referenceConfig?.labelColumnId ?? null;
-    if (!referenceColumns.length) {
-      return configured;
-    }
-    if (configured && referenceColumns.some((column) => column.id === configured)) {
-      return configured;
-    }
-    const textColumn = referenceColumns.find((column) => column.type === COLUMN_TYPE_ENUM.TEXT);
-    return textColumn?.id ?? referenceColumns[0]?.id ?? null;
-  }, [referenceColumns, referenceConfig?.labelColumnId]);
-
-  const fallbackOptions = useMemo(
-    () => buildReferenceOptions(referenceTable, labelColumnId),
-    [labelColumnId, referenceTable]
-  );
-
-  const debouncedQuery = useDebouncedValue(draft, 250);
-  const trimmedQuery = debouncedQuery.trim();
-
-  useEffect(() => {
-    if (!tableId) {
-      setIsMenuOpen(false);
-    }
-  }, [tableId]);
-
-  const { data: searchResult, isFetching: isSearching } = useQuery({
-    queryKey: [
-      "tables",
-      tableId ?? "__none__",
-      "reference-options",
-      labelColumnId ?? "__none__",
-      trimmedQuery
-    ],
-    queryFn: async () => {
-      if (!tableId) {
-        return null;
-      }
-      const filters =
-        trimmedQuery && labelColumnId
-          ? [{ columnId: labelColumnId, operator: "contains" as const, value: trimmedQuery }]
-          : undefined;
-      return queryTable(tableId, {
-        limit: 20,
-        filters,
-        sorts: labelColumnId ? [{ columnId: labelColumnId, direction: "asc" as const }] : undefined
-      });
-    },
-    enabled: Boolean(tableId),
-    staleTime: 30_000
-  });
-
-  const remoteOptions = useMemo(
-    () =>
-      searchResult?.rows
-        ? buildReferenceOptionsFromRows(searchResult.rows, referenceColumns, labelColumnId)
-        : [],
-    [labelColumnId, referenceColumns, searchResult?.rows]
-  );
-
-  const options = useMemo(() => {
-    if (!tableId) {
-      return [];
-    }
-    if (!trimmedQuery) {
-      return fallbackOptions;
-    }
-    if (remoteOptions.length) {
-      return remoteOptions;
-    }
-    return [];
-  }, [fallbackOptions, remoteOptions, tableId, trimmedQuery]);
-
-  const clearSelection = useCallback(() => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-    }
-    setSelectedId(null);
-    onCommit(null);
-  }, [onCommit]);
-
-  const commitSelection = useCallback(
-    (option: ReferenceOption) => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
-      const typedBefore = draft;
-      setSelectedId(option.id);
-      setDraft(option.label);
-      onCommit({ id: option.id, label: option.label });
-      setIsMenuOpen(false);
-
-      const normalized = typedBefore.trim();
-      const distance = normalized ? calculateEditDistance(normalized, option.label) : null;
-      logSuggestionAccepted('reference', distance);
-    },
-    [draft, onCommit]
-  );
-
-  const handleCommit = useCallback(() => {
-    setIsMenuOpen(false);
-    const trimmed = draft.trim();
-
-    if (!trimmed) {
-      setDraft("");
-      clearSelection();
-      return;
-    }
-
-    const normalized = trimmed.toLowerCase();
-    const exactMatch = options.find((option) => option.label.toLowerCase() === normalized);
-
-    if (exactMatch) {
-      commitSelection(exactMatch);
-      return;
-    }
-
-    if (selectedId) {
-      const fallback = [...options, ...fallbackOptions].find((option) => option.id === selectedId);
-      if (fallback) {
-        commitSelection(fallback);
-        return;
-      }
-    }
-
-    clearSelection();
-    setDraft(trimmed);
-  }, [clearSelection, commitSelection, draft, fallbackOptions, options, selectedId]);
-
-  const handleFocus = useCallback(() => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-    }
-    setIsMenuOpen(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-    }
-    blurTimeoutRef.current = setTimeout(() => {
-      handleCommit();
-    }, 120);
-  }, [handleCommit]);
-
-  const displayedOptions = options;
-  const hasQuery = trimmedQuery.length > 0;
-  const showEmptyState = hasQuery && !displayedOptions.length && !isSearching;
-
-  if (!tableId) {
-    return (
-      <Input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        autoComplete="off"
-        onBlur={() => {
-          const trimmed = draft.trim();
-          onCommit(trimmed || null);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            const trimmed = draft.trim();
-            onCommit(trimmed || null);
-          }
-        }}
-        className="h-8"
-      />
-    );
-  }
-
-  return (
-    <div className="relative flex-1">
-      <Input
-        value={draft}
-        autoComplete="off"
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onChange={(event) => {
-          setDraft(event.target.value);
-          setSelectedId(null);
-          if (!isMenuOpen) {
-            setIsMenuOpen(true);
-          }
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            handleCommit();
-          }
-          if (event.key === "Escape") {
-            event.preventDefault();
-            setIsMenuOpen(false);
-          }
-        }}
-        className="h-8"
-        placeholder={referenceColumns.length ? "Search…" : "Select"}
-      />
-      {isMenuOpen ? (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-auto rounded-xl border border-border/70 bg-card shadow-card">
-          {isSearching ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
-          ) : null}
-          {displayedOptions.length ? (
-            displayedOptions.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className={cn(
-                  "flex w-full items-center justify-start px-3 py-1.5 text-left text-sm",
-                  option.id === selectedId ? "bg-muted" : "hover:bg-muted/70"
-                )}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  commitSelection(option);
-                }}
-              >
-                {option.label}
-              </button>
-            ))
-          ) : showEmptyState ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">No matches found</div>
-          ) : (
-            <div className="px-3 py-2 text-xs text-muted-foreground">Start typing to search…</div>
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function useDebouncedValue<T>(value: T, delay: number) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debounced;
-}
-
-function calculateEditDistance(a: string, b: string): number {
-  const source = a.toLowerCase();
-  const target = b.toLowerCase();
-
-  const rows = source.length + 1;
-  const cols = target.length + 1;
-  const dp = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
-
-  for (let i = 0; i < rows; i += 1) {
-    dp[i][0] = i;
-  }
-  for (let j = 0; j < cols; j += 1) {
-    dp[0][j] = j;
-  }
-
-  for (let i = 1; i < rows; i += 1) {
-    for (let j = 1; j < cols; j += 1) {
-      const cost = source[i - 1] === target[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
-    }
-  }
-
-  return dp[rows - 1][cols - 1];
-}
 
