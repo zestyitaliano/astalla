@@ -135,8 +135,11 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
     open && Boolean(referenceState.targetTableId)
   );
 
-  const tableChoices = tableChoicesQuery.data ?? [];
-  const columnChoices = columnChoicesQuery.data ?? [];
+  const tableChoices = tableChoicesQuery.data?.choices ?? [];
+  const columnChoices = columnChoicesQuery.data?.choices ?? [];
+  const usingFallback = Boolean(
+    tableChoicesQuery.data?.usedFallback || columnChoicesQuery.data?.usedFallback
+  );
 
   useEffect(() => {
     if (!open || !referenceState.targetTableId || !columnChoices.length) {
@@ -321,6 +324,11 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
                     </p>
                   ) : null}
                 </div>
+                {usingFallback ? (
+                  <p className="text-xs text-muted-foreground">
+                    Using schema fallback while choices endpoint is unavailable.
+                  </p>
+                ) : null}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-text" htmlFor="reference-display-column">
                     Display Column

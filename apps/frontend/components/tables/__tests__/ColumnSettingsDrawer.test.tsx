@@ -198,4 +198,84 @@ describe("ColumnSettingsDrawer", () => {
     await waitFor(() => expect(displaySelect).not.toBeDisabled());
     expect(displaySelect).toHaveValue("units.Name");
   });
+
+  it("falls back to the schema registry when choices endpoints return 404", async () => {
+    const registry = {
+      tables: [
+        {
+          id: "public.units",
+          name: "units",
+          label: "Units",
+          columns: [
+            { id: "units.Id", name: "Id", type: "text" },
+            { id: "units.Name", name: "Name", type: "text" }
+          ],
+          fks: []
+        }
+      ]
+    };
+
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url.includes("/api/tables/choices")) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+
+      if (url.includes("/api/tables/public.units/columns/choices")) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+
+      if (url.includes("/api/schema/registry")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(registry), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          })
+        );
+      }
+
+      if (url.includes("/api/tables/public.leases/columns/leases.UnitId") && init?.method === "PATCH") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              column: {
+                id: "leases.UnitId",
+                tableId: "public.leases",
+                name: "Unit",
+                type: "REFERENCE"
+              }
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            }
+          )
+        );
+      }
+
+      return Promise.reject(new Error(`Unhandled fetch request for ${url}`));
+    });
+
+    renderWithClient(
+      <ColumnSettingsDrawer tableId="public.leases" column={baseColumn} open onClose={vi.fn()} />
+    );
+
+    const targetSelect = await screen.findByLabelText(/target table/i);
+    await waitFor(() => expect(targetSelect).not.toBeDisabled());
+
+    expect(
+      await screen.findByText(/Using schema fallback while choices endpoint is unavailable\./i)
+    ).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.selectOptions(targetSelect, "public.units");
+
+    const displaySelect = await screen.findByLabelText(/display column/i);
+    await waitFor(() => expect(displaySelect).not.toBeDisabled());
+    expect(displaySelect).toHaveValue("units.Name");
+
+    const option = screen.getByRole("option", { name: "Units" });
+    expect(option).toBeInTheDocument();
+  });
 });
