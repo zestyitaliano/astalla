@@ -5,6 +5,7 @@ import { createHmac, createHash, randomUUID } from 'crypto';
 import { Site } from './types.js';
 import { getSchemaGraphForUser } from './schemaRegistry/registry.js';
 import { registerColumnRoutes } from './routes/columns.js';
+import { tablesRouter } from './routes/tables.js';
 import { registerReferenceRoutes } from './routes/references.js';
 import { registerRowRoutes } from './routes/rows.js';
 
@@ -45,6 +46,7 @@ export const createApp = (options?: { beforeRoutes?: RequestHandler[] }) => {
     }
   }
 
+  app.use('/api/tables', tablesRouter);
   registerReferenceRoutes(app);
   registerColumnRoutes(app);
   registerRowRoutes(app);
