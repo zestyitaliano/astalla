@@ -21,15 +21,52 @@ export const BASE_SCHEMA: SchemaGraph = {
       label: "Leases",
       columns: [
         { id: "leases.Id", name: "Id", type: "text" },
-        { id: "leases.UnitId", name: "UnitId", type: "text" },
+        {
+          id: "leases.UnitId",
+          name: "UnitId",
+          type: "text",
+        },
+        {
+          id: "leases.Unit",
+          name: "Unit",
+          type: "reference",
+          referenceConfig: {
+            targetTableId: "public.units",
+            displayColumnId: "units.Name",
+            cardinality: "single",
+            enforceForeignKey: false,
+          },
+        },
         { id: "leases.TotalRent", name: "TotalRent", type: "numeric" },
         { id: "leases.Status", name: "Status", type: "text" },
         { id: "leases.Year", name: "Year", type: "integer" },
-        { id: "leases.ResidentEmail", name: "ResidentEmail", type: "text", isPII: true }
+        { id: "leases.ResidentEmail", name: "ResidentEmail", type: "text", isPII: true },
+        {
+          id: "leases.RelatedCharges",
+          name: "RelatedCharges",
+          type: "reference",
+          referenceConfig: {
+            targetTableId: "public.charges",
+            displayColumnId: "charges.Name",
+            cardinality: "multi",
+            enforceForeignKey: false,
+          },
+        }
       ],
       fks: [
         { fromTable: "leases", fromCol: "UnitId", toTable: "units", toCol: "Id" }
       ]
+    },
+    {
+      id: "public.charges",
+      name: "charges",
+      label: "Charges",
+      columns: [
+        { id: "charges.Id", name: "Id", type: "text" },
+        { id: "charges.Name", name: "Name", type: "text" },
+        { id: "charges.Amount", name: "Amount", type: "numeric" }
+      ],
+      fks: []
     }
   ]
 };

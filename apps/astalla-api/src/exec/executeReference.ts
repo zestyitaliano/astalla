@@ -102,6 +102,11 @@ interface RowScope {
   [tableName: string]: TableRow | undefined;
 }
 
+interface RenderContext {
+  baseTable: SchemaTable;
+  baseTableName: string;
+}
+
 const isPrimitiveValue = (value: unknown): value is string | number | boolean | null =>
   value === null || ['string', 'number', 'boolean'].includes(typeof value);
 
@@ -283,6 +288,9 @@ const normalizeIdentifier = (value: string): string => value.toLowerCase();
 
 const quoteIdentifier = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
+const findTableById = (graph: SchemaGraph, id: string): SchemaTable | undefined =>
+  graph.tables.find((table) => table.id === id);
+
 const findBaseTable = (graph: SchemaGraph, identifier: string): SchemaTable | undefined => {
   const normalized = normalizeIdentifier(identifier);
   return graph.tables.find((table) => {
@@ -295,6 +303,14 @@ const findBaseTable = (graph: SchemaGraph, identifier: string): SchemaTable | un
 const findColumn = (table: SchemaTable, identifier: string): SchemaColumn | undefined => {
   const normalized = normalizeIdentifier(identifier);
   return table.columns.find((column) => normalizeIdentifier(column.name) === normalized);
+};
+
+const findIdentifierColumnName = (table: SchemaTable): string | undefined => {
+  const explicit = table.columns.find((column) => normalizeIdentifier(column.name) === 'id');
+  if (explicit) {
+    return explicit.name;
+  }
+  return table.columns[0]?.name;
 };
 
 const resolveColumnBinding = (
@@ -365,6 +381,140 @@ const buildAggregate = (
   };
 };
 
+const isThisReference = (ref: RefNode): boolean =>
+  ref.path.length >= 3 && normalizeIdentifier(ref.path[0]!.name) === 'this';
+
+const buildReferenceFieldOperand = (
+  ref: RefNode,
+  graph: SchemaGraph,
+  userId: string,
+  context: RenderContext,
+): OperandBuildResult => {
+  const columnIdentifier = ref.path[1]?.name;
+  const fieldSegments = ref.path.slice(2);
+
+  if (!columnIdentifier || fieldSegments.length === 0) {
+    throw new ExecutionPlanError('Reference columns must specify a field to access.');
+  }
+
+  const referenceColumn = findColumn(context.baseTable, columnIdentifier);
+  if (!referenceColumn) {
+    throw new ExecutionPlanError(
+      `Column "${columnIdentifier}" is not available on table ${context.baseTable.label ?? context.baseTable.name}.`,
+    );
+  }
+
+  if (referenceColumn.type !== 'reference') {
+    throw new ExecutionPlanError(
+      `Column "${referenceColumn.name}" on table ${context.baseTable.label ?? context.baseTable.name} is not configured as a reference column.`,
+    );
+  }
+
+  const config = referenceColumn.referenceConfig;
+  if (!config?.targetTableId) {
+    throw new ExecutionPlanError(
+      `Reference column "${referenceColumn.name}" is missing a target table configuration.`,
+    );
+  }
+
+  const targetTable = findTableById(graph, config.targetTableId);
+  if (!targetTable) {
+    throw new ExecutionPlanError(`Target table "${config.targetTableId}" is not available.`);
+  }
+
+  const fieldName = fieldSegments.map((segment) => segment.name).join('.');
+  const targetColumn = findColumn(targetTable, fieldName);
+  if (!targetColumn) {
+    throw new ExecutionPlanError(
+      `Column "${fieldName}" is not available on table ${targetTable.label ?? targetTable.name}.`,
+    );
+  }
+
+  const baseTargetTable = BASE_SCHEMA.tables.find(
+    (table) => table.id === targetTable.id || normalizeIdentifier(table.name) === normalizeIdentifier(targetTable.name),
+  );
+
+  if (baseTargetTable) {
+    const baseTargetColumn = findColumn(baseTargetTable, targetColumn.name);
+    if (
+      baseTargetColumn &&
+      !canRead(userId, { kind: 'column', table: baseTargetTable, column: baseTargetColumn })
+    ) {
+      throw new PermissionError(baseTargetTable.label ?? baseTargetTable.name, baseTargetColumn.name);
+    }
+  }
+
+  const idColumnName = findIdentifierColumnName(targetTable);
+  if (!idColumnName) {
+    throw new ExecutionPlanError(
+      `Target table ${targetTable.label ?? targetTable.name} does not have an identifier column.`,
+    );
+  }
+
+  const targetRows = getTableRows(targetTable.name);
+  const lookup = new Map<string, TableRow>();
+  for (const row of targetRows) {
+    const rawKey = row[idColumnName];
+    if (rawKey === undefined || rawKey === null) {
+      continue;
+    }
+    lookup.set(String(rawKey), row);
+  }
+
+  const toKey = (value: unknown): string | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return String(value);
+  };
+
+  const cardinality = config.cardinality === 'multi' ? 'multi' : 'single';
+  const text = `${quoteIdentifier(context.baseTableName)}.${quoteIdentifier(referenceColumn.name)} -> ${quoteIdentifier(targetTable.name)}.${quoteIdentifier(targetColumn.name)}`;
+
+  return {
+    text,
+    evaluate: (row) => {
+      const sourceRow = row[context.baseTableName];
+      if (!sourceRow) {
+        return cardinality === 'multi' ? [] : null;
+      }
+
+      const rawValue = sourceRow[referenceColumn.name];
+
+      if (cardinality === 'multi') {
+        if (!Array.isArray(rawValue)) {
+          return [];
+        }
+
+        const results: unknown[] = [];
+        for (const entry of rawValue) {
+          const key = toKey(entry);
+          if (key === null) {
+            continue;
+          }
+          const targetRow = lookup.get(key);
+          if (targetRow && targetColumn.name in targetRow) {
+            results.push(targetRow[targetColumn.name]);
+          }
+        }
+        return results;
+      }
+
+      const key = toKey(rawValue);
+      if (key === null) {
+        return null;
+      }
+
+      const targetRow = lookup.get(key);
+      if (!targetRow) {
+        return null;
+      }
+
+      return targetRow[targetColumn.name] ?? null;
+    },
+  };
+};
+
 const renderValue = (value: ValueNode): OperandBuildResult => ({
   text: '?',
   evaluate: () => value.value,
@@ -375,8 +525,13 @@ const renderOperand = (
   graph: SchemaGraph,
   userId: string,
   referencedTables: Set<string>,
+  context: RenderContext,
 ): OperandBuildResult => {
   if (operand.type === 'Ref') {
+    if (isThisReference(operand)) {
+      return buildReferenceFieldOperand(operand, graph, userId, context);
+    }
+
     const binding = resolveColumnBinding(operand, graph, userId, referencedTables);
     return {
       text: binding.sqlText,
@@ -392,8 +547,9 @@ const buildComparison = (
   graph: SchemaGraph,
   userId: string,
   referencedTables: Set<string>,
+  context: RenderContext,
 ): ConditionBuildResult => {
-  const left = renderOperand(node.left, graph, userId, referencedTables);
+  const left = renderOperand(node.left, graph, userId, referencedTables, context);
 
   if (node.operator === 'in') {
     if (!Array.isArray(node.right)) {
@@ -402,7 +558,7 @@ const buildComparison = (
 
     const rightOperands = node.right as (RefNode | ValueNode)[];
     const values = rightOperands.map((valueNode: RefNode | ValueNode) =>
-      renderOperand(valueNode, graph, userId, referencedTables),
+      renderOperand(valueNode, graph, userId, referencedTables, context),
     );
     const textValues = values.map((item: OperandBuildResult) => item.text).join(', ');
 
@@ -421,8 +577,8 @@ const buildComparison = (
     }
 
     const [start, end] = node.right;
-    const startOperand = renderOperand(start, graph, userId, referencedTables);
-    const endOperand = renderOperand(end, graph, userId, referencedTables);
+    const startOperand = renderOperand(start, graph, userId, referencedTables, context);
+    const endOperand = renderOperand(end, graph, userId, referencedTables, context);
 
     return {
       text: `${left.text} BETWEEN ${startOperand.text} AND ${endOperand.text}`,
@@ -440,7 +596,7 @@ const buildComparison = (
     ? (() => {
         throw new ExecutionPlanError('Invalid comparison operand.');
       })()
-    : renderOperand(node.right, graph, userId, referencedTables);
+    : renderOperand(node.right, graph, userId, referencedTables, context);
 
   const operator = node.operator.toUpperCase();
   return {
@@ -470,13 +626,14 @@ const buildCondition = (
   graph: SchemaGraph,
   userId: string,
   referencedTables: Set<string>,
+  context: RenderContext,
 ): ConditionBuildResult => {
   if (node.type === 'Comparison') {
-    return buildComparison(node, graph, userId, referencedTables);
+    return buildComparison(node, graph, userId, referencedTables, context);
   }
 
-  const left = buildCondition(node.left, graph, userId, referencedTables);
-  const right = buildCondition(node.right, graph, userId, referencedTables);
+  const left = buildCondition(node.left, graph, userId, referencedTables, context);
+  const right = buildCondition(node.right, graph, userId, referencedTables, context);
   const operator = node.operator.toUpperCase();
 
   return {
@@ -585,10 +742,14 @@ const buildExecutionPlan = (
   const referencedTables = new Set<string>();
   const aggregate = buildAggregate(program.body, graph, userId, referencedTables);
   const baseTableName = aggregate.column.tableName;
+  const renderContext: RenderContext = {
+    baseTable: aggregate.column.schemaTable,
+    baseTableName,
+  };
 
   let where: ConditionBuildResult | undefined;
   if (program.body.where) {
-    where = buildCondition(program.body.where.condition, graph, userId, referencedTables);
+    where = buildCondition(program.body.where.condition, graph, userId, referencedTables, renderContext);
   }
 
   const adjacency = buildAdjacency(graph);
@@ -739,4 +900,13 @@ export const executeReference = async ({ ast, graph, userId }: ExecuteReferenceP
     rowCount: 1,
     sqlText: plan.toSqlString(),
   };
+};
+
+export const __test = {
+  buildReferenceFieldOperand: (
+    ref: RefNode,
+    graph: SchemaGraph,
+    userId: string,
+    context: { baseTable: SchemaTable; baseTableName: string },
+  ): OperandBuildResult => buildReferenceFieldOperand(ref, graph, userId, context),
 };

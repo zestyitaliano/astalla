@@ -1,7 +1,7 @@
 import type { ProgramNode, RefNode } from "@shared/ast";
 import type { SchemaGraph, SchemaTable } from "@shared/api";
 
-type ValidationErrorCode = "unknown_table" | "unknown_column";
+type ValidationErrorCode = "unknown_table" | "unknown_column" | "bad_reference_config";
 
 export interface ValidationIssue {
   code: ValidationErrorCode;
@@ -16,11 +16,17 @@ export interface ValidationResult {
 
 export function validate(ast: ProgramNode, schema: SchemaGraph): ValidationResult {
   const tableLookup = buildTableLookup(schema.tables);
+  const tableIdLookup = buildTableIdLookup(schema.tables);
   const tableColumns = buildTableColumnLookup(schema.tables);
   const errors: ValidationIssue[] = [];
   const seenErrors = new Set<string>();
 
   for (const ref of collectRefs(ast)) {
+    if (isThisReference(ref)) {
+      validateThisReference(ref, tableLookup, tableIdLookup, errors, seenErrors);
+      continue;
+    }
+
     const tableName = ref.path[0]?.name;
     if (!tableName) {
       const key = `unknown_table::`; // avoid duplicates
@@ -85,6 +91,14 @@ function buildTableLookup(tables: SchemaTable[]): Map<string, SchemaTable> {
   const lookup = new Map<string, SchemaTable>();
   for (const table of tables) {
     lookup.set(table.name, table);
+  }
+  return lookup;
+}
+
+function buildTableIdLookup(tables: SchemaTable[]): Map<string, SchemaTable> {
+  const lookup = new Map<string, SchemaTable>();
+  for (const table of tables) {
+    lookup.set(table.id, table);
   }
   return lookup;
 }
@@ -166,6 +180,75 @@ function collectRefs(ast: ProgramNode): RefNode[] {
 
   visit(ast);
   return refs;
+}
+
+function isThisReference(ref: RefNode): boolean {
+  if (ref.path.length < 3) {
+    return false;
+  }
+
+  return ref.path[0]?.name === "this";
+}
+
+function validateThisReference(
+  ref: RefNode,
+  tableLookup: Map<string, SchemaTable>,
+  tableIdLookup: Map<string, SchemaTable>,
+  errors: ValidationIssue[],
+  seen: Set<string>,
+): void {
+  const columnSegment = ref.path[1];
+  const fieldSegments = ref.path.slice(2);
+  const columnName = columnSegment?.name ?? "";
+  const fieldName = fieldSegments.map((part) => part.name).join(".");
+  const dedupeKey = `bad_reference_config::this::${columnName}::${fieldName}`;
+
+  const report = (message: string) => {
+    if (seen.has(dedupeKey)) {
+      return;
+    }
+
+    errors.push({
+      code: "bad_reference_config",
+      message,
+      fix: "Open Column Settings and set Target Table",
+    });
+    seen.add(dedupeKey);
+  };
+
+  if (!columnName || fieldSegments.length === 0) {
+    report("Reference column is missing a field name.");
+    return;
+  }
+
+  const thisTable = tableLookup.get("this");
+  if (!thisTable) {
+    report(`Reference column "${columnName}" is unavailable in this context.`);
+    return;
+  }
+
+  const referenceColumn = thisTable.columns.find((column) => column.name === columnName);
+  if (!referenceColumn || referenceColumn.type !== "reference") {
+    report(`Column "${columnName}" must be a reference column to access fields.`);
+    return;
+  }
+
+  const config = referenceColumn.referenceConfig;
+  if (!config?.targetTableId) {
+    report(`Reference column "${columnName}" is missing a target table.`);
+    return;
+  }
+
+  const targetTable = tableIdLookup.get(config.targetTableId);
+  if (!targetTable) {
+    report(`Target table "${config.targetTableId}" is not available for "${columnName}".`);
+    return;
+  }
+
+  const targetColumn = targetTable.columns.find((column) => column.name === fieldName);
+  if (!targetColumn) {
+    report(`Column "${fieldName}" does not exist on table "${targetTable.name}".`);
+  }
 }
 
 function getColumnName(ref: RefNode): string | undefined {
