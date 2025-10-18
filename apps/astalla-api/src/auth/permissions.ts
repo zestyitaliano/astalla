@@ -11,3 +11,11 @@ export const canRead = (userId: string, target: PermissionTarget): boolean => {
 
   return true;
 };
+
+export const canWrite = (userId: string, target: PermissionTarget): boolean => {
+  if (target.kind === "column" && target.column.isPII && userId !== "admin") {
+    return false;
+  }
+
+  return true;
+};
