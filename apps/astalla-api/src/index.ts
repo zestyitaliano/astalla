@@ -8,6 +8,7 @@ import { registerColumnRoutes } from './routes/columns.js';
 import { tablesRouter } from './routes/tables.js';
 import { registerReferenceRoutes } from './routes/references.js';
 import { registerRowRoutes } from './routes/rows.js';
+import { resolveUserId } from './routes/requestUser.js';
 
 const computeEtag = (payload: string): string => {
   return `"${createHash('sha256').update(payload).digest('base64')}"`;
@@ -25,10 +26,16 @@ const signBody = (secret: string, body: string | Buffer): string => {
   return createHmac('sha256', secret).update(body).digest('base64');
 };
 
-export const createApp = (options?: { beforeRoutes?: RequestHandler[] }) => {
+interface CreateAppOptions {
+  beforeRoutes?: RequestHandler[];
+  defaultUserId?: string | null;
+}
+
+export const createApp = (options?: CreateAppOptions) => {
   const app = express();
   const upload = multer({ storage: multer.memoryStorage() });
   const sites = new Map<string, Site>();
+  const fallbackUserId = options?.defaultUserId === undefined ? 'dev-user' : options.defaultUserId;
 
   const requireSite = (id: string): Site => {
     const site = sites.get(id);
@@ -56,7 +63,7 @@ export const createApp = (options?: { beforeRoutes?: RequestHandler[] }) => {
   });
 
   app.get('/api/schema/registry', (req, res) => {
-    const userId = (req as any).user?.id;
+    const userId = resolveUserId(req, { fallbackTo: fallbackUserId });
     if (!userId) {
       res.status(401).json({ message: 'Authentication required' });
       return;

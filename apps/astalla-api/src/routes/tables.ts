@@ -3,20 +3,7 @@ import { Router } from 'express';
 
 import { canRead } from '../auth/permissions.js';
 import { BASE_SCHEMA, getSchemaGraphForUser } from '../schemaRegistry/registry.js';
-
-const resolveUserId = (req: Request): string | null => {
-  const userId = (req as any).user?.id ?? req.header('x-user-id');
-  return typeof userId === 'string' && userId.length > 0 ? userId : null;
-};
-
-const ensureUser = (req: Request, res: Response): string | null => {
-  const userId = resolveUserId(req);
-  if (!userId) {
-    res.status(401).json({ message: 'Authentication required' });
-    return null;
-  }
-  return userId;
-};
+import { ensureUser } from './requestUser.js';
 
 const findTableByIdentifier = (identifier: string) => {
   return BASE_SCHEMA.tables.find(
