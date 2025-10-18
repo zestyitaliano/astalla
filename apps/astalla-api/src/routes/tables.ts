@@ -11,9 +11,9 @@ const findTableByIdentifier = (identifier: string) => {
   );
 };
 
-export const tablesRouter = Router();
+export const router = Router();
 
-tablesRouter.get('/choices', (req, res) => {
+router.get('/choices', (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -27,7 +27,7 @@ tablesRouter.get('/choices', (req, res) => {
   res.json(tables);
 });
 
-tablesRouter.get('/:tableId/columns/choices', (req, res) => {
+router.get('/:tableId/columns/choices', (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -52,3 +52,5 @@ tablesRouter.get('/:tableId/columns/choices', (req, res) => {
 
   res.json(columns);
 });
+
+export const tablesRouter = router;
