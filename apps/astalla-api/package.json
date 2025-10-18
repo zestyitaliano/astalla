@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc",
-    "test": "tsc && NODE_ENV=test node --test dist/**/*.test.js"
+    "test": "tsc && NODE_ENV=test node --test dist/**/*.test.js",
+    "start": "node dist/index.js",
+    "start:prod": "node dist/index.js"
   },
   "dependencies": {
     "@shared/api": "workspace:*",
