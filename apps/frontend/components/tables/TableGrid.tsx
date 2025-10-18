@@ -67,6 +67,7 @@ import { cn } from "@/lib/utils";
 import { logSuggestionAccepted } from "@/lib/references/telemetry";
 
 import { ColumnMenu } from "./ColumnMenu";
+import { ColumnSettingsDrawer } from "./ColumnSettingsDrawer";
 import { ImportCsvModal } from "./ImportCsvModal";
 import { ViewMenu } from "./ViewMenu";
 
@@ -495,6 +496,15 @@ export function TableGrid({ tableId }: TableGridProps) {
   const importToastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const copyStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeColumnSettings, setActiveColumnSettings] = useState<{ columnId: string } | null>(null);
+
+  const openColumnSettings = useCallback((columnId: string) => {
+    setActiveColumnSettings({ columnId });
+  }, []);
+
+  const closeColumnSettings = useCallback(() => {
+    setActiveColumnSettings(null);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -913,6 +923,8 @@ export function TableGrid({ tableId }: TableGridProps) {
               onMoveRight={() => handleMoveColumn(column.id, "right")}
               canMoveLeft={canMoveLeft}
               canMoveRight={canMoveRight}
+              onOpenReferenceSettings={() => openColumnSettings(column.id)}
+              showReferenceSettings={column.type === COLUMN_TYPE_ENUM.REFERENCE}
             />
           );
         },
@@ -943,12 +955,34 @@ export function TableGrid({ tableId }: TableGridProps) {
     handleCommitCell,
     columnOrder,
     handleMoveColumn,
-    handleChangeColumnType
+    handleChangeColumnType,
+    openColumnSettings
   ]);
 
   const tableColumnOrder = useMemo(() => ["__select__", "__position__", ...columnOrder], [columnOrder]);
 
   const columnDragItems = tableColumnOrder;
+
+  const settingsColumn = useMemo(() => {
+    if (!activeColumnSettings) {
+      return null;
+    }
+    return columns.find((item) => item.id === activeColumnSettings.columnId) ?? null;
+  }, [activeColumnSettings, columns]);
+
+  const settingsColumnType = settingsColumn?.type;
+
+  useEffect(() => {
+    if (activeColumnSettings && !settingsColumn) {
+      setActiveColumnSettings(null);
+    }
+  }, [activeColumnSettings, settingsColumn]);
+
+  useEffect(() => {
+    if (activeColumnSettings && settingsColumnType && settingsColumnType !== COLUMN_TYPE_ENUM.REFERENCE) {
+      setActiveColumnSettings(null);
+    }
+  }, [activeColumnSettings, settingsColumnType]);
 
   const table = useReactTable({
     data: gridRows,
@@ -1583,6 +1617,12 @@ export function TableGrid({ tableId }: TableGridProps) {
           <p className="text-sm font-medium text-text">{importToast}</p>
         </div>
       ) : null}
+      <ColumnSettingsDrawer
+        tableId={tableId}
+        column={settingsColumn}
+        open={Boolean(activeColumnSettings && settingsColumn)}
+        onClose={closeColumnSettings}
+      />
     </div>
   );
 }
@@ -1602,6 +1642,8 @@ interface ColumnHeaderProps {
   onMoveRight: () => void;
   canMoveLeft: boolean;
   canMoveRight: boolean;
+  onOpenReferenceSettings?: () => void;
+  showReferenceSettings?: boolean;
 }
 
 interface SortableColumnHeaderProps {
@@ -1646,7 +1688,9 @@ function ColumnHeader({
   onMoveLeft,
   onMoveRight,
   canMoveLeft,
-  canMoveRight
+  canMoveRight,
+  onOpenReferenceSettings,
+  showReferenceSettings
 }: ColumnHeaderProps) {
   return (
     <div className="flex items-center justify-between gap-2">
@@ -1686,6 +1730,8 @@ function ColumnHeader({
         onMoveRight={onMoveRight}
         canMoveLeft={canMoveLeft}
         canMoveRight={canMoveRight}
+        onOpenReferenceSettings={onOpenReferenceSettings}
+        showReferenceSettings={showReferenceSettings}
       />
     </div>
   );
