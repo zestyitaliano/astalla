@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Link2 } from "lucide-react";
-import type { ReferenceCardinality, TableColumnDto } from "@shared/api";
+import { ColumnTypeSchema, type TableColumnDto } from "@shared/api";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ interface ColumnSettingsDrawerProps {
   open: boolean;
   onClose: () => void;
 }
+
+type ReferenceCardinality = "single" | "multi";
 
 interface ReferenceFormState {
   targetTableId: string;
@@ -98,7 +100,7 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
   const [referenceState, setReferenceState] = useState<ReferenceFormState>(() => extractReferenceConfig(column));
   const [displayColumnManuallySet, setDisplayColumnManuallySet] = useState(false);
 
-  const showReferenceSection = column?.type === "REFERENCE";
+  const showReferenceSection = column?.type === ColumnTypeSchema.enum.REFERENCE;
 
   useEffect(() => {
     if (!open) {
@@ -177,7 +179,7 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            type: "reference",
+            type: ColumnTypeSchema.enum.REFERENCE,
             referenceConfig: {
               targetTableId: referenceState.targetTableId,
               displayColumnId: referenceState.displayColumnId || null,

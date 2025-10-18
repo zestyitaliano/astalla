@@ -87,7 +87,7 @@ describe("ColumnSettingsDrawer", () => {
                 id: "leases.UnitId",
                 tableId: "public.leases",
                 name: "Unit",
-                type: "reference",
+                type: "REFERENCE",
                 referenceConfig: {
                   targetTableId: "public.units",
                   displayColumnId: "units.Name",
@@ -134,6 +134,7 @@ describe("ColumnSettingsDrawer", () => {
     const body = patchCall?.[1]?.body;
     expect(typeof body).toBe("string");
     const parsed = JSON.parse(body as string);
+    expect(parsed.type).toBe("REFERENCE");
     expect(parsed.referenceConfig).toMatchObject({
       targetTableId: "public.units",
       displayColumnId: "units.Name",
