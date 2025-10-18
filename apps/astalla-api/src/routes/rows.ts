@@ -4,6 +4,7 @@ import type { SchemaColumn, SchemaTable } from '@shared/api';
 
 import { getSchemaGraphForUser } from '../schemaRegistry/registry.js';
 import { getTableRows, type TableRow } from '../db/data.js';
+import { ensureUser } from './requestUser.js';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -18,20 +19,6 @@ interface RowEntry {
   item: RowSearchItem;
   previewLower: string;
 }
-
-const resolveUserId = (req: Request): string | null => {
-  const userId = (req as any).user?.id ?? req.header('x-user-id');
-  return typeof userId === 'string' && userId.length > 0 ? userId : null;
-};
-
-const ensureUser = (req: Request, res: Response): string | null => {
-  const userId = resolveUserId(req);
-  if (!userId) {
-    res.status(401).json({ message: 'Authentication required' });
-    return null;
-  }
-  return userId;
-};
 
 const findTableByIdentifier = (graph: { tables: SchemaTable[] }, identifier: string): SchemaTable | undefined => {
   return graph.tables.find((table) => table.id === identifier || table.name === identifier);

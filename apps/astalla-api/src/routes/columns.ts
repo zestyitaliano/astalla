@@ -4,14 +4,10 @@ import type { SchemaColumn, SchemaTable } from '@shared/api';
 
 import { canRead, canWrite } from '../auth/permissions.js';
 import { BASE_SCHEMA } from '../schemaRegistry/registry.js';
+import { ensureUser } from './requestUser.js';
 
 const hasOwn = <T extends object, K extends PropertyKey>(value: T, key: K): value is T & Record<K, unknown> => {
   return Object.prototype.hasOwnProperty.call(value, key);
-};
-
-const resolveUserId = (req: Request): string | null => {
-  const userId = (req as any).user?.id ?? req.header('x-user-id');
-  return typeof userId === 'string' && userId.length > 0 ? userId : null;
 };
 
 type MutableReferenceConfig = {
@@ -96,15 +92,6 @@ const sanitizeColumnForResponse = (column: MutableSchemaColumn) => {
     delete clone.referenceConfig;
   }
   return clone;
-};
-
-const ensureUser = (req: Request, res: Response): string | null => {
-  const userId = resolveUserId(req);
-  if (!userId) {
-    res.status(401).json({ message: 'Authentication required' });
-    return null;
-  }
-  return userId;
 };
 
 const buildColumnRouter = () => {

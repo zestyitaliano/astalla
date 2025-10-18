@@ -17,12 +17,12 @@ const closeServer = async (server: Server | undefined) => {
 };
 
 describe('GET /api/schema/registry', () => {
-  describe('when unauthenticated', () => {
+  describe('when unauthenticated and fallback disabled', () => {
     let server: Server | undefined;
     let baseUrl: string;
 
     before(() => {
-      const app = createApp();
+      const app = createApp({ defaultUserId: null });
       server = app.listen(0);
       const address = server.address() as AddressInfo;
       baseUrl = `http://127.0.0.1:${address.port}`;
@@ -38,19 +38,38 @@ describe('GET /api/schema/registry', () => {
     });
   });
 
-  describe('when authenticated', () => {
+  describe('when authenticated via header', () => {
     let server: Server | undefined;
     let baseUrl: string;
 
     before(() => {
-      const app = createApp({
-        beforeRoutes: [
-          (req, _res, next) => {
-            (req as any).user = { id: 'dev-user' };
-            next();
-          },
-        ],
+      const app = createApp({ defaultUserId: null });
+      server = app.listen(0);
+      const address = server.address() as AddressInfo;
+      baseUrl = `http://127.0.0.1:${address.port}`;
+    });
+
+    after(async () => {
+      await closeServer(server);
+    });
+
+    it('accepts the x-user-id header', async () => {
+      const response = await fetch(`${baseUrl}/api/schema/registry`, {
+        headers: { 'x-user-id': 'header-user' },
       });
+
+      assert.strictEqual(response.status, 200);
+      const payload = await response.json();
+      assert.ok(Array.isArray(payload.tables));
+    });
+  });
+
+  describe('when relying on the default fallback', () => {
+    let server: Server | undefined;
+    let baseUrl: string;
+
+    before(() => {
+      const app = createApp();
 
       server = app.listen(0);
       const address = server.address() as AddressInfo;
