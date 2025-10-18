@@ -13,18 +13,17 @@ import type {
 } from './astTypes.js';
 import { getSchemaGraphForUser } from '../schemaRegistry/registry.js';
 import {
+  __test,
   executeReference,
   ExecutionPlanError,
   PermissionError,
   validateProgramAst,
 } from './executeReference.js';
+import { getTableRows } from '../db/data.js';
 
-const createRef = (table: string, column: string): RefNode => ({
+const createRef = (...segments: string[]): RefNode => ({
   type: 'Ref',
-  path: [
-    { type: 'Identifier', name: table },
-    { type: 'Identifier', name: column },
-  ],
+  path: segments.map((name) => ({ type: 'Identifier', name })),
 });
 
 const createValue = (value: ValueNode['value']): ValueNode => ({
@@ -97,6 +96,22 @@ describe('executeReference', () => {
     assert.ok(/LEFT JOIN "units" ON "leases"\."UnitId" = "units"\."Id"/.test(result.sqlText));
   });
 
+  it('filters using fields on configured reference columns', async () => {
+    const ast: ProgramNode = {
+      type: 'Program',
+      body: {
+        type: 'FunctionCall',
+        name: 'sum',
+        argument: createRef('Leases', 'TotalRent'),
+        where: createWhere(createRef('this', 'Unit', 'Bedrooms'), '=', createValue(2)),
+      },
+    };
+
+    const result = await executeReference({ ast, graph, userId: 'dev-user' });
+
+    assert.equal(result.rows[0]?.value, 4250);
+  });
+
   it('supports logical conditions', async () => {
     const ast: ProgramNode = {
       type: 'Program',
@@ -156,6 +171,39 @@ describe('executeReference', () => {
     };
 
     await assert.rejects(() => executeReference({ ast, graph, userId: 'dev-user' }), ExecutionPlanError);
+  });
+});
+
+describe('reference field evaluation', () => {
+  const graph = getSchemaGraphForUser('dev-user');
+  const baseTable = graph.tables.find((table) => table.name === 'leases');
+
+  assert.ok(baseTable, 'expected leases table');
+
+  it('returns scalar values for single reference columns', () => {
+    const operand = __test.buildReferenceFieldOperand(createRef('this', 'Unit', 'Name'), graph, 'dev-user', {
+      baseTable: baseTable!,
+      baseTableName: baseTable!.name,
+    });
+
+    const [firstRow] = getTableRows(baseTable!.name);
+    const scope = { [baseTable!.name]: firstRow } as Record<string, any>;
+
+    assert.equal(operand.evaluate(scope), 'Unit 1A');
+  });
+
+  it('returns arrays for multi reference columns', () => {
+    const operand = __test.buildReferenceFieldOperand(createRef('this', 'RelatedCharges', 'Amount'), graph, 'dev-user', {
+      baseTable: baseTable!,
+      baseTableName: baseTable!.name,
+    });
+
+    const [firstRow, secondRow] = getTableRows(baseTable!.name);
+    const firstScope = { [baseTable!.name]: firstRow } as Record<string, any>;
+    const secondScope = { [baseTable!.name]: secondRow } as Record<string, any>;
+
+    assert.deepEqual(operand.evaluate(firstScope), [100]);
+    assert.deepEqual(operand.evaluate(secondScope), [100, 250]);
   });
 });
 

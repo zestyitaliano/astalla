@@ -14,20 +14,51 @@ const unitsRows: TableRow[] = [
 ];
 
 const leasesRows: TableRow[] = [
-  { Id: 'lease-1', UnitId: 'unit-1', TotalRent: 1200, Status: 'Active', Year: 2024, ResidentEmail: 'alice@example.com' },
-  { Id: 'lease-2', UnitId: 'unit-2', TotalRent: 2100, Status: 'Active', Year: 2024, ResidentEmail: 'bob@example.com' },
-  { Id: 'lease-3', UnitId: 'unit-2', TotalRent: 2150, Status: 'Pending', Year: 2025, ResidentEmail: 'carol@example.com' },
-  { Id: 'lease-4', UnitId: 'unit-3', TotalRent: 3100, Status: 'Active', Year: 2025, ResidentEmail: 'dave@example.com' },
+  {
+    Id: 'lease-1',
+    UnitId: 'unit-1',
+    Unit: 'unit-1',
+    TotalRent: 1200,
+    Status: 'Active',
+    Year: 2024,
+    ResidentEmail: 'alice@example.com',
+    RelatedCharges: ['charge-1'],
+  },
+  {
+    Id: 'lease-2',
+    UnitId: 'unit-2',
+    Unit: 'unit-2',
+    TotalRent: 2100,
+    Status: 'Active',
+    Year: 2024,
+    ResidentEmail: 'bob@example.com',
+    RelatedCharges: ['charge-1', 'charge-2'],
+  },
+  {
+    Id: 'lease-3',
+    UnitId: 'unit-2',
+    Unit: 'unit-2',
+    TotalRent: 2150,
+    Status: 'Pending',
+    Year: 2025,
+    ResidentEmail: 'carol@example.com',
+    RelatedCharges: ['charge-2'],
+  },
+  {
+    Id: 'lease-4',
+    UnitId: 'unit-3',
+    Unit: 'unit-3',
+    TotalRent: 3100,
+    Status: 'Active',
+    Year: 2025,
+    ResidentEmail: 'dave@example.com',
+    RelatedCharges: [],
+  },
 ];
 
-const hgdgfsRows: TableRow[] = [
-  { Id: 'hgdgfs-1', Name: 'Sample HG 1', Value: 12 },
-  { Id: 'hgdgfs-2', Name: 'Sample HG 2', Value: 24 },
-];
-
-const lteoiruh9Rows: TableRow[] = [
-  { Id: 'lteoiruh9-1', Name: 'LTE 1', Amount: 5 },
-  { Id: 'lteoiruh9-2', Name: 'LTE 2', Amount: 10 },
+const chargesRows: TableRow[] = [
+  { Id: 'charge-1', Name: 'Application Fee', Amount: 100 },
+  { Id: 'charge-2', Name: 'Pet Fee', Amount: 250 },
 ];
 
 const tables: Record<string, TableData> = {
@@ -37,14 +68,10 @@ const tables: Record<string, TableData> = {
   },
   leases: {
     rows: leasesRows,
-    columns: ['Id', 'UnitId', 'TotalRent', 'Status', 'Year', 'ResidentEmail'],
+    columns: ['Id', 'UnitId', 'Unit', 'TotalRent', 'Status', 'Year', 'ResidentEmail', 'RelatedCharges'],
   },
-  hgdgfs: {
-    rows: hgdgfsRows,
-    columns: ['Id', 'Name', 'Value'],
-  },
-  lteoiruh9: {
-    rows: lteoiruh9Rows,
+  charges: {
+    rows: chargesRows,
     columns: ['Id', 'Name', 'Amount'],
   },
 };
