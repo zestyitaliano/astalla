@@ -136,23 +136,4 @@ describe('Column management endpoints', () => {
     });
   });
 
-  describe('choices endpoints', () => {
-    it('returns permitted tables and columns for dropdowns', async () => {
-      const tableChoicesResponse = await fetch(`${baseUrl}/api/tables/choices`);
-      assert.equal(tableChoicesResponse.status, 200);
-      const tables = await tableChoicesResponse.json();
-      assert.ok(Array.isArray(tables));
-      assert.ok(tables.some((table: any) => table.id === 'public.units'));
-
-      const columnChoicesResponse = await fetch(
-        `${baseUrl}/api/tables/${encodeURIComponent('public.leases')}/columns/choices`,
-      );
-      assert.equal(columnChoicesResponse.status, 200);
-      const columns = await columnChoicesResponse.json();
-      assert.ok(Array.isArray(columns));
-      assert.ok(columns.length > 0);
-      assert.ok(!columns.some((column: any) => column.name === 'ResidentEmail'));
-      assert.ok(columns.every((column: any) => typeof column.type === 'string'));
-    });
-  });
 });

@@ -3,7 +3,7 @@ import { Router } from 'express';
 import type { SchemaColumn, SchemaTable } from '@shared/api';
 
 import { canRead, canWrite } from '../auth/permissions.js';
-import { BASE_SCHEMA, getSchemaGraphForUser } from '../schemaRegistry/registry.js';
+import { BASE_SCHEMA } from '../schemaRegistry/registry.js';
 
 const hasOwn = <T extends object, K extends PropertyKey>(value: T, key: K): value is T & Record<K, unknown> => {
   return Object.prototype.hasOwnProperty.call(value, key);
@@ -105,49 +105,6 @@ const ensureUser = (req: Request, res: Response): string | null => {
     return null;
   }
   return userId;
-};
-
-const buildChoicesRouter = () => {
-  const router = Router();
-
-  router.get('/tables/choices', (req, res) => {
-    const userId = ensureUser(req, res);
-    if (!userId) return;
-
-    const graph = getSchemaGraphForUser(userId);
-    const tables = graph.tables.map((table) => ({
-      id: table.id,
-      name: table.name,
-      ...(table.label ? { label: table.label } : {}),
-    }));
-
-    res.json(tables);
-  });
-
-  router.get('/tables/:tableId/columns/choices', (req, res) => {
-    const userId = ensureUser(req, res);
-    if (!userId) return;
-
-    const graph = getSchemaGraphForUser(userId);
-    const table = graph.tables.find(
-      (item) => item.id === req.params.tableId || item.name === req.params.tableId,
-    );
-
-    if (!table) {
-      res.status(404).json({ message: 'Table not found' });
-      return;
-    }
-
-    const columns = table.columns.map((column) => ({
-      id: column.id,
-      name: column.name,
-      type: column.type,
-    }));
-
-    res.json(columns);
-  });
-
-  return router;
 };
 
 const buildColumnRouter = () => {
@@ -285,7 +242,6 @@ const buildColumnRouter = () => {
 
 export const registerColumnRoutes = (app: Application): void => {
   const apiRouter = Router();
-  apiRouter.use(buildChoicesRouter());
   apiRouter.use(buildColumnRouter());
   app.use('/api', apiRouter);
 };
