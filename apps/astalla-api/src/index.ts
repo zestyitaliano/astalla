@@ -1,18 +1,14 @@
 import express, { NextFunction, Request, Response, type RequestHandler } from 'express';
 import multer from 'multer';
 import FormData from 'form-data';
-import { createHmac, createHash, randomUUID } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
 import { Site } from './types.js';
-import { getSchemaGraphForUser } from './schemaRegistry/registry.js';
 import { registerColumnRoutes } from './routes/columns.js';
-import { tablesRouter } from './routes/tables.js';
 import { registerReferenceRoutes } from './routes/references.js';
 import { registerRowRoutes } from './routes/rows.js';
-import { resolveUserId } from './routes/requestUser.js';
-
-const computeEtag = (payload: string): string => {
-  return `"${createHash('sha256').update(payload).digest('base64')}"`;
-};
+import { router as tablesRouter } from './routes/tables.js';
+import { schemaRouter } from './routes/schema.js';
+import { introspectionRouter } from './routes/introspection.js';
 
 type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
@@ -36,7 +32,7 @@ export const createApp = (options?: CreateAppOptions) => {
   const upload = multer({ storage: multer.memoryStorage() });
   const sites = new Map<string, Site>();
   const fallbackUserId = options?.defaultUserId === undefined ? 'dev-user' : options.defaultUserId;
-
+  app.locals.schemaFallbackUserId = fallbackUserId;
   const requireSite = (id: string): Site => {
     const site = sites.get(id);
     if (!site) {
@@ -44,6 +40,11 @@ export const createApp = (options?: CreateAppOptions) => {
     }
     return site;
   };
+
+  app.use((req, _res, next) => {
+    console.log('[API]', req.method, req.originalUrl);
+    next();
+  });
 
   app.use(express.json());
 
@@ -54,36 +55,14 @@ export const createApp = (options?: CreateAppOptions) => {
   }
 
   app.use('/api/tables', tablesRouter);
+  app.use('/api/schema', schemaRouter);
+  app.use('/__routes', introspectionRouter);
   registerReferenceRoutes(app);
   registerColumnRoutes(app);
   registerRowRoutes(app);
 
   app.get('/sites', (req, res) => {
     res.json(Array.from(sites.values()));
-  });
-
-  app.get('/api/schema/registry', (req, res) => {
-    const userId = resolveUserId(req, { fallbackTo: fallbackUserId });
-    if (!userId) {
-      res.status(401).json({ message: 'Authentication required' });
-      return;
-    }
-
-    const graph = getSchemaGraphForUser(userId);
-    const payload = JSON.stringify(graph);
-    const etag = computeEtag(payload);
-
-    if (req.headers['if-none-match'] === etag) {
-      res.status(304).setHeader('ETag', etag).end();
-      return;
-    }
-
-    res
-      .status(200)
-      .setHeader('Content-Type', 'application/json')
-      .setHeader('Cache-Control', 'no-cache')
-      .setHeader('ETag', etag)
-      .send(payload);
   });
 
   app.post('/sites', (req, res) => {
