@@ -12,6 +12,7 @@ export interface ReferenceSuggestionItem {
   description?: string;
   breadcrumb?: string[];
   preview?: string;
+  kind?: 'table' | 'column' | 'function' | 'view' | 'action' | 'translation';
   scoreBreakdown?: {
     schema: number;
     context: number;
@@ -23,6 +24,7 @@ export interface ReferenceSuggestionItem {
 interface ReferencePopoverProps {
   suggestions: ReferenceSuggestionItem[];
   onSelect?: (suggestion: ReferenceSuggestionItem) => void;
+  onActionSelect?: (suggestion: ReferenceSuggestionItem) => void;
   triggerLabel?: string;
   emptyMessage?: string;
   loading?: boolean;
@@ -37,6 +39,7 @@ const formatScore = (value: number): string => value.toFixed(2);
 export function ReferencePopover({
   suggestions,
   onSelect,
+  onActionSelect,
   triggerLabel = "Suggestions",
   emptyMessage = "No matches yet.",
   loading = false,
@@ -120,18 +123,43 @@ export function ReferencePopover({
                     suggestion.scoreBreakdown.semantic +
                     suggestion.scoreBreakdown.data
                   : null;
+                const labelSegments = suggestion.label.split(" › ");
+                const hasNestedLabel = labelSegments.length > 1;
+                const mainLabel = hasNestedLabel
+                  ? labelSegments[labelSegments.length - 1]
+                  : suggestion.label;
+                const nestedLabel = hasNestedLabel
+                  ? labelSegments.slice(0, -1).join(" › ")
+                  : null;
+                const isAction = suggestion.kind === "action";
                 return (
                   <li key={suggestion.id}>
                     <button
                       type="button"
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none focus-visible:bg-muted"
+                      className={cn(
+                        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:bg-muted",
+                        isAction ? "hover:bg-primary/5 text-primary" : "hover:bg-muted/40",
+                      )}
                       onClick={() => {
-                        onSelect?.(suggestion);
+                        if (isAction) {
+                          onActionSelect?.(suggestion);
+                        } else {
+                          onSelect?.(suggestion);
+                        }
                         handleOpenChange(false);
                       }}
                     >
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <span className="truncate text-sm font-medium text-foreground">{suggestion.label}</span>
+                        {nestedLabel ? (
+                          <>
+                            <span className="truncate text-xs font-medium text-muted-foreground/80">
+                              {nestedLabel}
+                            </span>
+                            <span className="truncate text-sm font-semibold text-foreground">{mainLabel}</span>
+                          </>
+                        ) : (
+                          <span className="truncate text-sm font-medium text-foreground">{mainLabel}</span>
+                        )}
                         {suggestion.breadcrumb?.length ? (
                           <span className="truncate text-[11px] uppercase tracking-wide text-muted-foreground">
                             {suggestion.breadcrumb.join(" • ")}

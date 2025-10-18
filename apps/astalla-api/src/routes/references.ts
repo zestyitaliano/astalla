@@ -1,9 +1,17 @@
 import type { Application, Request, Response } from 'express';
 import { Router } from 'express';
 import { REF_AUTOCOMPLETE_V1 } from '@shared/api';
+import type { SchemaColumn, SchemaTable } from '@shared/api';
 
 import { getSchemaGraphForUser } from '../schemaRegistry/registry.js';
-import { buildSchemaCandidates, rankReferences, type ReferenceCursorContext } from '../references/ranker.js';
+import {
+  buildSchemaCandidates,
+  rankReferences,
+  type RankedReferenceSuggestion,
+  type ReferenceCandidate,
+  type ReferenceCursorContext,
+  type ReferenceSuggestion,
+} from '../references/ranker.js';
 import {
   AstValidationError,
   ExecutionPlanError,
@@ -64,6 +72,118 @@ const parseTelemetryPayload = (value: unknown): TelemetryPayload | null => {
 const DEFAULT_WORKSPACE_ID = process.env.DEFAULT_WORKSPACE_ID ?? 'demo-org';
 const DEFAULT_USER_ID = 'demo-user';
 
+const THIS_REFERENCE_PREFIX = '@{this.';
+
+const findTableByIdentifier = (tables: SchemaTable[], identifier?: string): SchemaTable | null => {
+  if (!identifier) {
+    return null;
+  }
+
+  return (
+    tables.find((table) => table.id === identifier) ??
+    tables.find((table) => table.name === identifier) ??
+    null
+  );
+};
+
+const isReferenceColumn = (column: SchemaColumn): boolean => column.type === 'reference';
+
+const createReferenceCandidate = (
+  table: SchemaTable,
+  column: SchemaColumn,
+  overrides: Partial<Pick<ReferenceCandidate, 'id' | 'label' | 'breadcrumb' | 'name'>> = {},
+): ReferenceCandidate => ({
+  id: overrides.id ?? column.id,
+  kind: 'column',
+  name: overrides.name ?? column.name,
+  label: overrides.label ?? column.name,
+  breadcrumb: overrides.breadcrumb ?? [table.label ?? table.name],
+  tableId: table.id,
+  tableName: table.name,
+  dataType: column.type,
+});
+
+const buildReferenceScopedSuggestions = ({
+  tokensSoFar,
+  cursorContext,
+  tables,
+}: {
+  tokensSoFar: string;
+  cursorContext?: ReferenceCursorContext;
+  tables: SchemaTable[];
+}): ReferenceSuggestion[] | null => {
+  const normalized = tokensSoFar.trim();
+  if (!normalized.startsWith(THIS_REFERENCE_PREFIX)) {
+    return null;
+  }
+
+  const table = findTableByIdentifier(tables, cursorContext?.tableId);
+  if (!table) {
+    return [];
+  }
+
+  const remainder = normalized.slice(THIS_REFERENCE_PREFIX.length).replace(/}/g, '');
+  const segments = remainder.split('.');
+  const columnToken = segments[0] ?? '';
+  const hasNested = segments.length > 1 && remainder.includes('.');
+  const referenceColumns = table.columns.filter(isReferenceColumn);
+
+  const rankScopedColumns = (query: string): RankedReferenceSuggestion[] =>
+    rankReferences({
+      candidates: referenceColumns.map((column) => createReferenceCandidate(table, column)),
+      tokensSoFar: query,
+      cursorContext,
+    });
+
+  if (!hasNested) {
+    return rankScopedColumns(columnToken);
+  }
+
+  const referenceColumn = referenceColumns.find(
+    (column) => column.name.toLowerCase() === columnToken.toLowerCase(),
+  );
+
+  if (!referenceColumn) {
+    return rankScopedColumns(columnToken);
+  }
+
+  const config = referenceColumn.referenceConfig;
+  if (!config?.targetTableId) {
+    return [
+      {
+        id: `${referenceColumn.id}::configure-target`,
+        kind: 'action',
+        label: 'Set target table…',
+        breadcrumb: [table.label ?? table.name, referenceColumn.name],
+        description: 'Open column settings to choose a target table.',
+      },
+    ];
+  }
+
+  const targetTable = findTableByIdentifier(tables, config.targetTableId);
+  if (!targetTable) {
+    return [];
+  }
+
+  const childQuery = segments.slice(1).join('.');
+  const referenceLabel = referenceColumn.name;
+  const targetLabel = targetTable.label ?? targetTable.name;
+
+  const nestedCandidates = targetTable.columns.map((column) =>
+    createReferenceCandidate(targetTable, column, {
+      id: `${referenceColumn.id}::${column.id}`,
+      label: `${referenceLabel} › ${targetLabel} › ${column.name}`,
+      breadcrumb: [table.label ?? table.name, referenceLabel],
+    }),
+  );
+
+  return rankReferences({
+    candidates: nestedCandidates,
+    tokensSoFar: childQuery,
+    cursorContext,
+  });
+};
+
 const resolveRequestContext = (req: Request) => {
   const userId = (req as any).user?.id ?? req.header('x-user-id') ?? DEFAULT_USER_ID;
   const workspaceId = req.header('x-workspace-id') ?? DEFAULT_WORKSPACE_ID;
@@ -105,6 +225,17 @@ export const registerReferenceRoutes = (app: Application): void => {
 
     const userId = context.userId;
     const graph = getSchemaGraphForUser(userId);
+    const scopedSuggestions = buildReferenceScopedSuggestions({
+      tokensSoFar,
+      cursorContext: body.cursorContext,
+      tables: graph.tables,
+    });
+
+    if (scopedSuggestions !== null) {
+      res.json({ suggestions: scopedSuggestions });
+      return;
+    }
+
     const candidates = buildSchemaCandidates(graph.tables);
     const suggestions = rankReferences({
       candidates,

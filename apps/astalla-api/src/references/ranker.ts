@@ -1,6 +1,7 @@
 import type { SchemaTable } from '@shared/api';
 
 export type ReferenceKind = 'table' | 'column' | 'function' | 'view';
+export type ReferenceSuggestionKind = ReferenceKind | 'action';
 
 export interface ReferenceCandidate {
   id: string;
@@ -19,7 +20,7 @@ export interface ReferenceCursorContext {
   editingFieldType?: 'expr' | 'filter' | 'value';
 }
 
-export interface ReferenceSuggestion {
+export interface RankedReferenceSuggestion {
   id: string;
   kind: ReferenceKind;
   label: string;
@@ -33,6 +34,17 @@ export interface ReferenceSuggestion {
   };
   totalScore: number;
 }
+
+export type ReferenceSuggestion =
+  | RankedReferenceSuggestion
+  | {
+      id: string;
+      kind: 'action';
+      label: string;
+      description?: string;
+      breadcrumb?: string[];
+      preview?: string;
+    };
 
 export interface RankReferencesInput {
   candidates: ReferenceCandidate[];
@@ -198,10 +210,10 @@ export const rankReferences = ({
   candidates,
   tokensSoFar,
   cursorContext,
-}: RankReferencesInput): ReferenceSuggestion[] => {
+}: RankReferencesInput): RankedReferenceSuggestion[] => {
   const query = tokensSoFar.trim().toLowerCase();
 
-  const suggestions = candidates.map<ReferenceSuggestion>((candidate) => {
+  const suggestions = candidates.map<RankedReferenceSuggestion>((candidate) => {
     const variants = [candidate.name, candidate.label].filter(Boolean) as string[];
     const schema = computeSchemaScore(query, variants);
     const context = computeContextScore(candidate, cursorContext);

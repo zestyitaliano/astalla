@@ -71,6 +71,59 @@ describe('POST /api/references/suggest', () => {
     assert.ok(topSuggestion.scoreBreakdown.schema > 0);
   });
 
+  it('returns reference columns from the active table when using @{this.', async () => {
+    const response = await fetch(`${baseUrl}/api/references/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokensSoFar: '@{this.', cursorContext: { tableId: 'leases' } }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.ok(Array.isArray(payload.suggestions));
+    assert.ok(payload.suggestions.length >= 3);
+
+    const labels = payload.suggestions.map((item: any) => item.label);
+    assert.ok(labels.includes('Unit'));
+    assert.ok(labels.includes('RelatedCharges'));
+    assert.ok(labels.includes('UnlinkedReference'));
+    assert.ok(!labels.some((label: string) => /TotalRent|Status/.test(label)), 'non-reference columns should be filtered');
+  });
+
+  it('returns nested target columns for configured references', async () => {
+    const response = await fetch(`${baseUrl}/api/references/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokensSoFar: '@{this.Unit.', cursorContext: { tableId: 'leases' } }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.ok(Array.isArray(payload.suggestions));
+    assert.ok(payload.suggestions.length > 0);
+    assert.ok(
+      payload.suggestions.every((item: any) => typeof item.label === 'string' && item.label.startsWith('Unit › Units ›')),
+      'suggestions should reference nested target columns',
+    );
+  });
+
+  it('returns an action when a reference column is missing a target table', async () => {
+    const response = await fetch(`${baseUrl}/api/references/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokensSoFar: '@{this.UnlinkedReference.', cursorContext: { tableId: 'leases' } }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.ok(Array.isArray(payload.suggestions));
+    assert.equal(payload.suggestions.length, 1);
+
+    const [action] = payload.suggestions;
+    assert.equal(action.kind, 'action');
+    assert.equal(action.label, 'Set target table…');
+  });
+
   it('records telemetry events posted from the UI', async () => {
     const response = await fetch(`${baseUrl}/api/references/telemetry`, {
       method: 'POST',

@@ -51,7 +51,8 @@ export const BASE_SCHEMA: SchemaGraph = {
             cardinality: "multi",
             enforceForeignKey: false,
           },
-        }
+        },
+        { id: "leases.UnlinkedReference", name: "UnlinkedReference", type: "reference" }
       ],
       fks: [
         { fromTable: "leases", fromCol: "UnitId", toTable: "units", toCol: "Id" }
