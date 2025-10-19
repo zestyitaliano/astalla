@@ -18,11 +18,13 @@ describe("authOptions credentials authorize", () => {
     process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS = "false";
 
     const backendResponse = {
-      id: "user-1",
-      email: "user@example.com",
-      name: "Example User",
-      role: "ORG_ADMIN",
-      accessToken: "token-123"
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "Example User",
+        role: "ORG_ADMIN"
+      },
+      access_token: "token-123"
     };
 
     const fetchMock = vi.fn().mockResolvedValue({
@@ -48,15 +50,15 @@ describe("authOptions credentials authorize", () => {
     });
     const body = fetchMock.mock.calls[0]?.[1]?.body as string;
     expect(body && JSON.parse(body)).toEqual({
-      emailOrUsername: "User@example.com",
+      identifier: "User@example.com",
       password: "SuperSecret1!"
     });
     expect(result).toMatchObject({
-      id: backendResponse.id,
-      email: backendResponse.email,
-      name: backendResponse.name,
+      id: backendResponse.user.id,
+      email: backendResponse.user.email,
+      name: backendResponse.user.name,
       role: "ORG_ADMIN",
-      accessToken: backendResponse.accessToken
+      accessToken: backendResponse.access_token
     });
   });
 
@@ -66,10 +68,12 @@ describe("authOptions credentials authorize", () => {
     process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS = "false";
 
     const backendResponse = {
-      id: "user-2",
-      email: "internal@example.com",
-      role: null,
-      accessToken: "token-456"
+      user: {
+        id: "user-2",
+        email: "internal@example.com",
+        role: null
+      },
+      token: "token-456"
     };
 
     const fetchMock = vi.fn().mockResolvedValue({
@@ -90,9 +94,9 @@ describe("authOptions credentials authorize", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://internal.example.com/auth/basic-login");
     expect(result).toMatchObject({
-      id: backendResponse.id,
-      email: backendResponse.email,
-      accessToken: backendResponse.accessToken,
+      id: backendResponse.user.id,
+      email: backendResponse.user.email,
+      accessToken: backendResponse.token,
       role: null
     });
   });

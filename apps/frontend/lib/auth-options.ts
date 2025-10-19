@@ -11,6 +11,13 @@ type BackendUser = {
   token?: string | null;
 };
 
+type BackendLoginResponse = {
+  user: BackendUser;
+  accessToken?: string | null;
+  access_token?: string | null;
+  token?: string | null;
+};
+
 type CredentialsInput = {
   identifier?: string | null;
   password?: string | null;
@@ -65,6 +72,31 @@ export async function authorizeCredentials(
   const identifier = credentialsInput?.identifier?.trim();
   const password = credentialsInput?.password ?? "";
 
+  const candidate = value as Record<string, unknown>;
+  const { user } = candidate;
+
+  if (!isBackendUser(user)) {
+    return false;
+  }
+
+  const tokens = ["accessToken", "access_token", "token"] as const;
+  for (const key of tokens) {
+    const tokenValue = candidate[key];
+    if (tokenValue !== undefined && tokenValue !== null && typeof tokenValue !== "string") {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export async function authorizeCredentials(
+  credentialsInput: CredentialsInput,
+  _req?: unknown
+) {
+  const identifier = credentialsInput?.identifier?.trim();
+  const password = credentialsInput?.password ?? "";
+
   if (!identifier || password.trim() === "") {
     console.error("[auth] authorize() missing identifier or password");
     return null;
@@ -88,7 +120,7 @@ export async function authorizeCredentials(
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        emailOrUsername: identifier,
+        identifier,
         password
       })
     });
@@ -98,20 +130,21 @@ export async function authorizeCredentials(
       return null;
     }
 
-    const user = await response.json();
+    const loginResponse = await response.json();
 
-    if (!isBackendUser(user)) {
-      console.error("[auth] authorize() unexpected response shape", user);
+    if (!isBackendLoginResponse(loginResponse)) {
+      console.error("[auth] authorize() unexpected response shape", loginResponse);
       return null;
     }
 
+    const { user } = loginResponse;
     const accessToken =
-      typeof user.accessToken === "string"
-        ? user.accessToken
-        : typeof user.access_token === "string"
-          ? user.access_token
-          : typeof user.token === "string"
-            ? user.token
+      typeof loginResponse.accessToken === "string"
+        ? loginResponse.accessToken
+        : typeof loginResponse.access_token === "string"
+          ? loginResponse.access_token
+          : typeof loginResponse.token === "string"
+            ? loginResponse.token
             : undefined;
 
     return {
