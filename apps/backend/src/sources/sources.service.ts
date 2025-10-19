@@ -210,6 +210,11 @@ export class SourcesService {
   }
 
   async update(id: string, dto: UpdateSourceDto & { credential?: CredentialPayload }) {
+    const existing = await this.prisma.sourceAccount.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException("Source not found");
+    }
+
     const data: Prisma.SourceAccountUpdateInput = {};
 
     if (dto.propertyId) {
@@ -221,12 +226,16 @@ export class SourcesService {
     if (dto.enabled !== undefined) {
       data.enabled = dto.enabled;
     }
-    if (dto.credential) {
-      const credential = this.sanitizeCredential(dto.credential);
-      if (Object.keys(credential).length === 0) {
+    if (dto.credential !== undefined) {
+      const currentCredential = this.decryptCredential(existing.credential);
+      const sanitizedPatch = this.sanitizeCredential(dto.credential);
+      const mergedCredential = { ...currentCredential, ...sanitizedPatch };
+
+      if (Object.keys(mergedCredential).length === 0) {
         throw new BadRequestException("Credential cannot be empty");
       }
-      data.credential = this.encryptCredential(credential);
+
+      data.credential = this.encryptCredential(mergedCredential);
     }
 
     const updated = await this.prisma.sourceAccount.update({
