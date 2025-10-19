@@ -81,7 +81,7 @@ export async function authorizeCredentials(
     };
   }
 
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL!;
+  const base = resolveServerBaseUrl();
 
   try {
     const response = await fetch(`${base}/auth/basic-login`, {

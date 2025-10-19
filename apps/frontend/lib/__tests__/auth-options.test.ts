@@ -59,4 +59,41 @@ describe("authOptions credentials authorize", () => {
       accessToken: backendResponse.accessToken
     });
   });
+
+  it("falls back to server-only API_BASE_URL when NEXT_PUBLIC_API_BASE_URL is missing", async () => {
+    delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    process.env.API_BASE_URL = "https://internal.example.com";
+    process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS = "false";
+
+    const backendResponse = {
+      id: "user-2",
+      email: "internal@example.com",
+      role: null,
+      accessToken: "token-456"
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(backendResponse)
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { authorizeCredentials } = await import("../auth-options");
+
+    const result = await authorizeCredentials({
+      identifier: "internal@example.com",
+      password: "Password123" 
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://internal.example.com/auth/basic-login");
+    expect(result).toMatchObject({
+      id: backendResponse.id,
+      email: backendResponse.email,
+      accessToken: backendResponse.accessToken,
+      role: null
+    });
+  });
 });
