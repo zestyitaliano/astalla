@@ -88,7 +88,7 @@ describe("authOptions credentials authorize", () => {
 
     const result = await authorizeCredentials({
       identifier: "internal@example.com",
-      password: "Password123" 
+      password: "Password123"
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -99,5 +99,42 @@ describe("authOptions credentials authorize", () => {
       accessToken: backendResponse.token,
       role: null
     });
+  });
+
+  it("returns null when the backend omits an access token", async () => {
+    process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.com";
+    process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS = "false";
+
+    const backendResponse = {
+      user: {
+        id: "user-3",
+        email: "user3@example.com",
+        role: "PROPERTY"
+      }
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(backendResponse)
+    });
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { authorizeCredentials } = await import("../auth-options");
+
+    const result = await authorizeCredentials({
+      identifier: "user3@example.com",
+      password: "Password123"
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toBeNull();
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[auth] authorize() response missing access token",
+      backendResponse
+    );
   });
 });

@@ -82,7 +82,11 @@ export async function authorizeCredentials(
   const tokens = ["accessToken", "access_token", "token"] as const;
   for (const key of tokens) {
     const tokenValue = candidate[key];
-    if (tokenValue !== undefined && tokenValue !== null && typeof tokenValue !== "string") {
+    if (tokenValue === undefined || tokenValue === null) {
+      continue;
+    }
+
+    if (typeof tokenValue !== "string" || tokenValue.trim() === "") {
       return false;
     }
   }
@@ -146,6 +150,11 @@ async function authorizeCredentialsImpl(
           : typeof loginResponse.token === "string"
             ? loginResponse.token
             : undefined;
+
+    if (!accessToken || accessToken.trim() === "") {
+      console.error("[auth] authorize() response missing access token", loginResponse);
+      return null;
+    }
 
     return {
       id: user.id,
