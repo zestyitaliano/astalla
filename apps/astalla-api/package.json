@@ -8,7 +8,8 @@
     "build": "tsc",
     "test": "tsc && NODE_ENV=test node --test dist/**/*.test.js",
     "start": "node dist/index.js",
-    "start:prod": "node dist/index.js"
+    "start:prod": "node dist/index.js",
+    "db:seed-admin": "ts-node --transpile-only scripts/seed-admin.ts"
   },
   "dependencies": {
     "@shared/api": "workspace:*",
