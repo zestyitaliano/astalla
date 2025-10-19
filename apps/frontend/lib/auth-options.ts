@@ -9,6 +9,18 @@ type BackendUser = {
   role?: string | null;
 };
 
+type BackendLoginResponse = {
+  user: BackendUser;
+  accessToken?: string | null;
+  access_token?: string | null;
+  token?: string | null;
+};
+
+type CredentialsInput = {
+  identifier?: string | null;
+  password?: string | null;
+} | null | undefined;
+
 const KNOWN_ROLES = ["ORG_ADMIN", "REGIONAL", "PROPERTY", "MARKETING"] as const;
 type KnownRole = (typeof KNOWN_ROLES)[number];
 
@@ -24,11 +36,6 @@ function normalizeRole(role: string | null | undefined): KnownRole | null {
   console.warn(`[auth] Unexpected user role received from backend: ${role}`);
   return null;
 }
-
-type BackendLoginResponse = {
-  access_token: string;
-  user: BackendUser;
-};
 
 function isBackendUser(value: unknown): value is BackendUser {
   if (!value || typeof value !== "object") {
@@ -62,82 +69,103 @@ function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
   }
 
   const candidate = value as Record<string, unknown>;
-  if (typeof candidate.access_token !== "string") {
+  const { user } = candidate;
+
+  if (!isBackendUser(user)) {
     return false;
   }
 
-  return isBackendUser(candidate.user);
+  const tokens = ["accessToken", "access_token", "token"] as const;
+  for (const key of tokens) {
+    const tokenValue = candidate[key];
+    if (tokenValue === undefined || tokenValue === null) {
+      continue;
+    }
+
+    if (typeof tokenValue !== "string" || tokenValue.trim() === "") {
+      return false;
+    }
+  }
+
+  return true;
 }
 
-const LOGIN_TIMEOUT_MS = 8000;
+async function authorizeCredentialsImpl(
+  credentialsInput: CredentialsInput,
+  _req?: unknown
+) {
+  const identifier = credentialsInput?.identifier?.trim();
+  const password = credentialsInput?.password ?? "";
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = LOGIN_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  if (!identifier || password.trim() === "") {
+    console.error("[auth] authorize() missing identifier or password");
+    return null;
+  }
+
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
+    console.log("[auth] NEXT_PUBLIC_DEV_AUTH_BYPASS enabled - returning fake user");
+    return {
+      id: "dev-bypass-user",
+      email: identifier,
+      name: "Dev Bypass",
+      role: null,
+      accessToken: "dev-bypass-token"
+    };
+  }
+
+  const base = resolveServerBaseUrl();
 
   try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal
+    const response = await fetch(`${base}/auth/basic-login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        identifier,
+        password
+      })
     });
-  } finally {
-    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn("[credentials] backend returned", response.status);
+      return null;
+    }
+
+    const loginResponse = await response.json();
+
+    if (!isBackendLoginResponse(loginResponse)) {
+      console.error("[auth] authorize() unexpected response shape", loginResponse);
+      return null;
+    }
+
+    const { user } = loginResponse;
+    const accessToken =
+      typeof loginResponse.accessToken === "string"
+        ? loginResponse.accessToken
+        : typeof loginResponse.access_token === "string"
+          ? loginResponse.access_token
+          : typeof loginResponse.token === "string"
+            ? loginResponse.token
+            : undefined;
+
+    if (!accessToken || accessToken.trim() === "") {
+      console.error("[auth] authorize() response missing access token", loginResponse);
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name ?? null,
+      role: normalizeRole(user.role ?? null),
+      accessToken
+    };
+  } catch (error) {
+    console.error("[auth] authorize() unexpected error", error);
+    return null;
   }
 }
 
-async function authenticateWithBackend(
-  identifier: string,
-  password: string
-): Promise<BackendLoginResponse | null> {
-  const baseUrl = resolveServerBaseUrl();
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-  const loginUrl = `${normalizedBase}/auth/basic-login`;
-  const safeIdentifier = identifier.trim().toLowerCase();
-
-  console.log(`[auth] authorize() POST ${loginUrl}`);
-
-  let response: Response;
-  try {
-    response = await fetchWithTimeout(
-      loginUrl,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ identifier: safeIdentifier, password })
-      }
-    );
-  } catch (error) {
-    console.error(`[auth] authorize() request failed for ${safeIdentifier}`, error);
-    return null;
-  }
-
-  console.log(`[auth] authorize() response status ${response.status}`);
-
-  let responseBody: unknown = null;
-  try {
-    responseBody = await response.json();
-  } catch (error) {
-    console.error("[auth] Failed to parse backend response as JSON", error);
-    return null;
-  }
-
-  if (!response.ok) {
-    console.error(
-      `[auth] authorize() backend login failed for ${safeIdentifier}. status=${response.status}`,
-      responseBody
-    );
-    return null;
-  }
-
-  if (!isBackendLoginResponse(responseBody)) {
-    console.error("[auth] authorize() unexpected response shape", responseBody);
-    return null;
-  }
-
-  return responseBody;
-}
+export const authorizeCredentials = authorizeCredentialsImpl;
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -160,48 +188,7 @@ export const authOptions: NextAuthOptions = {
           type: "password"
         }
       },
-      async authorize(credentials) {
-        const identifier = credentials?.identifier?.trim();
-        const password = credentials?.password ?? "";
-
-        if (!identifier || password.trim() === "") {
-          console.error("[auth] authorize() missing identifier or password");
-          return null;
-        }
-
-        // Developer-only bypass to unblock local testing when the backend is unavailable.
-        if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true") {
-          console.log("[auth] NEXT_PUBLIC_DEV_AUTH_BYPASS enabled - returning fake user");
-          return {
-            id: "dev-bypass-user",
-            email: identifier,
-            name: "Dev Bypass",
-            accessToken: "dev-bypass-token",
-            role: null
-          };
-        }
-
-        try {
-          const result = await authenticateWithBackend(identifier, password);
-
-          if (!result) {
-            return null;
-          }
-
-          const { access_token: accessToken, user } = result;
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name ?? null,
-            role: normalizeRole(user.role ?? null),
-            accessToken
-          };
-        } catch (error) {
-          console.error("[auth] authorize() unexpected error", error);
-          return null;
-        }
-      }
+      authorize: authorizeCredentials
     })
   ],
   callbacks: {
@@ -211,7 +198,7 @@ export const authOptions: NextAuthOptions = {
           id: string;
           email: string;
           name?: string | null;
-          role?: KnownRole | null;
+          role?: string | null;
           accessToken?: string;
         };
 
@@ -219,7 +206,7 @@ export const authOptions: NextAuthOptions = {
           id: enrichedUser.id,
           email: enrichedUser.email,
           name: enrichedUser.name ?? null,
-          role: enrichedUser.role ?? null
+          role: normalizeRole(enrichedUser.role ?? null)
         };
 
         if (enrichedUser.accessToken) {
