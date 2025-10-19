@@ -1,4 +1,3 @@
-import { resolveServerBaseUrl } from "@/lib/utils";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
