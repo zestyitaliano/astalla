@@ -90,7 +90,7 @@ export async function authorizeCredentials(
   return true;
 }
 
-export async function authorizeCredentials(
+async function authorizeCredentialsImpl(
   credentialsInput: CredentialsInput,
   _req?: unknown
 ) {
@@ -159,6 +159,8 @@ export async function authorizeCredentials(
     return null;
   }
 }
+
+export const authorizeCredentials = authorizeCredentialsImpl;
 
 export const authOptions: NextAuthOptions = {
   session: {
