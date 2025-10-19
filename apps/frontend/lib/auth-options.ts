@@ -1,6 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+import { resolveServerBaseUrl } from "@/lib/utils";
+
 type BackendUser = {
   id: string;
   email: string;
@@ -65,12 +67,10 @@ function isBackendUser(value: unknown): value is BackendUser {
   return true;
 }
 
-export async function authorizeCredentials(
-  credentialsInput: CredentialsInput,
-  _req?: unknown
-) {
-  const identifier = credentialsInput?.identifier?.trim();
-  const password = credentialsInput?.password ?? "";
+function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
 
   const candidate = value as Record<string, unknown>;
   const { user } = candidate;
@@ -79,15 +79,20 @@ export async function authorizeCredentials(
     return false;
   }
 
-  const tokens = ["accessToken", "access_token", "token"] as const;
+  const tokenKeys = ["accessToken", "access_token", "token"] as const;
   let hasToken = false;
-  for (const key of tokens) {
+
+  for (const key of tokenKeys) {
     const tokenValue = candidate[key];
     if (tokenValue === undefined || tokenValue === null) {
       continue;
     }
 
-    if (typeof tokenValue !== "string" || tokenValue.trim() === "") {
+    if (typeof tokenValue !== "string") {
+      return false;
+    }
+
+    if (tokenValue.trim() === "") {
       return false;
     }
 
@@ -97,7 +102,7 @@ export async function authorizeCredentials(
   return hasToken;
 }
 
-export async function authorizeCredentials(
+async function authorizeCredentialsImpl(
   credentialsInput: CredentialsInput,
   _req?: unknown
 ) {
@@ -120,9 +125,8 @@ export async function authorizeCredentials(
     };
   }
 
-  const base = resolveServerBaseUrl();
-
   try {
+    const base = resolveServerBaseUrl();
     const response = await fetch(`${base}/auth/basic-login`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -139,27 +143,25 @@ export async function authorizeCredentials(
 
     const loginResponse = await response.json();
 
-    const accessTokenCandidate =
-      typeof loginResponse.accessToken === "string" && loginResponse.accessToken.trim() !== ""
-        ? loginResponse.accessToken.trim()
-        : typeof loginResponse.access_token === "string" && loginResponse.access_token.trim() !== ""
-          ? loginResponse.access_token.trim()
-          : typeof loginResponse.token === "string" && loginResponse.token.trim() !== ""
-            ? loginResponse.token.trim()
-            : null;
-
-    if (!accessTokenCandidate) {
-      console.error("[auth] authorize() response missing access token", loginResponse);
-      return null;
-    }
-
     if (!isBackendLoginResponse(loginResponse)) {
       console.error("[auth] authorize() unexpected response shape", loginResponse);
       return null;
     }
 
     const { user } = loginResponse;
-    const accessToken = accessTokenCandidate;
+    let accessToken: string | undefined;
+    for (const key of ["accessToken", "access_token", "token"] as const) {
+      const tokenValue = loginResponse[key];
+      if (typeof tokenValue === "string" && tokenValue.trim() !== "") {
+        accessToken = tokenValue.trim();
+        break;
+      }
+    }
+
+    if (!accessToken) {
+      console.error("[auth] authorize() response missing access token", loginResponse);
+      return null;
+    }
 
     return {
       id: user.id,
