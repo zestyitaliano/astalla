@@ -1,36 +1,28 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import type { CredentialsConfig } from "next-auth/providers/credentials";
 
 describe("authOptions credentials authorize", () => {
   const originalEnv = process.env;
-  let originalFetch: typeof fetch;
-
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    originalFetch = globalThis.fetch;
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it("falls back to NEXT_PUBLIC_API_BASE_URL when server-only API variables are unset", async () => {
-    delete process.env.API_BASE_URL;
-    delete process.env.BACKEND_API_BASE_URL;
-    delete process.env.INTERNAL_API_BASE_URL;
+  it("posts credentials to NEXT_PUBLIC_API_BASE_URL /auth/basic-login", async () => {
     process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.com";
     process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS = "false";
 
     const backendResponse = {
-      token: "token-123",
-      user: {
-        id: "user-1",
-        email: "user@example.com",
-        name: "Example User"
-      }
+      id: "user-1",
+      email: "user@example.com",
+      name: "Example User",
+      role: "ORG_ADMIN",
+      accessToken: "token-123"
     };
 
     const fetchMock = vi.fn().mockResolvedValue({
@@ -39,32 +31,32 @@ describe("authOptions credentials authorize", () => {
       json: vi.fn().mockResolvedValue(backendResponse)
     });
 
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetchMock);
 
-    const { authOptions } = await import("../auth-options");
-    const credentialsProvider = authOptions.providers.find(
-      (provider): provider is CredentialsConfig => provider.id === "credentials"
-    );
+    const { authorizeCredentials } = await import("../auth-options");
 
-    if (!credentialsProvider || typeof credentialsProvider.authorize !== "function") {
-      throw new Error("Missing credentials authorize implementation");
-    }
-
-    const result = await credentialsProvider.authorize(
-      {
-        identifier: "User@example.com",
-        password: "SuperSecret1!"
-      },
-      undefined as any
-    );
+    const result = await authorizeCredentials({
+      identifier: "User@example.com",
+      password: "SuperSecret1!"
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.example.com/auth/basic-login");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      headers: { "content-type": "application/json" }
+    });
+    const body = fetchMock.mock.calls[0]?.[1]?.body as string;
+    expect(body && JSON.parse(body)).toEqual({
+      emailOrUsername: "User@example.com",
+      password: "SuperSecret1!"
+    });
     expect(result).toMatchObject({
-      id: backendResponse.user.id,
-      email: backendResponse.user.email,
-      name: backendResponse.user.name,
-      token: backendResponse.token
+      id: backendResponse.id,
+      email: backendResponse.email,
+      name: backendResponse.name,
+      role: "ORG_ADMIN",
+      accessToken: backendResponse.accessToken
     });
   });
 });
