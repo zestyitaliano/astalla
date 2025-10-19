@@ -1,4 +1,3 @@
-import { resolveServerBaseUrl } from "@/lib/utils";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -7,6 +6,9 @@ type BackendUser = {
   email: string;
   name?: string | null;
   role?: string | null;
+  accessToken?: string | null;
+  access_token?: string | null;
+  token?: string | null;
 };
 
 type BackendLoginResponse = {
@@ -63,10 +65,12 @@ function isBackendUser(value: unknown): value is BackendUser {
   return true;
 }
 
-function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
+export async function authorizeCredentials(
+  credentialsInput: CredentialsInput,
+  _req?: unknown
+) {
+  const identifier = credentialsInput?.identifier?.trim();
+  const password = credentialsInput?.password ?? "";
 
   const candidate = value as Record<string, unknown>;
   const { user } = candidate;
