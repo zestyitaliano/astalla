@@ -80,6 +80,7 @@ export async function authorizeCredentials(
   }
 
   const tokens = ["accessToken", "access_token", "token"] as const;
+  let hasToken = false;
   for (const key of tokens) {
     const tokenValue = candidate[key];
     if (tokenValue === undefined || tokenValue === null) {
@@ -89,12 +90,14 @@ export async function authorizeCredentials(
     if (typeof tokenValue !== "string" || tokenValue.trim() === "") {
       return false;
     }
+
+    hasToken = true;
   }
 
-  return true;
+  return hasToken;
 }
 
-async function authorizeCredentialsImpl(
+export async function authorizeCredentials(
   credentialsInput: CredentialsInput,
   _req?: unknown
 ) {
@@ -136,25 +139,27 @@ async function authorizeCredentialsImpl(
 
     const loginResponse = await response.json();
 
+    const accessTokenCandidate =
+      typeof loginResponse.accessToken === "string" && loginResponse.accessToken.trim() !== ""
+        ? loginResponse.accessToken.trim()
+        : typeof loginResponse.access_token === "string" && loginResponse.access_token.trim() !== ""
+          ? loginResponse.access_token.trim()
+          : typeof loginResponse.token === "string" && loginResponse.token.trim() !== ""
+            ? loginResponse.token.trim()
+            : null;
+
+    if (!accessTokenCandidate) {
+      console.error("[auth] authorize() response missing access token", loginResponse);
+      return null;
+    }
+
     if (!isBackendLoginResponse(loginResponse)) {
       console.error("[auth] authorize() unexpected response shape", loginResponse);
       return null;
     }
 
     const { user } = loginResponse;
-    const accessToken =
-      typeof loginResponse.accessToken === "string"
-        ? loginResponse.accessToken
-        : typeof loginResponse.access_token === "string"
-          ? loginResponse.access_token
-          : typeof loginResponse.token === "string"
-            ? loginResponse.token
-            : undefined;
-
-    if (!accessToken || accessToken.trim() === "") {
-      console.error("[auth] authorize() response missing access token", loginResponse);
-      return null;
-    }
+    const accessToken = accessTokenCandidate;
 
     return {
       id: user.id,
