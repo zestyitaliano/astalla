@@ -9,6 +9,7 @@ import { registerRowRoutes } from './routes/rows.js';
 import { router as tablesRouter } from './routes/tables.js';
 import { schemaRouter } from './routes/schema.js';
 import { introspectionRouter } from './routes/introspection.js';
+import { authRouter } from './routes/auth.js';
 
 type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
@@ -58,6 +59,7 @@ export const createApp = (options?: CreateAppOptions) => {
     }
   }
 
+  app.use('/auth', authRouter);
   app.use('/api/tables', tablesRouter);
   app.use('/api/schema', schemaRouter);
   app.use('/__routes', introspectionRouter);
