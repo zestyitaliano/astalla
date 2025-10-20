@@ -17,6 +17,7 @@ import { ReportsModule } from "./reports/reports.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SourcesModule } from "./sources/sources.module";
 import { TablesModule } from "./tables/tables.module";
+import { ReferenceLookupModule } from "./reference-lookup/reference-lookup.module";
 
 @Module({
   imports: [
@@ -64,7 +65,8 @@ import { TablesModule } from "./tables/tables.module";
     SourcesModule,
     TablesModule,
     HealthModule,
-    FeatureFlagsModule
+    FeatureFlagsModule,
+    ReferenceLookupModule
   ]
 })
 export class AppModule {}
