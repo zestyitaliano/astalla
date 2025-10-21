@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { apiBaseUrl } from "@/lib/utils";
 import {
   getColumnChoices,
   getTableChoices,
@@ -19,7 +20,7 @@ export type {
 export function useReferenceTableChoices(enabled: boolean) {
   return useQuery<TableChoicesResult>({
     queryKey: ["reference", "table-choices"],
-    queryFn: getTableChoices,
+    queryFn: () => getTableChoices(apiBaseUrl),
     enabled
   });
 }
@@ -31,7 +32,7 @@ export function useReferenceColumnChoices(tableId: string | null, enabled: boole
       if (!tableId) {
         throw new Error("Missing table id");
       }
-      return getColumnChoices(tableId);
+      return getColumnChoices(apiBaseUrl, tableId);
     },
     enabled: enabled && Boolean(tableId)
   });
