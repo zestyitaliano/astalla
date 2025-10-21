@@ -2,13 +2,25 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
 
-interface RegistryResponse {
+export interface ReferenceLookupRegistryResponse {
   tables: Array<{
     id: string;
     name: string;
     columns: Array<{ id: string; name: string; type: string }>;
   }>;
 }
+
+export type ReferenceLookupTableChoice = {
+  id: string;
+  name: string;
+  label?: string;
+};
+
+export type ReferenceLookupColumnChoice = {
+  id: string;
+  name: string;
+  type: string;
+};
 
 type ColumnTypeValue = "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "SELECT" | "REFERENCE" | string;
 
@@ -22,7 +34,7 @@ type TableWithColumns = {
 export class ReferenceLookupService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSchemaRegistry(orgId: string): Promise<RegistryResponse> {
+  async getSchemaRegistry(orgId: string): Promise<ReferenceLookupRegistryResponse> {
     const tables = (await this.dataTable.findMany({
       where: { orgId },
       orderBy: { name: "asc" },
@@ -47,7 +59,7 @@ export class ReferenceLookupService {
     };
   }
 
-  async getTableChoices(orgId: string) {
+  async getTableChoices(orgId: string): Promise<ReferenceLookupTableChoice[]> {
     const tables = (await this.dataTable.findMany({
       where: { orgId },
       orderBy: { name: "asc" },
@@ -64,7 +76,10 @@ export class ReferenceLookupService {
     });
   }
 
-  async getColumnChoices(orgId: string, tableIdentifier: string) {
+  async getColumnChoices(
+    orgId: string,
+    tableIdentifier: string
+  ): Promise<ReferenceLookupColumnChoice[]> {
     const table = (await this.dataTable.findFirst({
       where: {
         orgId,
