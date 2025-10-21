@@ -73,7 +73,7 @@ describe("authOptions credentials authorize", () => {
         email: "internal@example.com",
         role: null
       },
-      token: "token-456"
+      access_token: "token-456"
     };
 
     const fetchMock = vi.fn().mockResolvedValue({
@@ -96,7 +96,7 @@ describe("authOptions credentials authorize", () => {
     expect(result).toMatchObject({
       id: backendResponse.user.id,
       email: backendResponse.user.email,
-      accessToken: backendResponse.token,
+      accessToken: backendResponse.access_token,
       role: null
     });
   });
