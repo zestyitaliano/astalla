@@ -8,16 +8,11 @@ type BackendUser = {
   email: string;
   name?: string | null;
   role?: string | null;
-  accessToken?: string | null;
-  access_token?: string | null;
-  token?: string | null;
 };
 
 type BackendLoginResponse = {
   user: BackendUser;
-  accessToken?: string | null;
-  access_token?: string | null;
-  token?: string | null;
+  access_token: string;
 };
 
 type CredentialsInput = {
@@ -67,41 +62,6 @@ function isBackendUser(value: unknown): value is BackendUser {
   return true;
 }
 
-function isBackendLoginResponse(value: unknown): value is BackendLoginResponse {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  const { user } = candidate;
-
-  if (!isBackendUser(user)) {
-    return false;
-  }
-
-  const tokenKeys = ["accessToken", "access_token", "token"] as const;
-  let hasToken = false;
-
-  for (const key of tokenKeys) {
-    const tokenValue = candidate[key];
-    if (tokenValue === undefined || tokenValue === null) {
-      continue;
-    }
-
-    if (typeof tokenValue !== "string") {
-      return false;
-    }
-
-    if (tokenValue.trim() === "") {
-      return false;
-    }
-
-    hasToken = true;
-  }
-
-  return hasToken;
-}
-
 async function authorizeCredentialsImpl(
   credentialsInput: CredentialsInput,
   _req?: unknown
@@ -141,27 +101,29 @@ async function authorizeCredentialsImpl(
       return null;
     }
 
-    const loginResponse = await response.json();
+    const loginResponse: unknown = await response.json();
 
-    if (!isBackendLoginResponse(loginResponse)) {
+    if (!loginResponse || typeof loginResponse !== "object") {
       console.error("[auth] authorize() unexpected response shape", loginResponse);
       return null;
     }
 
-    const { user } = loginResponse;
-    let accessToken: string | undefined;
-    for (const key of ["accessToken", "access_token", "token"] as const) {
-      const tokenValue = loginResponse[key];
-      if (typeof tokenValue === "string" && tokenValue.trim() !== "") {
-        accessToken = tokenValue.trim();
-        break;
-      }
-    }
+    const candidate = loginResponse as Record<string, unknown>;
+    const rawAccessToken = candidate.access_token;
+    const rawUser = candidate.user;
 
-    if (!accessToken) {
+    if (typeof rawAccessToken !== "string" || rawAccessToken.trim() === "") {
       console.error("[auth] authorize() response missing access token", loginResponse);
       return null;
     }
+
+    if (!isBackendUser(rawUser)) {
+      console.error("[auth] authorize() unexpected response shape", loginResponse);
+      return null;
+    }
+
+    const { user } = loginResponse as BackendLoginResponse;
+    const accessToken = rawAccessToken.trim();
 
     return {
       id: user.id,
