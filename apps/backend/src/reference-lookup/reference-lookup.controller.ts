@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch } from "@nestjs/common";
 
 import { ReferenceLookupService } from "./reference-lookup.service";
 import type {
@@ -27,6 +27,24 @@ export class ReferenceLookupController {
   getColumnChoices(@Param("tableId") tableId: string): Promise<ReferenceLookupColumnChoice[]> {
     const orgId = this.getOrgId();
     return this.referenceLookupService.getColumnChoices(orgId, tableId);
+  }
+
+  @Patch("tables/:tableId/columns/:columnId")
+  updateColumn(
+    @Param("tableId") tableId: string,
+    @Param("columnId") columnId: string,
+    @Body()
+    body: {
+      type?: string;
+      referenceConfig?: {
+        targetTableId: string;
+        displayColumnId?: string | null;
+        cardinality?: "single" | "multi";
+        enforceForeignKey?: boolean;
+      };
+    }
+  ) {
+    return this.referenceLookupService.updateColumn(tableId, columnId, body);
   }
 
   private getOrgId() {
