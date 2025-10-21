@@ -8,7 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { apiBaseUrl, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/apiBase";
 import {
   useReferenceColumnChoices,
   useReferenceTableChoices,
@@ -185,23 +186,24 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
           ? column.type.toLowerCase()
           : "reference";
 
-      const response = await fetch(
-        `${apiBaseUrl}/api/tables/${encodeURIComponent(tableId)}/columns/${encodeURIComponent(column.id)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            type: referenceTypeValue,
-            referenceConfig: {
-              targetTableId: referenceState.targetTableId,
-              displayColumnId: referenceState.displayColumnId || null,
-              cardinality: referenceState.cardinality,
-              enforceForeignKey: referenceState.enforceForeignKey
-            }
-          })
-        }
+      const updateUrl = apiUrl(
+        `/api/tables/${encodeURIComponent(tableId)}/columns/${encodeURIComponent(column.id)}`
       );
+
+      const response = await fetch(updateUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type: referenceTypeValue,
+          referenceConfig: {
+            targetTableId: referenceState.targetTableId,
+            displayColumnId: referenceState.displayColumnId || null,
+            cardinality: referenceState.cardinality,
+            enforceForeignKey: referenceState.enforceForeignKey
+          }
+        })
+      });
 
       if (!response.ok) {
         const message = await response.text();
