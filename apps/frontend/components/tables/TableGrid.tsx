@@ -462,6 +462,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [sorts, setSorts] = useState<SortCondition[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [tableBodyMaxHeight, setTableBodyMaxHeight] = useState<number>();
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
@@ -988,6 +989,27 @@ export function TableGrid({ tableId }: TableGridProps) {
     overscan: 8
   });
 
+  useEffect(() => {
+    const VIEWPORT_OFFSET = 360;
+
+    const updateMaxHeight = () => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const availableHeight = Math.max(window.innerHeight - VIEWPORT_OFFSET, 320);
+      setTableBodyMaxHeight(availableHeight);
+    };
+
+    updateMaxHeight();
+
+    window.addEventListener("resize", updateMaxHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateMaxHeight);
+    };
+  }, []);
+
   const rowSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const columnSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -1427,60 +1449,66 @@ export function TableGrid({ tableId }: TableGridProps) {
             </div>
           </div>
         ) : (
-          <div className="flex h-full flex-col overflow-x-auto">
-            <div className="min-h-full min-w-max">
-              <div className="sticky top-0 z-10 border-b border-border/60 bg-card/90">
-                <DndContext sensors={columnSensors} collisionDetection={closestCenter} onDragEnd={handleColumnOrderChange}>
-                  <SortableContext items={columnDragItems} strategy={horizontalListSortingStrategy}>
-                    <div className="flex">
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <Fragment key={headerGroup.id}>
-                          {headerGroup.headers.map((header) => (
-                            <SortableColumnHeader
-                              key={header.id}
-                              header={header}
-                              disableDrag={header.column.id === "__select__" || header.column.id === "__position__"}
-                            />
-                          ))}
-                        </Fragment>
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              </div>
-              {!hasRows ? (
-                <div className="flex h-full items-center justify-center p-10 text-center">
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-semibold text-text">Add your first row</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Capture records manually or import a CSV to bring in existing data.
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                      <Button type="button" onClick={handleAddRow} className="rounded-full">
-                        <Plus className="mr-2 h-4 w-4" /> Add row
-                      </Button>
-                      <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsImportOpen(true)}>
-                        Import CSV
-                      </Button>
-                    </div>
-                  </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
+              <div className="flex min-h-0 min-w-max flex-1 flex-col">
+                <div className="sticky top-0 z-10 border-b border-border/60 bg-card/90">
+                  <DndContext sensors={columnSensors} collisionDetection={closestCenter} onDragEnd={handleColumnOrderChange}>
+                    <SortableContext items={columnDragItems} strategy={horizontalListSortingStrategy}>
+                      <div className="flex">
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <Fragment key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <SortableColumnHeader
+                                key={header.id}
+                                header={header}
+                                disableDrag={header.column.id === "__select__" || header.column.id === "__position__"}
+                              />
+                            ))}
+                          </Fragment>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
-              ) : (
-                <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
-                  <SortableContext items={rowModel.rows.map((row) => row.original.__meta.id)} strategy={verticalListSortingStrategy}>
-                    <div ref={parentRef} className="h-[520px] overflow-y-auto">
-                      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
-                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                          const row = rowModel.rows[virtualRow.index];
-                          return (
-                            <SortableRow key={row.id} row={row} virtualRow={virtualRow} allowDrag={!reorderDisabled} />
-                          );
-                        })}
+                {!hasRows ? (
+                  <div className="flex h-full flex-1 items-center justify-center p-10 text-center">
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold text-text">Add your first row</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Capture records manually or import a CSV to bring in existing data.
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        <Button type="button" onClick={handleAddRow} className="rounded-full">
+                          <Plus className="mr-2 h-4 w-4" /> Add row
+                        </Button>
+                        <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsImportOpen(true)}>
+                          Import CSV
+                        </Button>
                       </div>
                     </div>
-                  </SortableContext>
-                </DndContext>
-              )}
+                  </div>
+                ) : (
+                  <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
+                    <SortableContext items={rowModel.rows.map((row) => row.original.__meta.id)} strategy={verticalListSortingStrategy}>
+                      <div
+                        ref={parentRef}
+                        className="flex-1 min-h-0 overflow-y-auto"
+                        style={tableBodyMaxHeight ? { maxHeight: `${tableBodyMaxHeight}px` } : undefined}
+                      >
+                        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+                          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                            const row = rowModel.rows[virtualRow.index];
+                            return (
+                              <SortableRow key={row.id} row={row} virtualRow={virtualRow} allowDrag={!reorderDisabled} />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
             </div>
           </div>
         )}
