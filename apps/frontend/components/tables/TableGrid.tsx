@@ -1203,31 +1203,34 @@ export function TableGrid({ tableId }: TableGridProps) {
   );
 
   const footerText = useMemo(() => {
-    if (!data?.updatedAt) {
+    const updatedAt = tableData?.updatedAt;
+    const updatedBy = tableData?.updatedBy;
+
+    if (!updatedAt) {
       return null;
     }
 
-    const actor = data.updatedBy ?? "system";
-    const updatedAt = new Date(data.updatedAt);
+    const actor = updatedBy ?? "system";
+    const parsedDate = new Date(updatedAt);
 
-    if (Number.isNaN(updatedAt.getTime())) {
+    if (Number.isNaN(parsedDate.getTime())) {
       return `Last updated by ${actor}`;
     }
 
-    const timestamp = format(updatedAt, "MMM d, yyyy h:mm a");
+    const timestamp = format(parsedDate, "MMM d, yyyy h:mm a");
     return `Last updated by ${actor} at ${timestamp}`;
-  }, [data?.updatedAt, data?.updatedBy]);
+  }, [tableData?.updatedAt, tableData?.updatedBy]);
 
   const hasColumns = columns.length > 0;
   const hasRows = gridRows.length > 0;
 
   const handleCopyId = useCallback(async () => {
-    if (!data?.id) {
+    if (!tableData?.id) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(data.id);
+      await navigator.clipboard.writeText(tableData.id);
       setCopyStatus("copied");
       if (copyStatusTimerRef.current) {
         clearTimeout(copyStatusTimerRef.current);
@@ -1238,7 +1241,7 @@ export function TableGrid({ tableId }: TableGridProps) {
     } catch (error) {
       console.error("Failed to copy table id", error);
     }
-  }, [data?.id]);
+  }, [tableData?.id]);
 
   if (isInitialLoading) {
     return (
