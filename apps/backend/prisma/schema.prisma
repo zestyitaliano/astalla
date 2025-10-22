@@ -538,6 +538,7 @@ model TableColumn {
   type      ColumnType
   position  Int
   config    Json?
+  referenceConfig Json?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   cells     TableCell[] @relation("Column_Cells")

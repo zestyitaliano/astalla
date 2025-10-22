@@ -23,6 +23,11 @@ export class ReferenceLookupController {
     return this.referenceLookupService.getTableChoices(orgId);
   }
 
+  @Get("tables/:tableId")
+  getTable(@Param("tableId") tableId: string) {
+    return this.referenceLookupService.getTableDetail(tableId);
+  }
+
   @Get("tables/:tableId/columns/choices")
   getColumnChoices(@Param("tableId") tableId: string): Promise<ReferenceLookupColumnChoice[]> {
     const orgId = this.getOrgId();
