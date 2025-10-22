@@ -51,9 +51,8 @@ type TableWithReferenceColumns = {
   columns: Array<{
     id: string;
     name: string;
-    type: ColumnTypeValue;
-    referenceConfig?: unknown;
-    config?: unknown;
+    type: string | null;
+    referenceConfig: unknown | null;
   }>;
 };
 
@@ -210,21 +209,15 @@ export class ReferenceLookupService {
     };
   }
 
-  async getTableDetail(orgId: string, tableId: string) {
-    const table = (await this.dataTable.findFirst({
-      where: { id: tableId, orgId },
+  async getTableDetail(tableId: string) {
+    const table = (await this.dataTable.findUnique({
+      where: { id: tableId },
       select: {
         id: true,
         name: true,
         columns: {
-          orderBy: { position: "asc" },
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            referenceConfig: true,
-            config: true
-          }
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, type: true, referenceConfig: true }
         }
       }
     })) as TableWithReferenceColumns | null;
@@ -233,19 +226,20 @@ export class ReferenceLookupService {
       throw new NotFoundException(`Table ${tableId} not found`);
     }
 
-    return {
-      id: table.id,
-      name: table.name,
+    const normalized = {
+      ...table,
       columns: table.columns.map((column) => {
-        const referenceConfig = this.parseReferenceConfig(column.referenceConfig ?? column.config);
+        const rawType = column.type;
         return {
           id: column.id,
           name: column.name,
-          type: this.mapColumnType(column.type),
-          referenceConfig: referenceConfig ?? null
+          type: typeof rawType === "string" ? rawType.toLowerCase() : "",
+          referenceConfig: column.referenceConfig ?? null
         };
       })
     };
+
+    return normalized;
   }
 
   private mapColumnType(type: ColumnTypeValue): string {
