@@ -67,7 +67,7 @@ interface ReferenceLookupServiceLike {
   getSchemaRegistry(orgId: string): Promise<RegistryResponse>;
   getTableChoices(orgId: string): Promise<TableChoices>;
   getColumnChoices(orgId: string, tableId: string): Promise<ColumnChoices>;
-  getTableDetail(tableId: string): Promise<TableDetail>;
+  getTableDetail(orgIdOrTableId: string, tableId?: string): Promise<TableDetail>;
 }
 
 const registryStub: RegistryResponse = {
@@ -142,8 +142,12 @@ const mockService: ReferenceLookupServiceLike = {
     assert.equal(tableId, "table-1");
     return columnChoicesStub;
   },
-  async getTableDetail(tableId: string) {
-    assert.equal(tableId, "table-1");
+  async getTableDetail(orgIdOrTableId: string, tableId?: string) {
+    const [orgId, resolvedTableId] = tableId ? [orgIdOrTableId, tableId] : [null, orgIdOrTableId];
+    if (orgId) {
+      assert.equal(orgId, "demo-org");
+    }
+    assert.equal(resolvedTableId, "table-1");
     return tableDetailStub;
   }
 };
@@ -222,6 +226,47 @@ async function testTableDetailEndpoint() {
   }
 }
 
+async function testServiceNormalizesNullColumnType() {
+  const prismaStub = {
+    dataTable: {
+      async findMany() {
+        return [];
+      },
+      async findFirst() {
+        return {
+          id: "table-null-type",
+          name: "Table Null Type",
+          columns: [
+            {
+              id: "col-null",
+              name: "Null Type",
+              type: null,
+              config: null,
+              referenceConfig: null
+            }
+          ]
+        };
+      },
+      async findUnique() {
+        return null;
+      }
+    },
+    tableColumn: {
+      async findFirst() {
+        return null;
+      },
+      async update() {
+        return null;
+      }
+    }
+  };
+
+  const service = new ReferenceLookupServiceClass(prismaStub as any);
+  const detail = await service.getTableDetail("table-null-type");
+  const [column] = detail.columns;
+  assert.equal(column?.type, "text");
+}
+
 async function main() {
   await runTest("GET /api/schema/registry returns the schema graph", testSchemaRegistryEndpoint);
   await runTest("GET /api/tables/choices returns table choices", testTableChoicesEndpoint);
@@ -230,6 +275,10 @@ async function main() {
     testColumnChoicesEndpoint
   );
   await runTest("GET /api/tables/:tableId returns table detail", testTableDetailEndpoint);
+  await runTest(
+    "ReferenceLookupService getTableDetail normalizes null column types to text",
+    testServiceNormalizesNullColumnType
+  );
 
   for (const result of results) {
     if (result.error) {

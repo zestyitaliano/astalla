@@ -256,10 +256,12 @@ export class ReferenceLookupService {
         const referenceConfig = this.parseReferenceConfig(
           column.referenceConfig ?? column.config
         );
+        const normalizedType =
+          typeof rawType === "string" ? rawType.toLowerCase() : "";
         return {
           id: column.id,
           name: column.name,
-          type: typeof rawType === "string" ? rawType.toLowerCase() : "",
+          type: normalizedType || "text",
           referenceConfig
         };
       })
