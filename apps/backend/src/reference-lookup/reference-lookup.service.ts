@@ -52,6 +52,7 @@ type TableWithReferenceColumns = {
     id: string;
     name: string;
     type: string | null;
+    config: unknown | null;
     referenceConfig: unknown | null;
   }>;
 };
@@ -217,7 +218,7 @@ export class ReferenceLookupService {
         name: true,
         columns: {
           orderBy: { name: "asc" },
-          select: { id: true, name: true, type: true, referenceConfig: true }
+          select: { id: true, name: true, type: true, config: true, referenceConfig: true }
         }
       }
     })) as TableWithReferenceColumns | null;
@@ -230,11 +231,14 @@ export class ReferenceLookupService {
       ...table,
       columns: table.columns.map((column) => {
         const rawType = column.type;
+        const referenceConfig = this.parseReferenceConfig(
+          column.referenceConfig ?? column.config
+        );
         return {
           id: column.id,
           name: column.name,
           type: typeof rawType === "string" ? rawType.toLowerCase() : "",
-          referenceConfig: column.referenceConfig ?? null
+          referenceConfig
         };
       })
     };
