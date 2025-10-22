@@ -25,7 +25,8 @@ export class ReferenceLookupController {
 
   @Get("tables/:tableId")
   getTable(@Param("tableId") tableId: string) {
-    return this.referenceLookupService.getTableDetail(tableId);
+    const orgId = this.getOrgId();
+    return this.referenceLookupService.getTableDetail(orgId, tableId);
   }
 
   @Get("tables/:tableId/columns/choices")
