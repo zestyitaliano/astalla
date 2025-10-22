@@ -286,11 +286,24 @@ export function useTables() {
 export function useTable(id: string | undefined) {
   return useQuery({
     queryKey: id ? tableKeys.detail(id) : [...tableKeys.all, "detail", "__pending__"],
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) {
         return Promise.reject(new Error("Missing table id"));
       }
-      return getTable(id);
+      console.info("[tables] fetching table detail", { id });
+      try {
+        const table = await getTable(id);
+        console.info("[tables] received table detail", {
+          id,
+          columnCount: table.columns?.length ?? 0,
+          rowCount: table.rows?.length ?? 0,
+          viewCount: table.views?.length ?? 0
+        });
+        return table;
+      } catch (error) {
+        console.info("[tables] table detail request failed", { id, error });
+        throw error;
+      }
     },
     enabled: Boolean(id)
   });
