@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Logger,
+  NotFoundException,
+  Param,
+  Patch
+} from "@nestjs/common";
 
 import { ReferenceLookupService } from "./reference-lookup.service";
 import type {
@@ -9,6 +19,8 @@ import type {
 
 @Controller("api")
 export class ReferenceLookupController {
+  private readonly logger = new Logger(ReferenceLookupController.name);
+
   constructor(private readonly referenceLookupService: ReferenceLookupService) {}
 
   @Get("schema/registry")
@@ -24,9 +36,18 @@ export class ReferenceLookupController {
   }
 
   @Get("tables/:tableId")
-  getTable(@Param("tableId") tableId: string) {
-    const orgId = this.getOrgId();
-    return this.referenceLookupService.getTableDetail(orgId, tableId);
+  async getTable(@Param("tableId") tableId: string) {
+    try {
+      return await this.referenceLookupService.getTableDetail(tableId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      const trace = error instanceof Error ? error.stack ?? error.message : String(error);
+      this.logger.error("getTableDetail failed", trace);
+      throw new HttpException("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get("tables/:tableId/columns/choices")
