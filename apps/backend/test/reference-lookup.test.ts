@@ -67,7 +67,7 @@ interface ReferenceLookupServiceLike {
   getSchemaRegistry(orgId: string): Promise<RegistryResponse>;
   getTableChoices(orgId: string): Promise<TableChoices>;
   getColumnChoices(orgId: string, tableId: string): Promise<ColumnChoices>;
-  getTableDetail(orgId: string, tableId: string): Promise<TableDetail>;
+  getTableDetail(tableId: string): Promise<TableDetail>;
 }
 
 const registryStub: RegistryResponse = {
@@ -142,8 +142,7 @@ const mockService: ReferenceLookupServiceLike = {
     assert.equal(tableId, "table-1");
     return columnChoicesStub;
   },
-  async getTableDetail(orgId: string, tableId: string) {
-    assert.equal(orgId, "demo-org");
+  async getTableDetail(tableId: string) {
     assert.equal(tableId, "table-1");
     return tableDetailStub;
   }

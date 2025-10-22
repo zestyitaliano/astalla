@@ -210,9 +210,9 @@ export class ReferenceLookupService {
     };
   }
 
-  async getTableDetail(orgId: string, tableId: string) {
-    const table = (await this.dataTable.findFirst({
-      where: { id: tableId, orgId },
+  async getTableDetail(tableId: string) {
+    const table = (await this.dataTable.findUnique({
+      where: { id: tableId },
       select: {
         id: true,
         name: true,
