@@ -67,6 +67,7 @@ interface ReferenceLookupServiceLike {
   getSchemaRegistry(orgId: string): Promise<RegistryResponse>;
   getTableChoices(orgId: string): Promise<TableChoices>;
   getColumnChoices(orgId: string, tableId: string): Promise<ColumnChoices>;
+  getTableDetail(orgId: string, tableId: string): Promise<TableDetail>;
 }
 
 const registryStub: RegistryResponse = {
@@ -92,6 +93,35 @@ const columnChoicesStub: ColumnChoices = [
   { id: "col-2", name: "Column 2", type: "number" }
 ];
 
+type TableDetail = {
+  id: string;
+  name: string;
+  columns: Array<{
+    id: string;
+    name: string;
+    type: string;
+    referenceConfig: Record<string, unknown> | null;
+  }>;
+};
+
+const tableDetailStub: TableDetail = {
+  id: "table-1",
+  name: "Table One",
+  columns: [
+    {
+      id: "col-1",
+      name: "Column 1",
+      type: "reference",
+      referenceConfig: {
+        targetTableId: "table-2",
+        displayColumnId: "col-9",
+        cardinality: "single",
+        enforceForeignKey: true
+      }
+    }
+  ]
+};
+
 const mockService: ReferenceLookupServiceLike = {
   async getSchemaRegistry(orgId: string) {
     assert.equal(orgId, "demo-org");
@@ -105,6 +135,11 @@ const mockService: ReferenceLookupServiceLike = {
     assert.equal(orgId, "demo-org");
     assert.equal(tableId, "table-1");
     return columnChoicesStub;
+  },
+  async getTableDetail(orgId: string, tableId: string) {
+    assert.equal(orgId, "demo-org");
+    assert.equal(tableId, "table-1");
+    return tableDetailStub;
   }
 };
 
@@ -170,6 +205,14 @@ async function testColumnChoicesEndpoint() {
   assert.deepEqual(payload, columnChoicesStub);
 }
 
+async function testTableDetailEndpoint() {
+  const { baseUrl } = await ensureServer();
+  const response = await fetch(`${baseUrl}/api/tables/${encodeURIComponent("table-1")}`);
+  assert.equal(response.status, 200);
+  const payload = (await response.json()) as TableDetail;
+  assert.deepEqual(payload, tableDetailStub);
+}
+
 async function main() {
   await runTest("GET /api/schema/registry returns the schema graph", testSchemaRegistryEndpoint);
   await runTest("GET /api/tables/choices returns table choices", testTableChoicesEndpoint);
@@ -177,6 +220,7 @@ async function main() {
     "GET /api/tables/:tableId/columns/choices returns column choices",
     testColumnChoicesEndpoint
   );
+  await runTest("GET /api/tables/:tableId returns table detail", testTableDetailEndpoint);
 
   for (const result of results) {
     if (result.error) {
