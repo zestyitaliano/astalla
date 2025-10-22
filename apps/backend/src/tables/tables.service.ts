@@ -204,6 +204,9 @@ export class TablesService {
         ? Math.max(...table.columns.map((column) => column.position)) + 1
         : 1;
 
+      const serializedConfig = dto.config !== undefined ? this.serializeJson(dto.config) : undefined;
+      const isReferenceColumn = dto.type === SharedColumnType.REFERENCE;
+
       const column = await tx.tableColumn.create({
         data: {
           tableId: table.id,
@@ -211,7 +214,10 @@ export class TablesService {
           slug,
           type: dto.type as PrismaColumnType,
           position: nextPosition,
-          ...(dto.config !== undefined ? { config: this.serializeJson(dto.config) } : {})
+          ...(serializedConfig !== undefined ? { config: serializedConfig } : {}),
+          ...(isReferenceColumn && serializedConfig !== undefined
+            ? { referenceConfig: serializedConfig }
+            : {})
         }
       });
 
@@ -232,6 +238,7 @@ export class TablesService {
       }
 
       const data: Prisma.TableColumnUpdateInput = {};
+      const nextType = (dto.type ?? column.type) as PrismaColumnType;
 
       if (dto.name) {
         data.name = dto.name;
@@ -247,13 +254,24 @@ export class TablesService {
       }
 
       if (dto.config !== undefined) {
-        data.config = this.serializeJson(dto.config);
+        const serializedConfig = this.serializeJson(dto.config);
+        data.config = serializedConfig;
+        if (nextType === PrismaColumnType.REFERENCE) {
+          data.referenceConfig = serializedConfig;
+        } else {
+          data.referenceConfig = Prisma.JsonNull;
+        }
       }
 
       if (dto.type && dto.type !== column.type) {
         data.type = dto.type as PrismaColumnType;
         if (dto.type !== PrismaColumnType.SELECT && dto.config === undefined) {
           data.config = Prisma.JsonNull;
+        }
+        if (dto.type !== PrismaColumnType.REFERENCE) {
+          data.referenceConfig = Prisma.JsonNull;
+        } else if (dto.config === undefined) {
+          data.referenceConfig = Prisma.JsonNull;
         }
       }
 
