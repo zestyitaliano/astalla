@@ -442,6 +442,7 @@ export function TableGrid({ tableId }: TableGridProps) {
       setLoadError(null);
     }
   });
+  const tableData = data as TableDetail | undefined;
   const createColumnMutation = useCreateColumnMutation(tableId);
   const updateColumnMutation = useUpdateColumnMutation(tableId);
   const deleteColumnMutation = useDeleteColumnMutation(tableId);
@@ -455,9 +456,9 @@ export function TableGrid({ tableId }: TableGridProps) {
   const exportCsvMutation = useExportCsvMutation(tableId);
   const importCsvMutation = useImportCsvMutation(tableId);
 
-  const columns = useMemo<TableColumnDto[]>(() => data?.columns ?? [], [data]);
-  const rows = useMemo<TableRowDto[]>(() => data?.rows ?? [], [data]);
-  const views = useMemo<TableViewDto[]>(() => data?.views ?? [], [data]);
+  const columns = useMemo<TableColumnDto[]>(() => tableData?.columns ?? [], [tableData]);
+  const rows = useMemo<TableRowDto[]>(() => tableData?.rows ?? [], [tableData]);
+  const views = useMemo<TableViewDto[]>(() => tableData?.views ?? [], [tableData]);
 
   const isInitialLoading = isLoading && !data;
   const isRefetching = isFetching && !isInitialLoading;
