@@ -118,6 +118,12 @@ const tableDetailStub: TableDetail = {
         cardinality: "single",
         enforceForeignKey: true
       }
+    },
+    {
+      id: "col-2",
+      name: "Column 2",
+      type: "text",
+      referenceConfig: null
     }
   ]
 };
@@ -211,6 +217,10 @@ async function testTableDetailEndpoint() {
   assert.equal(response.status, 200);
   const payload = (await response.json()) as TableDetail;
   assert.deepEqual(payload, tableDetailStub);
+  for (const column of payload.columns) {
+    assert.ok(Object.prototype.hasOwnProperty.call(column, "referenceConfig"));
+    assert.notEqual(column.referenceConfig, undefined);
+  }
 }
 
 async function main() {
