@@ -45,6 +45,18 @@ type TableWithColumns = {
   columns: Array<{ id: string; name: string; type: ColumnTypeValue }>;
 };
 
+type TableWithReferenceColumns = {
+  id: string;
+  name: string;
+  columns: Array<{
+    id: string;
+    name: string;
+    type: ColumnTypeValue;
+    referenceConfig?: unknown;
+    config?: unknown;
+  }>;
+};
+
 @Injectable()
 export class ReferenceLookupService {
   constructor(private readonly prisma: PrismaService) {}
@@ -140,15 +152,23 @@ export class ReferenceLookupService {
 
     const column = (await this.tableColumn.findFirst({
       where: { id: columnIdentifier, tableId: table.id },
-      select: { id: true, name: true, type: true, config: true }
-    })) as { id: string; name: string; type: ColumnTypeValue; config: unknown } | null;
+      select: { id: true, name: true, type: true, config: true, referenceConfig: true }
+    })) as
+      | {
+          id: string;
+          name: string;
+          type: ColumnTypeValue;
+          config: unknown;
+          referenceConfig: unknown;
+        }
+      | null;
 
     if (!column) {
       throw new NotFoundException("Column not found");
     }
 
     const normalizedType = this.normalizeColumnType(body?.type);
-    const existingConfig = this.parseReferenceConfig(column.config);
+    const existingConfig = this.parseReferenceConfig(column.referenceConfig ?? column.config);
 
     let referenceConfig: ReferenceColumnConfig | null;
     if (normalizedType === "reference") {
@@ -168,9 +188,12 @@ export class ReferenceLookupService {
     };
 
     if (referenceConfig) {
-      updateData.config = this.cloneJson(referenceConfig);
+      const cloned = this.cloneJson(referenceConfig);
+      updateData.config = cloned;
+      updateData.referenceConfig = cloned;
     } else {
       updateData.config = Prisma.JsonNull;
+      updateData.referenceConfig = Prisma.JsonNull;
     }
 
     const updated = (await this.tableColumn.update({
@@ -184,6 +207,44 @@ export class ReferenceLookupService {
       name: updated.name,
       type: this.mapColumnType(updated.type),
       ...(referenceConfig ? { referenceConfig } : {})
+    };
+  }
+
+  async getTableDetail(orgId: string, tableId: string) {
+    const table = (await this.dataTable.findFirst({
+      where: { id: tableId, orgId },
+      select: {
+        id: true,
+        name: true,
+        columns: {
+          orderBy: { position: "asc" },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            referenceConfig: true,
+            config: true
+          }
+        }
+      }
+    })) as TableWithReferenceColumns | null;
+
+    if (!table) {
+      throw new NotFoundException(`Table ${tableId} not found`);
+    }
+
+    return {
+      id: table.id,
+      name: table.name,
+      columns: table.columns.map((column) => {
+        const referenceConfig = this.parseReferenceConfig(column.referenceConfig ?? column.config);
+        return {
+          id: column.id,
+          name: column.name,
+          type: this.mapColumnType(column.type),
+          referenceConfig: referenceConfig ?? null
+        };
+      })
     };
   }
 
@@ -300,6 +361,7 @@ export class ReferenceLookupService {
       dataTable: {
         findMany: (args: unknown) => Promise<unknown>;
         findFirst: (args: unknown) => Promise<unknown>;
+        findUnique: (args: unknown) => Promise<unknown>;
       };
     }).dataTable;
   }
