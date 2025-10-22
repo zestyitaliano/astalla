@@ -304,7 +304,7 @@ type UseTableOptions = {
 };
 
 export function useTable(id: string | undefined, options: UseTableOptions = {}) {
-  return useQuery({
+  return useQuery<TableDetail, Error>({
     queryKey: id ? tableKeys.detail(id) : [...tableKeys.all, "detail", "__pending__"],
     queryFn: async () => {
       if (!id) {
