@@ -37,8 +37,9 @@ export class ReferenceLookupController {
 
   @Get("tables/:tableId")
   async getTable(@Param("tableId") tableId: string) {
+    const orgId = this.getOrgId();
     try {
-      return await this.referenceLookupService.getTableDetail(tableId);
+      return await this.referenceLookupService.getTableDetail(orgId, tableId);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
