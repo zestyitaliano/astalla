@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import Module from "node:module";
 import type { AddressInfo } from "node:net";
 
-import { INestApplication, Module as NestModule } from "@nestjs/common";
+import { INestApplication, Module as NestModule, NotFoundException } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 
 const originalLoad = (Module as unknown as { _load?: (...args: any[]) => any })._load;
@@ -226,6 +226,23 @@ async function testTableDetailEndpoint() {
   }
 }
 
+async function testTableDetailEndpointReturns404() {
+  const { baseUrl } = await ensureServer();
+  const original = mockService.getTableDetail;
+  mockService.getTableDetail = async () => {
+    throw new NotFoundException("Table missing");
+  };
+
+  try {
+    const response = await fetch(`${baseUrl}/api/tables/${encodeURIComponent("missing-table")}`);
+    assert.equal(response.status, 404);
+    const payload = (await response.json()) as { message?: string };
+    assert.equal(payload.message, "Table missing");
+  } finally {
+    mockService.getTableDetail = original;
+  }
+}
+
 async function testServiceNormalizesNullColumnType() {
   const prismaStub = {
     dataTable: {
@@ -233,21 +250,26 @@ async function testServiceNormalizesNullColumnType() {
         return [];
       },
       async findFirst() {
-        return {
-          id: "table-null-type",
-          name: "Table Null Type",
-          columns: [
-            {
-              id: "col-null",
-              name: "Null Type",
-              type: null,
-              config: null,
-              referenceConfig: null
-            }
-          ]
-        };
+        return null;
       },
-      async findUnique() {
+      async findUnique(args: unknown) {
+        const id = (args as { where?: { id?: string } } | undefined)?.where?.id;
+        if (id === "table-null-type") {
+          return {
+            id: "table-null-type",
+            orgId: "demo-org",
+            name: "Table Null Type",
+            columns: [
+              {
+                id: "col-null",
+                name: "Null Type",
+                type: null,
+                config: null,
+                referenceConfig: null
+              }
+            ]
+          };
+        }
         return null;
       }
     },
@@ -275,6 +297,10 @@ async function main() {
     testColumnChoicesEndpoint
   );
   await runTest("GET /api/tables/:tableId returns table detail", testTableDetailEndpoint);
+  await runTest(
+    "GET /api/tables/:tableId returns 404 when the table is missing",
+    testTableDetailEndpointReturns404
+  );
   await runTest(
     "ReferenceLookupService getTableDetail normalizes null column types to text",
     testServiceNormalizesNullColumnType

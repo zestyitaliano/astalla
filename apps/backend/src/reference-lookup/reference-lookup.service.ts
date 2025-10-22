@@ -48,6 +48,7 @@ type TableWithColumns = {
 type TableWithReferenceColumns = {
   id: string;
   name: string;
+  orgId: string;
   columns: Array<{
     id: string;
     name: string;
@@ -230,14 +231,12 @@ export class ReferenceLookupService {
     const orgId = maybeTableId ? orgIdOrTableId : undefined;
     const tableId = maybeTableId ?? orgIdOrTableId;
 
-    const table = (await this.dataTable.findFirst({
-      where: {
-        id: tableId,
-        ...(orgId ? { orgId } : {})
-      },
+    const table = (await this.dataTable.findUnique({
+      where: { id: tableId },
       select: {
         id: true,
         name: true,
+        orgId: true,
         columns: {
           orderBy: { name: "asc" },
           select: { id: true, name: true, type: true, config: true, referenceConfig: true }
@@ -245,12 +244,13 @@ export class ReferenceLookupService {
       }
     })) as TableWithReferenceColumns | null;
 
-    if (!table) {
+    if (!table || (orgId && table.orgId !== orgId)) {
       throw new NotFoundException(`Table ${tableId} not found`);
     }
 
     const normalized: ReferenceLookupTableDetail = {
-      ...table,
+      id: table.id,
+      name: table.name,
       columns: table.columns.map((column) => {
         const rawType = column.type;
         const referenceConfig = this.parseReferenceConfig(
@@ -258,11 +258,13 @@ export class ReferenceLookupService {
         );
         const normalizedType =
           typeof rawType === "string" ? rawType.toLowerCase() : "";
+        const serializedReferenceConfig =
+          referenceConfig !== null ? this.cloneJson(referenceConfig) : null;
         return {
           id: column.id,
           name: column.name,
           type: normalizedType || "text",
-          referenceConfig
+          referenceConfig: serializedReferenceConfig
         };
       })
     };

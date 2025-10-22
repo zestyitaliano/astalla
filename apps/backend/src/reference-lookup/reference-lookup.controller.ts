@@ -37,16 +37,16 @@ export class ReferenceLookupController {
 
   @Get("tables/:tableId")
   async getTable(@Param("tableId") tableId: string) {
-    const orgId = this.getOrgId();
     try {
-      return await this.referenceLookupService.getTableDetail(orgId, tableId);
+      return await this.referenceLookupService.getTableDetail(tableId);
     } catch (error) {
       if (error instanceof NotFoundException) {
+        this.logger.warn(`Table ${tableId} not found`);
         throw error;
       }
 
       const trace = error instanceof Error ? error.stack ?? error.message : String(error);
-      this.logger.error("getTableDetail failed", trace);
+      this.logger.error(`getTableDetail failed for table ${tableId}`, trace);
       throw new HttpException("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
