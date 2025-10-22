@@ -7,6 +7,7 @@ import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useLogger(["error", "warn", "log", "debug", "verbose"]);
   const configService = app.get(ConfigService);
 
   // Allow large JSON payloads

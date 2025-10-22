@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Logger,
   Param,
   Patch,
   Post,
@@ -39,6 +40,8 @@ import { TablesService } from "./tables.service";
 
 @Controller("admin/tables")
 export class TablesController {
+  private readonly logger = new Logger(TablesController.name);
+
   constructor(private readonly tablesService: TablesService) {}
 
   @Get()
@@ -62,9 +65,21 @@ export class TablesController {
   }
 
   @Get(":id")
-  getTable(@Param("id") id: string) {
+  async getTable(@Param("id") id: string) {
     const orgId = this.getOrgId();
-    return this.tablesService.getTable(orgId, id);
+    const requestLabel = `GET /admin/tables/${id}`;
+    this.logger.debug(`${requestLabel} (org=${orgId})`);
+
+    try {
+      const table = await this.tablesService.getTable(orgId, id);
+      this.logger.log(`${requestLabel} -> 200`);
+      return table;
+    } catch (error) {
+      const status = error instanceof Error && "status" in error ? (error as { status?: number }).status : undefined;
+      const statusLabel = status ? `${status}` : "error";
+      this.logger.error(`${requestLabel} -> ${statusLabel}`, error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
   }
 
   @Delete(":id")
