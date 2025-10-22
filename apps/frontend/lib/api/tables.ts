@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseMutationResult } from "@tanstack/react-query";
+import { ZodError } from "zod";
 import {
   type CreateColumnDto,
   type CreateTableDto,
@@ -16,6 +17,7 @@ import {
 } from "@shared/api";
 
 import { apiBaseUrl, isMockMode } from "@/lib/utils";
+import { TableDetailSchema } from "@/lib/schemas/tableDetail";
 
 type TableDetail = DataTableDto & {
   updatedBy?: string | null;
@@ -128,7 +130,20 @@ async function listTables() {
 }
 
 async function getTable(id: string) {
-  return request<TableResponse>(`${TABLES_API_PATH}/${id}`);
+  const payload = await request<TableResponse>(`${TABLES_API_PATH}/${id}`);
+
+  try {
+    TableDetailSchema.parse(payload);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      console.error("[tables] invalid table detail response", { id, error });
+      throw new Error("Received invalid table data from the server");
+    }
+
+    throw error;
+  }
+
+  return payload;
 }
 
 async function createTable(payload: CreateTableDto) {
@@ -283,7 +298,12 @@ export function useTables() {
   });
 }
 
-export function useTable(id: string | undefined) {
+type UseTableOptions = {
+  onError?: (error: Error) => void;
+  onSuccess?: (data: TableDetail) => void;
+};
+
+export function useTable(id: string | undefined, options: UseTableOptions = {}) {
   return useQuery({
     queryKey: id ? tableKeys.detail(id) : [...tableKeys.all, "detail", "__pending__"],
     queryFn: async () => {
@@ -305,7 +325,16 @@ export function useTable(id: string | undefined) {
         throw error;
       }
     },
-    enabled: Boolean(id)
+    enabled: Boolean(id),
+    retry: 0,
+    useErrorBoundary: false,
+    onError: (cause) => {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      options.onError?.(error);
+    },
+    onSuccess: (result) => {
+      options.onSuccess?.(result);
+    }
   });
 }
 
@@ -501,4 +530,4 @@ export {
   importCsv
 };
 
-export type { TableDetail, TableColumnDto, TableRowDto, TableViewDto };
+export type { TableDetail, TableColumnDto, TableRowDto, TableViewDto, UseTableOptions };

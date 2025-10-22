@@ -26,7 +26,6 @@ import {
   getFilteredRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { format } from "date-fns";
 import {
@@ -60,6 +59,7 @@ import {
   type TableDetail
 } from "@/lib/api/tables";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -432,7 +432,16 @@ function SortableRow({ row, virtualRow, allowDrag }: SortableRowProps) {
 }
 
 export function TableGrid({ tableId }: TableGridProps) {
-  const { data, isLoading } = useTable(tableId);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const { data, isLoading, isFetching, refetch, error } = useTable(tableId, {
+    onError: (error) => {
+      setLoadError(error.message || "Failed to load table");
+    },
+    onSuccess: () => {
+      setLoadError(null);
+    }
+  });
   const createColumnMutation = useCreateColumnMutation(tableId);
   const updateColumnMutation = useUpdateColumnMutation(tableId);
   const deleteColumnMutation = useDeleteColumnMutation(tableId);
@@ -449,6 +458,38 @@ export function TableGrid({ tableId }: TableGridProps) {
   const columns = useMemo<TableColumnDto[]>(() => data?.columns ?? [], [data?.columns]);
   const rows = useMemo<TableRowDto[]>(() => data?.rows ?? [], [data?.rows]);
   const views = useMemo<TableViewDto[]>(() => data?.views ?? [], [data?.views]);
+
+  const isInitialLoading = isLoading && !data;
+  const isRefetching = isFetching && !isInitialLoading;
+
+  useEffect(() => {
+    if (error instanceof Error) {
+      setLoadError(error.message || "Failed to load table");
+    }
+  }, [error]);
+
+  const handleRetry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  const errorAlert = loadError ? (
+    <Alert variant="destructive" className="flex items-start justify-between gap-4">
+      <div className="space-y-1">
+        <AlertTitle>Unable to load table</AlertTitle>
+        <AlertDescription>{loadError}</AlertDescription>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="shrink-0"
+        onClick={handleRetry}
+        disabled={isRefetching}
+      >
+        {isRefetching ? "Retrying…" : "Retry"}
+      </Button>
+    </Alert>
+  ) : null;
 
   const columnMap = useMemo(
     () => new Map(columns.map((column: TableColumnDto) => [column.id, column])),
@@ -1198,7 +1239,7 @@ export function TableGrid({ tableId }: TableGridProps) {
     }
   }, [data?.id]);
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="flex h-[480px] items-center justify-center rounded-3xl border border-border bg-card/80 shadow-card">
         <span className="text-sm text-muted-foreground">Loading table…</span>
@@ -1207,11 +1248,21 @@ export function TableGrid({ tableId }: TableGridProps) {
   }
 
   if (!data) {
-    return null;
+    return (
+      <div className="flex h-full flex-col gap-4">
+        {errorAlert}
+        <div className="flex h-[480px] items-center justify-center rounded-3xl border border-border bg-card/80 shadow-card">
+          <span className="text-sm text-muted-foreground">
+            {loadError ? "We couldn't load this table. Please try again." : "No table data to display."}
+          </span>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex h-full flex-col gap-4">
+      {errorAlert}
       <div className="rounded-3xl border border-border/70 bg-card/80 p-4 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
