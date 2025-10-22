@@ -56,8 +56,9 @@ export const apiBaseUrl = (() => {
   }
 
   if (!configured) {
-    console.info(`[utils] apiBaseUrl falling back to window origin: ${window.location.origin}`);
-    return window.location.origin;
+    const serverBaseUrl = resolveServerBaseUrl();
+    console.info(`[utils] apiBaseUrl falling back to resolved server base url: ${serverBaseUrl}`);
+    return serverBaseUrl;
   }
 
   try {
@@ -70,8 +71,12 @@ export const apiBaseUrl = (() => {
       return window.location.origin;
     }
   } catch (error) {
-    console.warn("Unable to parse NEXT_PUBLIC_API_BASE_URL on the client. Falling back to window.location.origin.", error);
-    return window.location.origin;
+    const serverBaseUrl = resolveServerBaseUrl();
+    console.warn(
+      "Unable to parse NEXT_PUBLIC_API_BASE_URL on the client. Falling back to resolved server base url.",
+      error
+    );
+    return serverBaseUrl;
   }
 
   console.info(`[utils] apiBaseUrl resolved on client: ${configured}`);
