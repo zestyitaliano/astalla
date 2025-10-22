@@ -455,9 +455,9 @@ export function TableGrid({ tableId }: TableGridProps) {
   const exportCsvMutation = useExportCsvMutation(tableId);
   const importCsvMutation = useImportCsvMutation(tableId);
 
-  const columns = useMemo<TableColumnDto[]>(() => data?.columns ?? [], [data?.columns]);
-  const rows = useMemo<TableRowDto[]>(() => data?.rows ?? [], [data?.rows]);
-  const views = useMemo<TableViewDto[]>(() => data?.views ?? [], [data?.views]);
+  const columns = useMemo<TableColumnDto[]>(() => data?.columns ?? [], [data]);
+  const rows = useMemo<TableRowDto[]>(() => data?.rows ?? [], [data]);
+  const views = useMemo<TableViewDto[]>(() => data?.views ?? [], [data]);
 
   const isInitialLoading = isLoading && !data;
   const isRefetching = isFetching && !isInitialLoading;

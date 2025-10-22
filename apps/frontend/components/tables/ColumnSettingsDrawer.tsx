@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Link2 } from "lucide-react";
 import { ColumnTypeSchema, type TableColumnDto } from "@shared/api";
@@ -111,7 +111,7 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
     const initial = extractReferenceConfig(column);
     setReferenceState(initial);
     setDisplayColumnManuallySet(Boolean(initial.displayColumnId));
-  }, [open, column?.id]);
+  }, [open, column]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -137,7 +137,10 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
   );
 
   const tableChoices = tableChoicesQuery.data?.choices ?? [];
-  const columnChoices = columnChoicesQuery.data?.choices ?? [];
+  const columnChoices = useMemo(
+    () => columnChoicesQuery.data?.choices ?? [],
+    [columnChoicesQuery.data?.choices]
+  );
   const usingFallback = Boolean(
     tableChoicesQuery.data?.usedFallback || columnChoicesQuery.data?.usedFallback
   );
@@ -156,13 +159,7 @@ export function ColumnSettingsDrawer({ tableId, column, open, onClose }: ColumnS
       setReferenceState((prev) => ({ ...prev, displayColumnId: next }));
       setDisplayColumnManuallySet(Boolean(next));
     }
-  }, [
-    open,
-    columnChoices,
-    referenceState.targetTableId,
-    referenceState.displayColumnId,
-    displayColumnManuallySet
-  ]);
+  }, [open, columnChoices, referenceState.targetTableId, referenceState.displayColumnId]);
 
   const handleOverlayClick = () => {
     if (!isSaving) {

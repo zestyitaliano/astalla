@@ -185,15 +185,16 @@ export function ReferenceCell({ value, column, onChange }: ReferenceCellProps) {
     staleTime: 30_000,
     refetchOnWindowFocus: false
   });
+  const referenceItems = rowsQuery.data?.items;
 
   useEffect(() => {
-    if (!rowsQuery.data?.items?.length) {
+    if (!referenceItems?.length) {
       return;
     }
     setLabels((prev) => {
       const next = { ...prev };
       let changed = false;
-      for (const item of rowsQuery.data!.items) {
+      for (const item of referenceItems) {
         const label = resolveRowLabel(item, displayColumnId);
         if (!next[item.id] || next[item.id] === item.id) {
           next[item.id] = label;
@@ -202,7 +203,7 @@ export function ReferenceCell({ value, column, onChange }: ReferenceCellProps) {
       }
       return changed ? next : prev;
     });
-  }, [rowsQuery.data?.items, displayColumnId]);
+  }, [referenceItems, displayColumnId]);
 
   useEffect(() => {
     if (!open) {
