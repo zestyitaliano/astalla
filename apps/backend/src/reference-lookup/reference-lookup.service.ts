@@ -57,6 +57,17 @@ type TableWithReferenceColumns = {
   }>;
 };
 
+type ReferenceLookupTableDetail = {
+  id: string;
+  name: string;
+  columns: Array<{
+    id: string;
+    name: string;
+    type: string;
+    referenceConfig: unknown | null;
+  }>;
+};
+
 @Injectable()
 export class ReferenceLookupService {
   constructor(private readonly prisma: PrismaService) {}
@@ -210,9 +221,20 @@ export class ReferenceLookupService {
     };
   }
 
-  async getTableDetail(tableId: string) {
-    const table = (await this.dataTable.findUnique({
-      where: { id: tableId },
+  async getTableDetail(tableId: string): Promise<ReferenceLookupTableDetail>;
+  async getTableDetail(orgId: string, tableId: string): Promise<ReferenceLookupTableDetail>;
+  async getTableDetail(
+    orgIdOrTableId: string,
+    maybeTableId?: string
+  ) {
+    const orgId = maybeTableId ? orgIdOrTableId : undefined;
+    const tableId = maybeTableId ?? orgIdOrTableId;
+
+    const table = (await this.dataTable.findFirst({
+      where: {
+        id: tableId,
+        ...(orgId ? { orgId } : {})
+      },
       select: {
         id: true,
         name: true,
@@ -227,7 +249,7 @@ export class ReferenceLookupService {
       throw new NotFoundException(`Table ${tableId} not found`);
     }
 
-    const normalized = {
+    const normalized: ReferenceLookupTableDetail = {
       ...table,
       columns: table.columns.map((column) => {
         const rawType = column.type;
