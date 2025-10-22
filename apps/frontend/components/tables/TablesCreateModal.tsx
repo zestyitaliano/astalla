@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiUrl } from "@/lib/apiBase";
 
 const CREATION_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 1_500;
@@ -77,7 +78,7 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
         }
 
-        const response = await fetch(`/api/ops/${opId}`, { signal: controller.signal });
+        const response = await fetch(apiUrl(`/api/ops/${opId}`), { signal: controller.signal });
         if (!response.ok) {
           const message = await response.text();
           throw new Error(message || "Unable to fetch operation status");
@@ -107,7 +108,7 @@ export function TablesCreateModal({ open, onOpenChange, onCreated }: TablesCreat
       try {
         setIsSubmitting(true);
 
-        const response = await fetch("/api/tables", {
+        const response = await fetch(apiUrl("/api/tables"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
