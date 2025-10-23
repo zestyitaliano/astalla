@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { ZodError } from "zod";
 import {
@@ -304,7 +305,9 @@ type UseTableOptions = {
 };
 
 export function useTable(id: string | undefined, options: UseTableOptions = {}) {
-  return useQuery<TableDetail, Error>({
+  const { onError, onSuccess } = options;
+
+  const query = useQuery<TableDetail, Error>({
     queryKey: id ? tableKeys.detail(id) : [...tableKeys.all, "detail", "__pending__"],
     queryFn: async () => {
       if (!id) {
@@ -326,15 +329,23 @@ export function useTable(id: string | undefined, options: UseTableOptions = {}) 
       }
     },
     enabled: Boolean(id),
-    retry: 0,
-    onError: (cause) => {
-      const error = cause instanceof Error ? cause : new Error(String(cause));
-      options.onError?.(error);
-    },
-    onSuccess: (result) => {
-      options.onSuccess?.(result);
-    }
+    retry: 0
   });
+
+  useEffect(() => {
+    if (query.isError) {
+      const error = query.error ?? new Error("Unknown error");
+      onError?.(error);
+    }
+  }, [query.error, query.isError, onError]);
+
+  useEffect(() => {
+    if (query.isSuccess) {
+      onSuccess?.(query.data);
+    }
+  }, [query.data, query.isSuccess, onSuccess]);
+
+  return query;
 }
 
 function useInvalidateTableList() {
