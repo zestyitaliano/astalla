@@ -460,7 +460,7 @@ export function TableGrid({ tableId }: TableGridProps) {
   const rows = useMemo<TableRowDto[]>(() => tableData?.rows ?? [], [tableData]);
   const views = useMemo<TableViewDto[]>(() => tableData?.views ?? [], [tableData]);
 
-  const isInitialLoading = isLoading && !data;
+  const isInitialLoading = isLoading && !tableData;
   const isRefetching = isFetching && !isInitialLoading;
 
   useEffect(() => {
@@ -1251,7 +1251,7 @@ export function TableGrid({ tableId }: TableGridProps) {
     );
   }
 
-  if (!data) {
+  if (!tableData) {
     return (
       <div className="flex h-full flex-col gap-4">
         {errorAlert}
@@ -1270,11 +1270,11 @@ export function TableGrid({ tableId }: TableGridProps) {
       <div className="rounded-3xl border border-border/70 bg-card/80 p-4 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold text-text">{data.name}</h1>
+            <h1 className="text-xl font-semibold text-text">{tableData.name}</h1>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="uppercase tracking-wide">ID</span>
               <code className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-                {data.id}
+                {tableData.id}
               </code>
             </div>
           </div>
