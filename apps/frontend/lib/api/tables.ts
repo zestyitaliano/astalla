@@ -334,8 +334,13 @@ export function useTable(id: string | undefined, options: UseTableOptions = {}) 
 
   useEffect(() => {
     if (query.isError) {
-      const error = query.error ?? new Error("Unknown error");
-      onError?.(error);
+      const error = query.error;
+      const normalizedError =
+        error instanceof Error
+          ? error
+          : new Error(error ? String(error) : "Unknown error");
+
+      onError?.(normalizedError);
     }
   }, [query.error, query.isError, onError]);
 
