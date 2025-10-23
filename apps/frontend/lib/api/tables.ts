@@ -327,7 +327,6 @@ export function useTable(id: string | undefined, options: UseTableOptions = {}) 
     },
     enabled: Boolean(id),
     retry: 0,
-    useErrorBoundary: false,
     onError: (cause) => {
       const error = cause instanceof Error ? cause : new Error(String(cause));
       options.onError?.(error);
