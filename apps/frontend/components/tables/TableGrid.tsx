@@ -43,6 +43,7 @@ import {
 
 import { ColumnTypeSchema, type TableColumnDto, type TableRowDto, type TableViewDto } from "@shared/api";
 import {
+  TableApiError,
   useCreateColumnMutation,
   useCreateRowMutation,
   useCreateViewMutation,
@@ -114,6 +115,33 @@ const COLUMN_TYPE_OPTIONS: Array<{ label: string; value: ColumnKind }> = [
   { label: "Select", value: COLUMN_TYPE_ENUM.SELECT },
   { label: "Reference", value: COLUMN_TYPE_ENUM.REFERENCE }
 ];
+
+function resolveLoadError(error: Error | null): { message: string | null; showRetry: boolean } {
+  if (!error) {
+    return { message: null, showRetry: false };
+  }
+
+  if (error instanceof TableApiError) {
+    if (error.status === 404) {
+      return {
+        message: "This table no longer exists. It may have been deleted or renamed.",
+        showRetry: false
+      };
+    }
+
+    if (error.status === 401) {
+      return {
+        message: "You’re signed out or don’t have access.",
+        showRetry: false
+      };
+    }
+  }
+
+  return {
+    message: "We couldn’t load this table. Click retry.",
+    showRetry: true
+  };
+}
 
 function parseSelectOptionsInput(raw: string) {
   const values = raw
@@ -432,11 +460,11 @@ function SortableRow({ row, virtualRow, allowDrag }: SortableRowProps) {
 }
 
 export function TableGrid({ tableId }: TableGridProps) {
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   const { data, isLoading, isFetching, refetch, error } = useTable(tableId, {
     onError: (error) => {
-      setLoadError(error.message || "Failed to load table");
+      setLoadError(error);
     },
     onSuccess: () => {
       setLoadError(null);
@@ -464,8 +492,8 @@ export function TableGrid({ tableId }: TableGridProps) {
   const isRefetching = isFetching && !isInitialLoading;
 
   useEffect(() => {
-    if (error instanceof Error) {
-      setLoadError(error.message || "Failed to load table");
+    if (error) {
+      setLoadError(error);
     }
   }, [error]);
 
@@ -473,22 +501,29 @@ export function TableGrid({ tableId }: TableGridProps) {
     void refetch();
   }, [refetch]);
 
-  const errorAlert = loadError ? (
+  const { message: loadErrorMessage, showRetry: shouldShowRetry } = useMemo(
+    () => resolveLoadError(loadError),
+    [loadError]
+  );
+
+  const errorAlert = loadErrorMessage ? (
     <Alert variant="destructive" className="flex items-start justify-between gap-4">
       <div className="space-y-1">
         <AlertTitle>Unable to load table</AlertTitle>
-        <AlertDescription>{loadError}</AlertDescription>
+        <AlertDescription>{loadErrorMessage}</AlertDescription>
       </div>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="shrink-0"
-        onClick={handleRetry}
-        disabled={isRefetching}
-      >
-        {isRefetching ? "Retrying…" : "Retry"}
-      </Button>
+      {shouldShowRetry ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="shrink-0"
+          onClick={handleRetry}
+          disabled={isRefetching}
+        >
+          {isRefetching ? "Retrying…" : "Retry"}
+        </Button>
+      ) : null}
     </Alert>
   ) : null;
 
@@ -1257,7 +1292,7 @@ export function TableGrid({ tableId }: TableGridProps) {
         {errorAlert}
         <div className="flex h-[480px] items-center justify-center rounded-3xl border border-border bg-card/80 shadow-card">
           <span className="text-sm text-muted-foreground">
-            {loadError ? "We couldn't load this table. Please try again." : "No table data to display."}
+            {loadErrorMessage ?? "No table data to display."}
           </span>
         </div>
       </div>
