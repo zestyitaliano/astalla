@@ -4,6 +4,11 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'http';
 
 import { createApp } from '../index.js';
+import {
+  __resetDynamicTableLoadersForTests,
+  __setDynamicTableLoaderForTests,
+  __setDynamicTableRowsLoaderForTests,
+} from '../services/tables.service.js';
 
 describe('Row search endpoint', () => {
   let server: Server | undefined;
@@ -84,5 +89,74 @@ describe('Row search endpoint', () => {
 
     assert.equal(payload.items.length, 1);
     assert.equal(payload.items[0].preview, 'Unit 3C');
+  });
+
+  describe('dynamic tables', () => {
+    const dynamicTable = {
+      id: 'dyn.table',
+      orgId: 'demo-org',
+      name: 'dyn.table',
+      description: 'Dynamic Table',
+      columns: [
+        { id: 'dyn-col-1', name: 'Title', type: 'TEXT' },
+        { id: 'dyn-col-2', name: 'Count', type: 'NUMBER' },
+      ],
+    };
+
+    const dynamicRows = [
+      {
+        id: 'row-1',
+        tableId: dynamicTable.id,
+        cells: [
+          { columnId: 'dyn-col-1', value: 'Alpha' },
+          { columnId: 'dyn-col-2', value: 3 },
+        ],
+      },
+      {
+        id: 'row-2',
+        tableId: dynamicTable.id,
+        cells: [
+          { columnId: 'dyn-col-1', value: 'Beta' },
+          { columnId: 'dyn-col-2', value: 7 },
+        ],
+      },
+    ];
+
+    before(() => {
+      __setDynamicTableLoaderForTests(async (identifier) => {
+        if (identifier === dynamicTable.id || identifier === dynamicTable.name) {
+          return { ...dynamicTable };
+        }
+        return null;
+      });
+      __setDynamicTableRowsLoaderForTests(async () => dynamicRows.map((row) => ({ ...row })));
+    });
+
+    after(() => {
+      __resetDynamicTableLoadersForTests();
+    });
+
+    it('returns rows for a dynamic table', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/rows?tableId=${encodeURIComponent(dynamicTable.id)}`,
+      );
+
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+
+      assert.ok(Array.isArray(payload.items));
+      assert.equal(payload.items.length, dynamicRows.length);
+      assert.equal(payload.items[0].id, 'row-1');
+      assert.equal(payload.items[0].preview, 'Alpha');
+      assert.equal(payload.items[0].fields['dyn-col-1'], 'Alpha');
+    });
+
+    it('returns 404 when a dynamic table is missing', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/rows?tableId=${encodeURIComponent('missing.dynamic')}`,
+      );
+
+      assert.equal(response.status, 404);
+    });
   });
 });

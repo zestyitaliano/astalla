@@ -2,8 +2,16 @@ import type { Application, Request, Response } from 'express';
 import { Router } from 'express';
 import type { SchemaColumn, SchemaTable } from '@shared/api';
 
+import { canRead } from '../auth/permissions.js';
 import { getSchemaGraphForUser } from '../schemaRegistry/registry.js';
 import { getTableRows, type TableRow } from '../db/data.js';
+import {
+  getDynamicTableByIdOrName,
+  getDynamicTableRows,
+  toSchemaTable,
+  type DynamicTable,
+  type DynamicTableRow,
+} from '../services/tables.service.js';
 import { ensureUser } from './requestUser.js';
 
 const DEFAULT_LIMIT = 20;
@@ -218,10 +226,37 @@ const extractQueryString = (value: unknown): string | null => {
   return null;
 };
 
+const buildDynamicRowRecord = (row: DynamicTableRow, table: SchemaTable): TableRow => {
+  const cellMap = new Map(row.cells.map((cell) => [cell.columnId, cell.value] as const));
+  const record: TableRow = {};
+
+  record.id = row.id;
+  record[`${table.name}.id`] = row.id;
+
+  for (const column of table.columns) {
+    if (!column?.id || !cellMap.has(column.id)) {
+      continue;
+    }
+
+    const value = cellMap.get(column.id);
+    record[column.id] = value;
+
+    if (typeof column.name === 'string' && !(column.name in record)) {
+      record[column.name] = value;
+    }
+  }
+
+  return record;
+};
+
+const buildDynamicTableRows = (rows: DynamicTableRow[], table: SchemaTable): TableRow[] => {
+  return rows.map((row) => buildDynamicRowRecord(row, table));
+};
+
 export const registerRowRoutes = (app: Application): void => {
   const router = Router();
 
-  router.get('/rows', (req, res) => {
+  router.get('/rows', async (req, res) => {
     const userId = ensureUser(req, res);
     if (!userId) {
       return;
@@ -249,13 +284,39 @@ export const registerRowRoutes = (app: Application): void => {
     const query = queryParam ? queryParam.trim().toLowerCase() : '';
 
     const graph = getSchemaGraphForUser(userId);
-    const table = findTableByIdentifier(graph, tableId);
+    let table = findTableByIdentifier(graph, tableId);
+    let dynamicSource: DynamicTable | null = null;
+
+    if (!table) {
+      const dynamicTable = await getDynamicTableByIdOrName(tableId);
+      if (!dynamicTable) {
+        res.status(404).json({ message: 'Table not found' });
+        return;
+      }
+
+      const schemaTable = toSchemaTable(dynamicTable);
+      if (!canRead(userId, { kind: 'table', table: schemaTable })) {
+        res.status(403).json({ message: 'Forbidden' });
+        return;
+      }
+
+      const allowedColumns = schemaTable.columns.filter((column) =>
+        canRead(userId, { kind: 'column', table: schemaTable, column }),
+      );
+
+      table = { ...schemaTable, columns: allowedColumns };
+      dynamicSource = dynamicTable;
+    }
+
     if (!table) {
       res.status(404).json({ message: 'Table not found' });
       return;
     }
 
-    const rows = getTableRows(table.name);
+    const rows = dynamicSource
+      ? buildDynamicTableRows(await getDynamicTableRows(dynamicSource.id), table)
+      : getTableRows(table.name);
+
     const idColumn = getIdColumn(table);
     const previewColumn = getDisplayColumn(table);
 

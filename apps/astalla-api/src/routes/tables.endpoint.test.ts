@@ -10,6 +10,11 @@ import {
   __setCanReadOverrideForTests,
 } from '../auth/permissions.js';
 import type { PermissionTarget } from '../auth/permissions.js';
+import {
+  __resetDynamicTableLoadersForTests,
+  __setDynamicTableListLoaderForTests,
+  __setDynamicTableLoaderForTests,
+} from '../services/tables.service.js';
 
 describe('Table lookup endpoints', () => {
   let server: Server | undefined;
@@ -87,5 +92,54 @@ describe('Table lookup endpoints', () => {
     } finally {
       __resetCanReadOverrideForTests();
     }
+  });
+
+  describe('dynamic tables', () => {
+    const dynamicTable = {
+      id: 'user.table',
+      orgId: 'demo-org',
+      name: 'user.table',
+      description: 'User Table',
+      columns: [
+        { id: 'col-1', name: 'Name', type: 'TEXT' },
+        { id: 'col-2', name: 'Amount', type: 'NUMBER' },
+      ],
+    };
+
+    before(() => {
+      __setDynamicTableLoaderForTests(async (identifier) => {
+        if (identifier === dynamicTable.id || identifier === dynamicTable.name) {
+          return { ...dynamicTable };
+        }
+        return null;
+      });
+      __setDynamicTableListLoaderForTests(async () => [{ ...dynamicTable }]);
+    });
+
+    after(() => {
+      __resetDynamicTableLoadersForTests();
+    });
+
+    it('returns columns for a dynamic table', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/tables/${encodeURIComponent(dynamicTable.id)}/columns/choices`,
+      );
+
+      assert.equal(response.status, 200);
+      const payload = await response.json();
+
+      assert.ok(Array.isArray(payload));
+      assert.ok(payload.length > 0);
+      assert.ok(payload.every((column: any) => typeof column.type === 'string'));
+      assert.ok(payload.some((column: any) => column.id === 'col-1'));
+    });
+
+    it('returns 404 when the dynamic table is missing', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/tables/${encodeURIComponent('missing-table')}/columns/choices`,
+      );
+
+      assert.equal(response.status, 404);
+    });
   });
 });
