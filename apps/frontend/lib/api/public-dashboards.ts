@@ -9,7 +9,8 @@ import {
   type UpdatePublicDashboardRequest
 } from "@shared/api";
 
-import { apiBaseUrl, isMockMode } from "../utils";
+import { isMockMode } from "../utils";
+import { apiUrl } from "./base-url";
 
 interface SchemaParser<T> {
   parse(data: unknown): T;
@@ -18,7 +19,7 @@ interface SchemaParser<T> {
 async function request(path: string, init: RequestInit): Promise<void>;
 async function request<T>(path: string, init: RequestInit, schema: SchemaParser<T>): Promise<T>;
 async function request<T>(path: string, init: RequestInit, schema?: SchemaParser<T>): Promise<T | void> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers: {
       "Content-Type": "application/json",

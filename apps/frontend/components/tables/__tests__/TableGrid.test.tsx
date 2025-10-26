@@ -35,7 +35,7 @@ describe("TableGrid", () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
-      if (url.includes("/admin/tables/broken")) {
+      if (url.includes("/tables/broken")) {
         return Promise.resolve(
           new Response(
             JSON.stringify({ id: "broken", name: "Broken table", columns: null }),
@@ -47,6 +47,10 @@ describe("TableGrid", () => {
         );
       }
 
+      if (url.includes("/health")) {
+        return Promise.resolve(new Response("", { status: 200 }));
+      }
+
       return Promise.reject(new Error(`Unhandled request for ${url}`));
     });
 
@@ -55,6 +59,6 @@ describe("TableGrid", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/unable to load table/i);
     expect(alert).toHaveTextContent(/invalid table data/i);
-    expect(screen.getByText(/please try again/i)).toBeInTheDocument();
+    expect(alert).toHaveTextContent(/please try again/i);
   });
 });

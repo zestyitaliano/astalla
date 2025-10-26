@@ -3,6 +3,9 @@ import { useEffect } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { ZodError } from "zod";
 import {
+  createColumnDtoSchema,
+  tableColumnDtoSchema,
+  updateColumnDtoSchema,
   type CreateColumnDto,
   type CreateTableDto,
   type CreateViewDto,
@@ -17,8 +20,9 @@ import {
   type UpdateViewDto
 } from "@shared/api";
 
-import { apiBaseUrl, isMockMode } from "@/lib/utils";
+import { isMockMode } from "@/lib/utils";
 import { TableDetailSchema } from "@/lib/schemas/tableDetail";
+import { apiUrl, getApiBaseUrl } from "./base-url";
 
 type TableDetail = DataTableDto & {
   updatedBy?: string | null;
@@ -60,6 +64,75 @@ type UpdateTableMutationVariables = { id: string; payload: UpdateTableDto };
 type UpdateTableMutationInput = UpdateTableDto | UpdateTableMutationVariables;
 
 const TABLES_API_PATH = "/api/tables";
+
+const createColumnPayloadSchema = createColumnDtoSchema.omit({ tableId: true });
+
+const HEALTH_CHECK_PATH = "/health";
+const HEALTH_CHECK_TIMEOUT_MS = 3000;
+
+let lastHealthWarningSignature: string | null = null;
+
+function formatColumnPayloadError(error: ZodError) {
+  if (!error.issues.length) {
+    return "Column payload is invalid.";
+  }
+
+  const descriptions = error.issues.map((issue) => {
+    const path = issue.path.join(".");
+    return path ? `${path}: ${issue.message}` : issue.message;
+  });
+
+  return `Invalid column settings: ${descriptions.join(", ")}`;
+}
+
+function logHealthCheckFailure(details: { reason: string; status?: number }) {
+  const signature = details.status ? `status:${details.status}` : `reason:${details.reason}`;
+  if (signature === lastHealthWarningSignature) {
+    return;
+  }
+
+  lastHealthWarningSignature = signature;
+  const resolvedBaseUrl = getApiBaseUrl() || "(same origin)";
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const hint = configuredBaseUrl
+    ? `Verify NEXT_PUBLIC_API_BASE_URL (${configuredBaseUrl}) points to the running backend.`
+    : "Verify the backend is reachable from this origin.";
+
+  console.warn("[tables] Backend health check failed", {
+    url: apiUrl(HEALTH_CHECK_PATH),
+    resolvedBaseUrl,
+    hint,
+    ...details
+  });
+}
+
+async function checkBackendHealth() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeoutId = controller ? window.setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS) : null;
+
+  try {
+    const response = await fetch(apiUrl(HEALTH_CHECK_PATH), {
+      method: "GET",
+      credentials: "include",
+      signal: controller?.signal
+    });
+
+    if (!response.ok) {
+      logHealthCheckFailure({ reason: "unexpected-status", status: response.status });
+    }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    logHealthCheckFailure({ reason });
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+}
 
 function isUpdateTableMutationVariables(value: UpdateTableMutationInput): value is UpdateTableMutationVariables {
   if (typeof value !== "object" || value === null) {
@@ -145,7 +218,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   headers.set("x-mock-mode", isMockMode() ? "true" : "false");
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers,
     credentials: "include"
@@ -166,7 +239,7 @@ async function getTable(id: string) {
   } catch (error) {
     if (error instanceof ZodError) {
       console.error("[tables] invalid table detail response", { id, error });
-      throw new Error("Received invalid table data from the server");
+      throw new Error("Invalid table data received from the server. Please try again.");
     }
 
     throw error;
@@ -195,18 +268,50 @@ async function deleteTable(id: string) {
   });
 }
 
+function parseColumnPayload<T>(schema: { parse: (value: unknown) => T }, payload: unknown) {
+  try {
+    return schema.parse(payload);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new Error(formatColumnPayloadError(error));
+    }
+
+    throw error;
+  }
+}
+
+function parseColumnResponse(payload: TableColumnDto, context: { action: string; columnId?: string; tableId?: string }) {
+  try {
+    tableColumnDtoSchema.parse(payload);
+    return payload;
+  } catch (error) {
+    if (error instanceof ZodError) {
+      console.error("[tables] invalid column response", { context, error });
+      throw new Error("Received invalid column data from the server.");
+    }
+
+    throw error;
+  }
+}
+
 async function createColumn(tableId: string, payload: Omit<CreateColumnDto, "tableId">) {
-  return request<TableColumnDto>(`${TABLES_API_PATH}/${tableId}/columns`, {
+  const parsedPayload = parseColumnPayload(createColumnPayloadSchema, payload);
+  const column = await request<TableColumnDto>(`${TABLES_API_PATH}/${tableId}/columns`, {
     method: "POST",
-    body: JSON.stringify({ ...payload, tableId })
+    body: JSON.stringify({ ...parsedPayload, tableId })
   });
+
+  return parseColumnResponse(column, { action: "create", tableId });
 }
 
 async function updateColumn(id: string, payload: UpdateColumnDto & { type?: TableColumnDto["type"] }) {
-  return request<TableColumnDto>(`${TABLES_API_PATH}/columns/${id}`, {
+  const parsedPayload = parseColumnPayload(updateColumnDtoSchema, payload);
+  const column = await request<TableColumnDto>(`${TABLES_API_PATH}/columns/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(parsedPayload)
   });
+
+  return parseColumnResponse(column, { action: "update", columnId: id });
 }
 
 async function deleteColumn(id: string) {
@@ -273,7 +378,9 @@ async function exportCsv(tableId: string, viewId?: string) {
     searchParams.set("viewId", viewId);
   }
   const query = searchParams.toString();
-  const response = await fetch(`${apiBaseUrl}${TABLES_API_PATH}/${tableId}/export.csv${query ? `?${query}` : ""}`, {
+  const response = await fetch(
+    apiUrl(`${TABLES_API_PATH}/${tableId}/export.csv${query ? `?${query}` : ""}`),
+    {
     method: "GET",
     headers: {
       "x-mock-mode": isMockMode() ? "true" : "false"
@@ -301,7 +408,7 @@ async function importCsv(tableId: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${apiBaseUrl}${TABLES_API_PATH}/${tableId}/import.csv`, {
+  const response = await fetch(apiUrl(`${TABLES_API_PATH}/${tableId}/import.csv`), {
     method: "POST",
     body: formData,
     headers: {
@@ -341,6 +448,7 @@ export function useTable(id: string | undefined, options: UseTableOptions = {}) 
       if (!id) {
         return Promise.reject(new Error("Missing table id"));
       }
+      void checkBackendHealth();
       console.info("[tables] fetching table detail", { id });
       try {
         const table = await getTable(id);

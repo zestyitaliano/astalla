@@ -135,6 +135,16 @@ function resolveLoadError(error: Error | null): { message: string | null; showRe
         showRetry: false
       };
     }
+
+    const message = error.message?.trim();
+    if (message) {
+      return { message, showRetry: true };
+    }
+  }
+
+  const fallbackMessage = error.message?.trim();
+  if (fallbackMessage) {
+    return { message: fallbackMessage, showRetry: true };
   }
 
   return {

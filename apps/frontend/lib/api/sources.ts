@@ -21,7 +21,8 @@ import {
   type UpdateSourceRequest
 } from "@shared/api";
 
-import { apiBaseUrl, isMockMode } from "../utils";
+import { isMockMode } from "../utils";
+import { apiUrl } from "./base-url";
 
 function ensureDevMocksEnabled() {
   if (!isMockMode()) {
@@ -56,7 +57,7 @@ async function request<T>(
   init: RequestInit,
   schema?: SchemaParser<T>
 ): Promise<T | void> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers: {
       "Content-Type": "application/json",
