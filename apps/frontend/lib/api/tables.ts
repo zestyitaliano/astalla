@@ -367,11 +367,62 @@ async function deleteView(id: string) {
   });
 }
 
-async function queryTable(tableId: string, params: TableQueryRequest = {}) {
-  const query = buildTableQueryString(params); // gives ?limit=...&cursor=...&q=... etc.
+type RowLookupItem = { id: string; preview: string; fields?: Record<string, unknown> };
+type RowLookupResponse = { items: RowLookupItem[]; nextCursor?: string };
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+async function queryTable(
+  tableId: string,
+  params: TableQueryRequest = {}
+): Promise<TableQueryResponse> {
+  const query = buildTableQueryString(params);
   const sep = query ? "&" : "?";
-  // rows.ts expects tableId as a query param
-  return request<TableQueryResponse>(`/api/rows${query}${sep}tableId=${encodeURIComponent(tableId)}`);
+
+  // 1) Load columns for this table (supports static + dynamic)
+  const rawColumns = await request<TableColumnDto[]>(
+    `${TABLES_API_PATH}/${encodeURIComponent(tableId)}/columns`
+  );
+
+  // Normalize columns to TableColumnDto
+  const columns: TableColumnDto[] = rawColumns.map((c, i) => ({
+    id: c.id,
+    tableId,
+    name: c.name,
+    slug: (c as any).slug ?? c.name.trim().toLowerCase().replace(/\s+/g, "-"),
+    type: c.type as TableColumnDto["type"],
+    position: typeof (c as any).position === "number" ? (c as any).position : i,
+    config: (c as any).config ?? null,
+    createdAt: (c as any).createdAt ?? nowIso(),
+    updatedAt: (c as any).updatedAt ?? nowIso(),
+  }));
+
+  // 2) Load row items from /api/rows
+  const list = await request<RowLookupResponse>(
+    `/api/rows${query}${sep}tableId=${encodeURIComponent(tableId)}`
+  );
+
+  // 3) Convert to TableRowDto[]
+  const rows: TableRowDto[] = (list.items ?? []).map((it, idx) => ({
+    id: it.id,
+    tableId,
+    position: (params as any).offset ? Number((params as any).offset) + idx : idx,
+    cells: columns.map((col) => ({
+      columnId: col.id,
+      value: it.fields ? (it.fields as Record<string, unknown>)[col.id] ?? null : null,
+    })),
+    createdBy: null,
+    updatedBy: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  }));
+
+  // We don't have a true total yet; use page size as a safe default
+  const total = rows.length;
+
+  return { rows, columns, total };
 }
 
 async function exportCsv(tableId: string, viewId?: string) {
