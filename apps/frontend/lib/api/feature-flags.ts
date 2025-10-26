@@ -1,6 +1,6 @@
 import { featureFlagStateSchema, type FeatureFlagScope, type FeatureFlagState } from "@shared/api";
 
-import { apiBaseUrl } from "@/lib/utils";
+import { apiUrl } from "./base-url";
 
 interface UpdateOptions {
   scope: FeatureFlagScope;
@@ -10,7 +10,7 @@ interface UpdateOptions {
 }
 
 export async function updateFeatureFlag(flag: string, options: UpdateOptions): Promise<FeatureFlagState> {
-  const response = await fetch(`${apiBaseUrl}/feature-flags/${encodeURIComponent(flag)}`, {
+  const response = await fetch(apiUrl(`/feature-flags/${encodeURIComponent(flag)}`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
