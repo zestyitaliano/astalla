@@ -46,10 +46,20 @@ type TablesListResponse = DataTableDto[];
 
 type TableResponse = TableDetail;
 
+class TableApiError extends Error {
+  status: number;
+
+  constructor(message: string, options: { status: number }) {
+    super(message);
+    this.name = "TableApiError";
+    this.status = options.status;
+  }
+}
+
 type UpdateTableMutationVariables = { id: string; payload: UpdateTableDto };
 type UpdateTableMutationInput = UpdateTableDto | UpdateTableMutationVariables;
 
-const TABLES_API_PATH = "/admin/tables";
+const TABLES_API_PATH = "/api/tables";
 
 function isUpdateTableMutationVariables(value: UpdateTableMutationInput): value is UpdateTableMutationVariables {
   if (typeof value !== "object" || value === null) {
@@ -93,8 +103,26 @@ function buildTableQueryString(params: TableQueryRequest | undefined) {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed with status ${response.status}`);
+    const contentType = response.headers.get("content-type");
+    let message: string | undefined;
+
+    const rawText = await response.text();
+    if (contentType?.includes("application/json")) {
+      try {
+        const payload = JSON.parse(rawText) as { message?: string };
+        if (payload && typeof payload.message === "string" && payload.message.trim()) {
+          message = payload.message.trim();
+        }
+      } catch (error) {
+        console.warn("[tables] failed to parse error response", error);
+      }
+    }
+
+    if (!message) {
+      message = rawText || `Request failed with status ${response.status}`;
+    }
+
+    throw new TableApiError(message, { status: response.status });
   }
 
   const contentType = response.headers.get("content-type");
@@ -542,7 +570,8 @@ export {
   deleteView,
   queryTable,
   exportCsv,
-  importCsv
+  importCsv,
+  TableApiError
 };
 
 export type { TableDetail, TableColumnDto, TableRowDto, TableViewDto, UseTableOptions };
