@@ -368,8 +368,10 @@ async function deleteView(id: string) {
 }
 
 async function queryTable(tableId: string, params: TableQueryRequest = {}) {
-  const query = buildTableQueryString(params);
-  return request<TableQueryResponse>(`${TABLES_API_PATH}/${tableId}/query${query}`);
+  const query = buildTableQueryString(params); // gives ?limit=...&cursor=...&q=... etc.
+  const sep = query ? "&" : "?";
+  // rows.ts expects tableId as a query param
+  return request<TableQueryResponse>(`/api/rows${query}${sep}tableId=${encodeURIComponent(tableId)}`);
 }
 
 async function exportCsv(tableId: string, viewId?: string) {
