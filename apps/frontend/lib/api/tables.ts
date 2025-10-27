@@ -17,7 +17,8 @@ import {
   type TableViewDto,
   type UpdateColumnDto,
   type UpdateTableDto,
-  type UpdateViewDto
+  type UpdateViewDto,
+  ColumnType
 } from "@shared/api";
 
 import { isMockMode } from "@/lib/utils";
@@ -385,6 +386,38 @@ type ColumnSource =
   | (TableColumnDto & { config?: unknown })
   | (Partial<TableColumnDto> & { id: string; name: string; type?: TableColumnDto["type"] });
 
+function normalizeColumnType(rawType: unknown): ColumnType {
+  if (typeof rawType !== "string") {
+    return ColumnType.TEXT;
+  }
+
+  const normalized = rawType.trim().toLowerCase();
+  if (!normalized) {
+    return ColumnType.TEXT;
+  }
+
+  switch (normalized) {
+    case "numeric":
+    case "integer":
+    case "decimal":
+    case "number":
+      return ColumnType.NUMBER;
+    case "boolean":
+      return ColumnType.BOOLEAN;
+    case "date":
+    case "datetime":
+      return ColumnType.DATE;
+    case "reference":
+      return ColumnType.REFERENCE;
+    case "select":
+      return ColumnType.SELECT;
+    case "text":
+      return ColumnType.TEXT;
+    default:
+      return ColumnType.TEXT;
+  }
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -419,7 +452,7 @@ function normalizeColumn(input: ColumnSource, tableId: string, index: number): T
     tableId,
     name: nameValue,
     slug: slugValue,
-    type: (record.type as TableColumnDto["type"]) ?? "TEXT",
+    type: normalizeColumnType(record.type),
     position: typeof record.position === "number" ? record.position : index,
     config: record.config ?? null,
     createdAt: createdAtValue,
@@ -826,6 +859,7 @@ export function useImportCsvMutation(tableId: string) {
 }
 
 export {
+  normalizeColumnType,
   createTable,
   updateTable,
   deleteTable,
