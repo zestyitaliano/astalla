@@ -162,6 +162,16 @@ function buildTableQueryString(params: TableQueryRequest | undefined) {
     searchParams.set("offset", String(params.offset));
   }
 
+  const cursor = (params as { cursor?: string }).cursor;
+  if (typeof cursor === "string" && cursor.trim()) {
+    searchParams.set("cursor", cursor);
+  }
+
+  const query = (params as { q?: string }).q;
+  if (typeof query === "string" && query.trim()) {
+    searchParams.set("q", query);
+  }
+
   if (params.filters?.length) {
     searchParams.set("filters", JSON.stringify(params.filters));
   }
@@ -367,11 +377,164 @@ async function deleteView(id: string) {
   });
 }
 
-async function queryTable(tableId: string, params: TableQueryRequest = {}) {
-  const query = buildTableQueryString(params); // gives ?limit=...&cursor=...&q=... etc.
-  const sep = query ? "&" : "?";
-  // rows.ts expects tableId as a query param
-  return request<TableQueryResponse>(`/api/rows${query}${sep}tableId=${encodeURIComponent(tableId)}`);
+type RowLookupItem = { id: string; preview: string; fields?: Record<string, unknown> };
+type RowLookupResponse = { items: RowLookupItem[]; nextCursor?: string };
+type ColumnChoice = { id: string; name: string; type: string };
+type ColumnSource =
+  | ColumnChoice
+  | (TableColumnDto & { config?: unknown })
+  | (Partial<TableColumnDto> & { id: string; name: string; type?: TableColumnDto["type"] });
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function toSlug(value: string, fallback: string, index: number) {
+  const base = value?.trim().length ? value.trim() : fallback;
+  const normalized = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || `column-${index + 1}`;
+}
+
+function normalizeColumn(input: ColumnSource, tableId: string, index: number): TableColumnDto {
+  const record = input as Record<string, unknown>;
+  const id = typeof record.id === "string" ? record.id : String(record.id ?? `col-${index + 1}`);
+  const nameValue = typeof record.name === "string" && record.name.trim().length
+    ? record.name.trim()
+    : id;
+  const slugValue = typeof record.slug === "string" && record.slug.trim().length
+    ? record.slug
+    : toSlug(nameValue, id, index);
+  const createdAtValue = typeof record.createdAt === "string" && record.createdAt.trim().length
+    ? record.createdAt
+    : nowIso();
+  const updatedAtValue = typeof record.updatedAt === "string" && record.updatedAt.trim().length
+    ? record.updatedAt
+    : createdAtValue;
+
+  return {
+    id,
+    tableId,
+    name: nameValue,
+    slug: slugValue,
+    type: (record.type as TableColumnDto["type"]) ?? "TEXT",
+    position: typeof record.position === "number" ? record.position : index,
+    config: record.config ?? null,
+    createdAt: createdAtValue,
+    updatedAt: updatedAtValue,
+  };
+}
+
+function deriveColumnsFromRows(items: RowLookupItem[], tableId: string): TableColumnDto[] {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of items) {
+    const fields = item.fields;
+    if (!fields) {
+      continue;
+    }
+    for (const key of Object.keys(fields)) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        keys.push(key);
+      }
+    }
+  }
+
+  return keys.map((key, index) => {
+    const parts = key.split(".");
+    const fallbackName = parts[parts.length - 1] ?? key;
+    return normalizeColumn(
+      {
+        id: key,
+        name: fallbackName,
+        type: "TEXT",
+        position: index,
+      },
+      tableId,
+      index,
+    );
+  });
+}
+
+async function queryTable(
+  tableId: string,
+  params: TableQueryRequest = {}
+): Promise<TableQueryResponse> {
+  const query = buildTableQueryString(params);
+  const searchParams = new URLSearchParams(query ? query.slice(1) : "");
+  searchParams.set("tableId", tableId);
+
+  const rowsPromise = request<RowLookupResponse>(`/api/rows?${searchParams.toString()}`);
+
+  let columnSources: ColumnSource[] = [];
+  try {
+    const table = await request<TableDetail>(`${TABLES_API_PATH}/${encodeURIComponent(tableId)}`);
+    columnSources = table.columns ?? [];
+  } catch (error) {
+    if (
+      !(error instanceof TableApiError) ||
+      (error.status !== 404 && error.status !== 403)
+    ) {
+      throw error;
+    }
+  }
+
+  if (!columnSources.length) {
+    try {
+      const choices = await request<ColumnChoice[]>(
+        `${TABLES_API_PATH}/${encodeURIComponent(tableId)}/columns/choices`
+      );
+      columnSources = choices;
+    } catch (error) {
+      if (!(error instanceof TableApiError) || (error.status !== 404 && error.status !== 403)) {
+        throw error;
+      }
+    }
+  }
+
+  const list = await rowsPromise;
+
+  let columns = columnSources.map((column, index) => normalizeColumn(column, tableId, index));
+  if (!columns.length) {
+    columns = deriveColumnsFromRows(list.items ?? [], tableId);
+  }
+
+  const rows: TableRowDto[] = (list.items ?? []).map((it, idx) => {
+    const rowCreatedAt = nowIso();
+    const rowUpdatedAt = rowCreatedAt;
+    const position = typeof params.offset === "number" ? params.offset + idx : idx;
+
+    const cells = columns.map((col) => {
+      const value = (it.fields as Record<string, unknown> | undefined)?.[col.id] ?? null;
+      return {
+        id: `${it.id}:${col.id}`,
+        rowId: it.id,
+        columnId: col.id,
+        value,
+        createdAt: rowCreatedAt,
+        updatedAt: rowUpdatedAt,
+      };
+    });
+
+    return {
+      id: it.id,
+      tableId,
+      position,
+      cells,
+      createdBy: null,
+      updatedBy: null,
+      createdAt: rowCreatedAt,
+      updatedAt: rowUpdatedAt,
+    };
+  });
+
+  const total = rows.length;
+
+  return { rows, columns, total };
 }
 
 async function exportCsv(tableId: string, viewId?: string) {
