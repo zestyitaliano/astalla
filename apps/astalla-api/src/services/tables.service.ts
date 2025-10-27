@@ -41,19 +41,7 @@ let tableLoaderOverride: DynamicTableLoader | null = null;
 let tableListLoaderOverride: DynamicTableListLoader | null = null;
 let tableRowsLoaderOverride: DynamicTableRowsLoader | null = null;
 
-type DataTableClient = {
-  findFirst: (args: unknown) => Promise<unknown>;
-  findMany: (args: unknown) => Promise<unknown>;
-  create: (args: unknown) => Promise<unknown>;
-  findUnique: (args: unknown) => Promise<unknown>;
-  update: (args: unknown) => Promise<unknown>;
-  delete: (args: unknown) => Promise<unknown>;
-};
-
-const getDataTableClient = () =>
-  (prisma as unknown as {
-    dataTable?: DataTableClient;
-  }).dataTable;
+const getDataTableClient = () => (prisma as any).dataTable;
 
 const getTableRowClient = () =>
   (prisma as unknown as {
@@ -82,7 +70,7 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
   }
 
   const client = getDataTableClient();
-  if (!client) {
+  if (!client?.findFirst) {
     return null;
   }
 
@@ -117,37 +105,24 @@ type UpdateTableInput = { name?: string; description?: string | null };
 
 export async function createDynamicTable(input: CreateTableInput) {
   const client = getDataTableClient();
-  if (!client) {
-    throw new Error("Dynamic tables are not enabled");
-  }
+  if (!client?.create) throw new Error("DataTable client not available");
   const table = await client.create({
-    data: {
-      orgId: DEFAULT_ORG_ID,
-      name: input.name.trim(),
-      description: input.description ?? null,
-    },
+    data: { orgId: DEFAULT_ORG_ID, name: input.name.trim(), description: input.description ?? null },
     include: { columns: true, views: true },
   });
-  return normalizeTable(table as unknown as DynamicTable);
+  return normalizeTable(table as DynamicTable);
 }
 
 export async function getDynamicTableById(id: string) {
   const client = getDataTableClient();
-  if (!client) {
-    return null;
-  }
-  const table = await client.findUnique({
-    where: { id },
-    include: { columns: true, views: true },
-  });
-  return table ? normalizeTable(table as unknown as DynamicTable) : null;
+  if (!client?.findUnique) return null;
+  const table = await client.findUnique({ where: { id }, include: { columns: true, views: true } });
+  return table ? normalizeTable(table as DynamicTable) : null;
 }
 
 export async function updateDynamicTable(id: string, input: UpdateTableInput) {
   const client = getDataTableClient();
-  if (!client) {
-    throw new Error("Dynamic tables are not enabled");
-  }
+  if (!client?.update) throw new Error("DataTable client not available");
   const table = await client.update({
     where: { id },
     data: {
@@ -156,20 +131,18 @@ export async function updateDynamicTable(id: string, input: UpdateTableInput) {
     },
     include: { columns: true, views: true },
   });
-  return normalizeTable(table as unknown as DynamicTable);
+  return normalizeTable(table as DynamicTable);
 }
 
 export async function deleteDynamicTable(id: string) {
   const client = getDataTableClient();
-  if (!client) {
-    throw new Error("Dynamic tables are not enabled");
-  }
+  if (!client?.delete) throw new Error("DataTable client not available");
   await client.delete({ where: { id } });
 }
 
 const defaultTableListLoader: DynamicTableListLoader = async () => {
   const client = getDataTableClient();
-  if (!client) {
+  if (!client?.findMany) {
     return [];
   }
 
