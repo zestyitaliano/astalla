@@ -1,4 +1,3 @@
-import type { Request, Response } from 'express';
 import { Router } from 'express';
 
 import { canRead } from '../auth/permissions.js';
@@ -63,20 +62,17 @@ router.get('/choices', async (req, res) => {
   res.json(tables);
 });
 
-// GET /api/tables  -> list dynamic (and static if you want)
-router.get('/', async (req: Request, res: Response) => {
+// GET /api/tables  -> list dynamic tables
+router.get('/', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
   const dynamic = await listDynamicTables();
-  // optional: add static demo tables visible to the user
-  // const staticVisible = BASE_SCHEMA.tables.filter(t => canRead(userId, { kind: 'table', table: t }));
-  // merge if desired; for now return dynamic only:
-  res.json({ items: dynamic });
+  res.json(dynamic);
 });
 
 // POST /api/tables  -> create dynamic table
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -89,28 +85,22 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const table = await createDynamicTable({ name, description });
     res.status(201).json(table);
-  } catch (error: any) {
-    res.status(400).json({ message: error?.message ?? 'Failed to create table' });
+  } catch (e: any) {
+    res.status(400).json({ message: e?.message ?? 'Failed to create table' });
   }
 });
 
-// GET /api/tables/:id  -> detail
-router.get('/:tableId', async (req: Request, res: Response) => {
+// GET /api/tables/:tableId  -> detail (dynamic first, then static fallback)
+router.get('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
-  // try dynamic first
   const dynamic = await getDynamicTableById(req.params.tableId);
   if (dynamic) {
-    if (!canRead(userId, { kind: 'table', table: toSchemaTable(dynamic) })) {
-      res.status(403).json({ message: 'Forbidden' });
-      return;
-    }
     res.json(dynamic);
     return;
   }
 
-  // fallback to static
   const staticTable = BASE_SCHEMA.tables.find(
     (t) => t.id === req.params.tableId || t.name === req.params.tableId,
   );
@@ -118,15 +108,11 @@ router.get('/:tableId', async (req: Request, res: Response) => {
     res.status(404).json({ message: 'Table not found' });
     return;
   }
-  if (!canRead(userId, { kind: 'table', table: staticTable })) {
-    res.status(403).json({ message: 'Forbidden' });
-    return;
-  }
   res.json(staticTable);
 });
 
 // PATCH /api/tables/:id  -> update name/description
-router.patch('/:tableId', async (req: Request, res: Response) => {
+router.patch('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -136,21 +122,21 @@ router.patch('/:tableId', async (req: Request, res: Response) => {
       description: req.body?.description ?? undefined,
     });
     res.json(updated);
-  } catch (error: any) {
-    res.status(400).json({ message: error?.message ?? 'Failed to update table' });
+  } catch (e: any) {
+    res.status(400).json({ message: e?.message ?? 'Failed to update table' });
   }
 });
 
 // DELETE /api/tables/:id
-router.delete('/:tableId', async (req: Request, res: Response) => {
+router.delete('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
   try {
     await deleteDynamicTable(req.params.tableId);
     res.status(204).send();
-  } catch (error: any) {
-    res.status(400).json({ message: error?.message ?? 'Failed to delete table' });
+  } catch (e: any) {
+    res.status(400).json({ message: e?.message ?? 'Failed to delete table' });
   }
 });
 
