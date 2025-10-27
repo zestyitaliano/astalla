@@ -49,6 +49,27 @@ const findTableByIdentifier = async (identifier: string) => {
   return asSchema(dynamicTable);
 };
 
+const loadVisibleColumns = async (userId: string, tableId: string) => {
+  const table = await findTableByIdentifier(tableId);
+  if (!table) {
+    return { kind: 'not-found' as const };
+  }
+
+  if (!canRead(userId, { kind: 'table', table })) {
+    return { kind: 'forbidden' as const };
+  }
+
+  const columns = table.columns
+    .filter((column) => canRead(userId, { kind: 'column', table, column }))
+    .map((column) => ({
+      id: column.id,
+      name: column.name,
+      type: column.type,
+    }));
+
+  return { kind: 'ok' as const, columns };
+};
+
 export const router = Router();
 
 router.get('/choices', async (req, res) => {
@@ -81,19 +102,21 @@ router.get('/choices', async (req, res) => {
   res.json(tables);
 });
 
-// GET /api/tables  -> list dynamic tables
+// IMPORTANT: define specific paths BEFORE the greedy /:tableId matcher
+
+// GET /api/tables -> list dynamic tables
 router.get('/', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
   const dynamic = await listDynamicTables();
   const visible = dynamic.filter((table) =>
-    canRead(userId, { kind: 'table', table: asSchema(table) }),
+    canRead(userId, { kind: 'table', table: toSchemaTable(table) }),
   );
   res.json(visible);
 });
 
-// POST /api/tables  -> create dynamic table
+// POST /api/tables -> create dynamic table
 router.post('/', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
@@ -112,23 +135,40 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/tables/:tableId  -> detail (dynamic first, then static fallback)
+router.get('/_debug', (req, res) => {
+  res.json({
+    baseUrl: req.baseUrl,
+    routes: [
+      'GET /choices',
+      'GET /',
+      'POST /',
+      'GET /_debug',
+      'GET /:tableId',
+      'PATCH /:tableId',
+      'DELETE /:tableId',
+      'GET /:tableId/columns',
+      'GET /:tableId/columns/choices',
+    ],
+  });
+});
+
+// GET /api/tables/:tableId -> detail (dynamic first, then static fallback)
 router.get('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
-  const dynamic = await getDynamicTableById(req.params.tableId);
+  const id = req.params.tableId;
+  const dynamic = await getDynamicTableById(id);
   if (dynamic) {
-    if (!canRead(userId, { kind: 'table', table: asSchema(dynamic) })) {
+    const schemaTable = toSchemaTable(dynamic);
+    if (!canRead(userId, { kind: 'table', table: schemaTable })) {
       return forbid(res);
     }
     res.json(dynamic);
     return;
   }
 
-  const staticTable = BASE_SCHEMA.tables.find(
-    (t) => t.id === req.params.tableId || t.name === req.params.tableId,
-  );
+  const staticTable = BASE_SCHEMA.tables.find((t) => t.id === id || t.name === id);
   if (!staticTable) {
     res.status(404).json({ message: 'Table not found' });
     return;
@@ -139,7 +179,7 @@ router.get('/:tableId', async (req, res) => {
   res.json(staticTable);
 });
 
-// PATCH /api/tables/:id  -> update name/description
+// PATCH /api/tables/:tableId -> update name/description
 router.patch('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
@@ -150,7 +190,7 @@ router.patch('/:tableId', async (req, res) => {
     return;
   }
 
-  if (!canWrite(userId, { kind: 'table', table: asSchema(target) })) {
+  if (!canWrite(userId, { kind: 'table', table: toSchemaTable(target) })) {
     return forbid(res);
   }
 
@@ -165,7 +205,7 @@ router.patch('/:tableId', async (req, res) => {
   }
 });
 
-// DELETE /api/tables/:id
+// DELETE /api/tables/:tableId
 router.delete('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
@@ -176,7 +216,7 @@ router.delete('/:tableId', async (req, res) => {
     return;
   }
 
-  if (!canWrite(userId, { kind: 'table', table: asSchema(target) })) {
+  if (!canWrite(userId, { kind: 'table', table: toSchemaTable(target) })) {
     return forbid(res);
   }
 
@@ -188,29 +228,37 @@ router.delete('/:tableId', async (req, res) => {
   }
 });
 
+// GET /api/tables/:tableId/columns
+router.get('/:tableId/columns', async (req, res) => {
+  const userId = ensureUser(req, res);
+  if (!userId) return;
+
+  const result = await loadVisibleColumns(userId, req.params.tableId);
+  if (result.kind === 'not-found') {
+    res.status(404).json({ message: 'Table not found' });
+    return;
+  }
+  if (result.kind === 'forbidden') {
+    return forbid(res);
+  }
+
+  res.json(result.columns);
+});
+
 router.get('/:tableId/columns/choices', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
-  const table = await findTableByIdentifier(req.params.tableId);
-  if (!table) {
+  const result = await loadVisibleColumns(userId, req.params.tableId);
+  if (result.kind === 'not-found') {
     res.status(404).json({ message: 'Table not found' });
     return;
   }
-
-  if (!canRead(userId, { kind: 'table', table: asSchema(table) })) {
+  if (result.kind === 'forbidden') {
     return forbid(res);
   }
 
-  const columns = table.columns
-    .filter((column) => canRead(userId, { kind: 'column', table, column }))
-    .map((column) => ({
-      id: column.id,
-      name: column.name,
-      type: column.type,
-    }));
-
-  res.json(columns);
+  res.json(result.columns);
 });
 
 export const tablesRouter = router;
