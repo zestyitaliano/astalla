@@ -41,12 +41,18 @@ let tableLoaderOverride: DynamicTableLoader | null = null;
 let tableListLoaderOverride: DynamicTableListLoader | null = null;
 let tableRowsLoaderOverride: DynamicTableRowsLoader | null = null;
 
+type DataTableClient = {
+  findFirst: (args: unknown) => Promise<unknown>;
+  findMany: (args: unknown) => Promise<unknown>;
+  create: (args: unknown) => Promise<unknown>;
+  findUnique: (args: unknown) => Promise<unknown>;
+  update: (args: unknown) => Promise<unknown>;
+  delete: (args: unknown) => Promise<unknown>;
+};
+
 const getDataTableClient = () =>
   (prisma as unknown as {
-    dataTable?: {
-      findFirst: (args: unknown) => Promise<unknown>;
-      findMany: (args: unknown) => Promise<unknown>;
-    };
+    dataTable?: DataTableClient;
   }).dataTable;
 
 const getTableRowClient = () =>
@@ -76,7 +82,7 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
   }
 
   const client = getDataTableClient();
-  if (!client?.findFirst) {
+  if (!client) {
     return null;
   }
 
@@ -106,9 +112,64 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
   return result ? normalizeTable(result) : null;
 };
 
+type CreateTableInput = { name: string; description?: string | null };
+type UpdateTableInput = { name?: string; description?: string | null };
+
+export async function createDynamicTable(input: CreateTableInput) {
+  const client = getDataTableClient();
+  if (!client) {
+    throw new Error("Dynamic tables are not enabled");
+  }
+  const table = await client.create({
+    data: {
+      orgId: DEFAULT_ORG_ID,
+      name: input.name.trim(),
+      description: input.description ?? null,
+    },
+    include: { columns: true, views: true },
+  });
+  return normalizeTable(table as unknown as DynamicTable);
+}
+
+export async function getDynamicTableById(id: string) {
+  const client = getDataTableClient();
+  if (!client) {
+    return null;
+  }
+  const table = await client.findUnique({
+    where: { id },
+    include: { columns: true, views: true },
+  });
+  return table ? normalizeTable(table as unknown as DynamicTable) : null;
+}
+
+export async function updateDynamicTable(id: string, input: UpdateTableInput) {
+  const client = getDataTableClient();
+  if (!client) {
+    throw new Error("Dynamic tables are not enabled");
+  }
+  const table = await client.update({
+    where: { id },
+    data: {
+      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      ...(input.description !== undefined ? { description: input.description } : {}),
+    },
+    include: { columns: true, views: true },
+  });
+  return normalizeTable(table as unknown as DynamicTable);
+}
+
+export async function deleteDynamicTable(id: string) {
+  const client = getDataTableClient();
+  if (!client) {
+    throw new Error("Dynamic tables are not enabled");
+  }
+  await client.delete({ where: { id } });
+}
+
 const defaultTableListLoader: DynamicTableListLoader = async () => {
   const client = getDataTableClient();
-  if (!client?.findMany) {
+  if (!client) {
     return [];
   }
 
