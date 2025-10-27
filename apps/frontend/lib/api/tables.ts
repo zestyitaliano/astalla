@@ -380,7 +380,7 @@ async function deleteView(id: string) {
 
 type RowLookupItem = { id: string; preview: string; fields?: Record<string, unknown> };
 type RowLookupResponse = { items: RowLookupItem[]; nextCursor?: string };
-type ColumnChoice = { id: string; name: string; type: string };
+type ColumnChoice = { id: string; name: string; type: string; position?: number };
 type ColumnSource =
   | ColumnChoice
   | (TableColumnDto & { config?: unknown })
