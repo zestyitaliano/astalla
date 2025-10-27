@@ -3,7 +3,7 @@ import { Router } from 'express';
 import type { SchemaColumn, SchemaTable } from '@shared/api';
 
 import { canRead } from '../auth/permissions.js';
-import { getSchemaGraphForUser } from '../schemaRegistry/registry.js';
+import { BASE_SCHEMA, getSchemaGraphForUser } from '../schemaRegistry/registry.js';
 import { getTableRows, type TableRow } from '../db/data.js';
 import {
   getDynamicTableByIdOrName,
@@ -13,6 +13,18 @@ import {
   type DynamicTableRow,
 } from '../services/tables.service.js';
 import { ensureUser } from './requestUser.js';
+
+const isDynamicTable = (table: SchemaTable | DynamicTable): table is DynamicTable => {
+  return Boolean(
+    table &&
+    typeof table === 'object' &&
+    'orgId' in (table as Record<string, unknown>),
+  );
+};
+
+const asSchema = (table: SchemaTable | DynamicTable): SchemaTable => {
+  return isDynamicTable(table) ? toSchemaTable(table) : table;
+};
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -284,28 +296,49 @@ export const registerRowRoutes = (app: Application): void => {
     const query = queryParam ? queryParam.trim().toLowerCase() : '';
 
     const graph = getSchemaGraphForUser(userId);
-    let table = findTableByIdentifier(graph, tableId);
+    let table: SchemaTable | null = findTableByIdentifier(graph, tableId) ?? null;
     let dynamicSource: DynamicTable | null = null;
 
-    if (!table) {
-      const dynamicTable = await getDynamicTableByIdOrName(tableId);
-      if (!dynamicTable) {
-        res.status(404).json({ message: 'Table not found' });
-        return;
-      }
-
-      const schemaTable = toSchemaTable(dynamicTable);
-      if (!canRead(userId, { kind: 'table', table: schemaTable })) {
+    if (table) {
+      if (!canRead(userId, { kind: 'table', table: asSchema(table) })) {
         res.status(403).json({ message: 'Forbidden' });
         return;
       }
+    } else {
+      const dynamicTable = await getDynamicTableByIdOrName(tableId);
+      if (dynamicTable) {
+        const schemaTable = asSchema(dynamicTable);
+        if (!canRead(userId, { kind: 'table', table: schemaTable })) {
+          res.status(403).json({ message: 'Forbidden' });
+          return;
+        }
 
-      const allowedColumns = schemaTable.columns.filter((column) =>
-        canRead(userId, { kind: 'column', table: schemaTable, column }),
-      );
+        const allowedColumns = schemaTable.columns.filter((column) =>
+          canRead(userId, { kind: 'column', table: schemaTable, column }),
+        );
 
-      table = { ...schemaTable, columns: allowedColumns };
-      dynamicSource = dynamicTable;
+        table = { ...schemaTable, columns: allowedColumns };
+        dynamicSource = dynamicTable;
+      } else {
+        const staticTable = BASE_SCHEMA.tables.find(
+          (candidate) => candidate.id === tableId || candidate.name === tableId,
+        );
+        if (!staticTable) {
+          res.status(404).json({ message: 'Table not found' });
+          return;
+        }
+
+        if (!canRead(userId, { kind: 'table', table: staticTable })) {
+          res.status(403).json({ message: 'Forbidden' });
+          return;
+        }
+
+        const allowedColumns = staticTable.columns.filter((column) =>
+          canRead(userId, { kind: 'column', table: staticTable, column }),
+        );
+
+        table = { ...staticTable, columns: allowedColumns };
+      }
     }
 
     if (!table) {
