@@ -2,6 +2,9 @@ import type { SchemaColumn, SchemaTable } from "@shared/api";
 
 import { prisma } from "./prisma.js";
 
+type CreateTableInput = { name: string; description?: string | null };
+type UpdateTableInput = { name?: string; description?: string | null };
+
 const DEFAULT_ORG_ID = process.env.ASTALLA_ORG_ID ?? "demo-org";
 
 type JsonRecord = Record<string, unknown>;
@@ -18,6 +21,7 @@ export type DynamicTable = {
   id: string;
   orgId: string;
   name: string;
+  label?: string | null;
   description?: string | null;
   columns: DynamicTableColumn[];
 };
@@ -41,7 +45,18 @@ let tableLoaderOverride: DynamicTableLoader | null = null;
 let tableListLoaderOverride: DynamicTableListLoader | null = null;
 let tableRowsLoaderOverride: DynamicTableRowsLoader | null = null;
 
-const getDataTableClient = () => (prisma as any).dataTable;
+function getDataTableClient() {
+  const client =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (prisma as any).dataTable ||
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (prisma as any).dynamicTable ||
+    null;
+  if (!client) {
+    throw new Error("DataTable client not available");
+  }
+  return client;
+}
 
 const getTableRowClient = () =>
   (prisma as unknown as {
@@ -50,15 +65,19 @@ const getTableRowClient = () =>
     };
   }).tableRow;
 
-const normalizeTable = (table: DynamicTable): DynamicTable => {
+const normalizeTable = (table: any): DynamicTable => {
   return {
-    ...table,
-    columns: table.columns.map((column) => ({
+    id: table.id,
+    orgId: table.orgId ?? DEFAULT_ORG_ID,
+    name: table.name,
+    label: table.label ?? table.name,
+    description: table.description ?? null,
+    columns: (table.columns ?? []).map((column: any) => ({
       id: column.id,
       name: column.name,
       type: column.type,
-      config: column.config ?? undefined,
-      referenceConfig: column.referenceConfig ?? undefined,
+      config: (column.config ?? null) as JsonRecord | null,
+      referenceConfig: (column.referenceConfig ?? null) as JsonRecord | null,
     })),
   } satisfies DynamicTable;
 };
@@ -74,7 +93,7 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
     return null;
   }
 
-  const result = (await client.findFirst({
+  const result = await client.findFirst({
     where: {
       orgId: DEFAULT_ORG_ID,
       OR: [{ id: trimmed }, { name: trimmed }],
@@ -83,6 +102,7 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
       id: true,
       orgId: true,
       name: true,
+      label: true,
       description: true,
       columns: {
         orderBy: { position: "asc" },
@@ -95,48 +115,45 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
         },
       },
     },
-  })) as DynamicTable | null;
+  });
 
   return result ? normalizeTable(result) : null;
 };
-
-type CreateTableInput = { name: string; description?: string | null };
-type UpdateTableInput = { name?: string; description?: string | null };
-
-export async function createDynamicTable(input: CreateTableInput) {
+export async function createDynamicTable(input: CreateTableInput): Promise<DynamicTable> {
   const client = getDataTableClient();
-  if (!client?.create) throw new Error("DataTable client not available");
   const table = await client.create({
-    data: { orgId: DEFAULT_ORG_ID, name: input.name.trim(), description: input.description ?? null },
-    include: { columns: true, views: true },
+    data: {
+      orgId: DEFAULT_ORG_ID,
+      name: input.name.trim(),
+      description: input.description ?? null,
+    },
+    include: { columns: true },
   });
-  return normalizeTable(table as DynamicTable);
+  return normalizeTable(table);
 }
 
-export async function getDynamicTableById(id: string) {
+export async function getDynamicTableById(id: string): Promise<DynamicTable | null> {
   const client = getDataTableClient();
   if (!client?.findUnique) return null;
-  const table = await client.findUnique({ where: { id }, include: { columns: true, views: true } });
-  return table ? normalizeTable(table as DynamicTable) : null;
+  const table = await client.findUnique({ where: { id }, include: { columns: true } });
+  return table ? normalizeTable(table) : null;
 }
 
-export async function updateDynamicTable(id: string, input: UpdateTableInput) {
+export async function updateDynamicTable(id: string, input: UpdateTableInput): Promise<DynamicTable> {
   const client = getDataTableClient();
-  if (!client?.update) throw new Error("DataTable client not available");
   const table = await client.update({
     where: { id },
     data: {
       ...(input.name !== undefined ? { name: input.name.trim() } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
     },
-    include: { columns: true, views: true },
+    include: { columns: true },
   });
-  return normalizeTable(table as DynamicTable);
+  return normalizeTable(table);
 }
 
-export async function deleteDynamicTable(id: string) {
+export async function deleteDynamicTable(id: string): Promise<void> {
   const client = getDataTableClient();
-  if (!client?.delete) throw new Error("DataTable client not available");
   await client.delete({ where: { id } });
 }
 
@@ -146,13 +163,14 @@ const defaultTableListLoader: DynamicTableListLoader = async () => {
     return [];
   }
 
-  const results = (await client.findMany({
+  const results = await client.findMany({
     where: { orgId: DEFAULT_ORG_ID },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
       orgId: true,
       name: true,
+      label: true,
       description: true,
       columns: {
         orderBy: { position: "asc" },
@@ -165,7 +183,7 @@ const defaultTableListLoader: DynamicTableListLoader = async () => {
         },
       },
     },
-  })) as DynamicTable[];
+  });
 
   return results.map(normalizeTable);
 };
@@ -286,7 +304,7 @@ export const toSchemaTable = (table: DynamicTable): SchemaTable => {
   const schemaTable: SchemaTable = {
     id: table.id,
     name: table.name,
-    label: table.description ?? table.name,
+    label: table.label ?? table.description ?? table.name,
     columns: schemaColumns,
     fks: [],
   };

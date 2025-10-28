@@ -6,7 +6,7 @@ import { Site } from './types.js';
 import { registerColumnRoutes } from './routes/columns.js';
 import { registerReferenceRoutes } from './routes/references.js';
 import { registerRowRoutes } from './routes/rows.js';
-import { router as tablesRouter } from './routes/tables.js';
+import { tablesRouter } from './routes/tables.js';
 import { schemaRouter } from './routes/schema.js';
 import { introspectionRouter } from './routes/introspection.js';
 import { authRouter } from './routes/auth.js';

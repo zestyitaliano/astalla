@@ -70,9 +70,9 @@ const loadVisibleColumns = async (userId: string, tableId: string) => {
   return { kind: 'ok' as const, columns };
 };
 
-export const router = Router();
+export const tablesRouter = Router();
 
-router.get('/choices', async (req, res) => {
+tablesRouter.get('/choices', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -105,7 +105,7 @@ router.get('/choices', async (req, res) => {
 // IMPORTANT: define specific paths BEFORE the greedy /:tableId matcher
 
 // GET /api/tables -> list dynamic tables
-router.get('/', async (req, res) => {
+tablesRouter.get('/', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -117,7 +117,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/tables -> create dynamic table
-router.post('/', async (req, res) => {
+tablesRouter.post('/', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -135,7 +135,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/_debug', (req, res) => {
+tablesRouter.get('/_debug', (req, res) => {
   res.json({
     baseUrl: req.baseUrl,
     routes: [
@@ -153,7 +153,7 @@ router.get('/_debug', (req, res) => {
 });
 
 // GET /api/tables/:tableId -> detail (dynamic first, then static fallback)
-router.get('/:tableId', async (req, res) => {
+tablesRouter.get('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -180,7 +180,7 @@ router.get('/:tableId', async (req, res) => {
 });
 
 // PATCH /api/tables/:tableId -> update name/description
-router.patch('/:tableId', async (req, res) => {
+tablesRouter.patch('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -206,7 +206,7 @@ router.patch('/:tableId', async (req, res) => {
 });
 
 // DELETE /api/tables/:tableId
-router.delete('/:tableId', async (req, res) => {
+tablesRouter.delete('/:tableId', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -229,7 +229,7 @@ router.delete('/:tableId', async (req, res) => {
 });
 
 // GET /api/tables/:tableId/columns
-router.get('/:tableId/columns', async (req, res) => {
+tablesRouter.get('/:tableId/columns', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -245,7 +245,7 @@ router.get('/:tableId/columns', async (req, res) => {
   res.json(result.columns);
 });
 
-router.get('/:tableId/columns/choices', async (req, res) => {
+tablesRouter.get('/:tableId/columns/choices', async (req, res) => {
   const userId = ensureUser(req, res);
   if (!userId) return;
 
@@ -260,5 +260,3 @@ router.get('/:tableId/columns/choices', async (req, res) => {
 
   res.json(result.columns);
 });
-
-export const tablesRouter = router;
