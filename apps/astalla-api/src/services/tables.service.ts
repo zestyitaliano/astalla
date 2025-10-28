@@ -52,9 +52,6 @@ function getDataTableClient() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     (prisma as any).dynamicTable ||
     null;
-  if (!client) {
-    throw new Error("DataTable client not available");
-  }
   return client;
 }
 
@@ -119,41 +116,133 @@ const defaultTableLoader: DynamicTableLoader = async (identifier) => {
 
   return result ? normalizeTable(result) : null;
 };
+export async function getDynamicTableById(id: string): Promise<DynamicTable | null> {
+  const client = (prisma as any).dataTable ?? (prisma as any).dynamicTable;
+  if (!client?.findFirst) return null;
+
+  const result = await client.findFirst({
+    where: { id },
+    select: {
+      id: true,
+      orgId: true,
+      name: true,
+      label: true,
+      description: true,
+      columns: {
+        orderBy: { position: "asc" },
+        select: { id: true, name: true, type: true, config: true, referenceConfig: true },
+      },
+    },
+  });
+
+  if (!result) return null;
+  const table: DynamicTable = {
+    id: result.id,
+    orgId: result.orgId ?? DEFAULT_ORG_ID,
+    name: result.name,
+    label: result.label ?? result.name,
+    description: result.description ?? null,
+    columns: (result.columns ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      config: (c.config ?? null) as JsonRecord | null,
+      referenceConfig: (c.referenceConfig ?? null) as JsonRecord | null,
+    })),
+  } satisfies DynamicTable;
+  return table;
+}
+
 export async function createDynamicTable(input: CreateTableInput): Promise<DynamicTable> {
-  const client = getDataTableClient();
-  const table = await client.create({
+  const client = (prisma as any).dataTable ?? (prisma as any).dynamicTable;
+  if (!client?.create) {
+    throw new Error("Dynamic table creation is not configured (missing prisma.dataTable.create)");
+  }
+
+  const created = await client.create({
     data: {
       orgId: DEFAULT_ORG_ID,
       name: input.name.trim(),
+      label: input.name.trim(),
       description: input.description ?? null,
     },
-    include: { columns: true },
+    select: {
+      id: true,
+      orgId: true,
+      name: true,
+      label: true,
+      description: true,
+      columns: {
+        orderBy: { position: "asc" },
+        select: { id: true, name: true, type: true, config: true, referenceConfig: true },
+      },
+    },
   });
-  return normalizeTable(table);
-}
 
-export async function getDynamicTableById(id: string): Promise<DynamicTable | null> {
-  const client = getDataTableClient();
-  if (!client?.findUnique) return null;
-  const table = await client.findUnique({ where: { id }, include: { columns: true } });
-  return table ? normalizeTable(table) : null;
+  return {
+    id: created.id,
+    orgId: created.orgId ?? DEFAULT_ORG_ID,
+    name: created.name,
+    label: created.label ?? created.name,
+    description: created.description ?? null,
+    columns: (created.columns ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      config: (c.config ?? null) as JsonRecord | null,
+      referenceConfig: (c.referenceConfig ?? null) as JsonRecord | null,
+    })),
+  } satisfies DynamicTable;
 }
 
 export async function updateDynamicTable(id: string, input: UpdateTableInput): Promise<DynamicTable> {
-  const client = getDataTableClient();
-  const table = await client.update({
+  const client = (prisma as any).dataTable ?? (prisma as any).dynamicTable;
+  if (!client?.update) {
+    throw new Error("Dynamic table update is not configured (missing prisma.dataTable.update)");
+  }
+
+  const updated = await client.update({
     where: { id },
     data: {
-      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      ...(input.name !== undefined
+        ? { name: input.name.trim(), label: input.name.trim() }
+        : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
     },
-    include: { columns: true },
+    select: {
+      id: true,
+      orgId: true,
+      name: true,
+      label: true,
+      description: true,
+      columns: {
+        orderBy: { position: "asc" },
+        select: { id: true, name: true, type: true, config: true, referenceConfig: true },
+      },
+    },
   });
-  return normalizeTable(table);
+
+  return {
+    id: updated.id,
+    orgId: updated.orgId ?? DEFAULT_ORG_ID,
+    name: updated.name,
+    label: updated.label ?? updated.name,
+    description: updated.description ?? null,
+    columns: (updated.columns ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      config: (c.config ?? null) as JsonRecord | null,
+      referenceConfig: (c.referenceConfig ?? null) as JsonRecord | null,
+    })),
+  } satisfies DynamicTable;
 }
 
 export async function deleteDynamicTable(id: string): Promise<void> {
-  const client = getDataTableClient();
+  const client = (prisma as any).dataTable ?? (prisma as any).dynamicTable;
+  if (!client?.delete) {
+    throw new Error("Dynamic table delete is not configured (missing prisma.dataTable.delete)");
+  }
   await client.delete({ where: { id } });
 }
 
