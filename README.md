@@ -163,7 +163,7 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 ### Backend (Render)
 
 1. Create a new Render Web Service pointing to `apps/backend`.
-2. Set the build command to `pnpm install && pnpm --filter apps-backend build`.
+2. Set the build command to `corepack enable && corepack prepare pnpm@10.13.1 --activate && pnpm install && pnpm --filter apps-backend build`.
 3. Set the start command to `pnpm --filter apps-backend start`.
 4. Provision a Postgres instance and Redis (or supply external connection strings) and expose them via `DATABASE_URL` and `REDIS_URL` env vars. Set `FRONTEND_ORIGIN` to the comma-separated list of allowed web origins—for production use `FRONTEND_ORIGIN="https://app.astalla.com,https://*.vercel.app"` so the API accepts both the primary app and Vercel preview deployments.
 5. Set `CORS_ORIGIN=https://app.astalla.com` so credentialed browser requests coming from the Vercel frontend are allowed. Render restarts the service automatically when the variable changes.
