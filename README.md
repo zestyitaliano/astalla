@@ -170,6 +170,14 @@ Once the API layer and frontend are wired up, you'll be able to create tables, m
 
 > For preview environments, be sure to share the backend URL with the frontend via `NEXT_PUBLIC_API_BASE_URL` and `NEXTAUTH_URL`. Without `NEXT_PUBLIC_API_BASE_URL`, server-side code in the frontend cannot contact the API.
 
+### WordPress bridge API (Render)
+
+1. Create a new Render Web Service pointing to `apps/astalla-api`.
+2. Set the build command to `corepack enable && corepack prepare pnpm@10.13.1 --activate && pnpm install && pnpm --filter @astalla/api build`. This service does not ship a Prisma schema, so no `pnpm -w prisma:generate` step is required.
+3. Set the start command to `pnpm --filter @astalla/api start:prod`.
+4. Provide the WordPress integration secrets (for example, `FEATURE_FLAG_SERVICE_*`, `ASTALLA_ORG_ID`, and the default admin credentials) through Render environment variables.
+5. When the service URL changes, propagate it to any clients that call the bridge endpoints.
+
 ## Secret rotation
 
 Both the backend (`JWT_SECRET`) and frontend (`NEXTAUTH_SECRET`) rely on symmetric keys to sign authentication tokens and cookies.
