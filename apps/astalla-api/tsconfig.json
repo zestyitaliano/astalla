@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
@@ -10,34 +10,20 @@
     "outDir": "dist",
     "rootDir": "src",
     "resolveJsonModule": true,
-    "lib": [
-      "es2022",
-      "dom"
-    ],
-    "types": [
-      "node"
-    ],
+    "lib": ["es2022"],
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@shared/api": [
-        "../../packages/shared/dist/index.d.ts"
-      ],
-      "@shared/api/*": [
-        "../../packages/shared/dist/*.d.ts"
-      ],
-      "@shared/ast": [
-        "../../packages/shared/dist/index.d.ts"
-      ],
-      "@shared/ast/*": [
-        "../../packages/shared/dist/*.d.ts"
-      ]
+      "@shared/*": ["../../packages/shared/dist/*"],
+      "@shared/api": ["../../packages/shared/dist/index.d.ts"],
+      "@shared/api/*": ["../../packages/shared/dist/*.d.ts"],
+      "@shared/ast": ["../../packages/shared/dist/index.d.ts"],
+      "@shared/ast/*": ["../../packages/shared/dist/*.d.ts"]
     },
     "typeRoots": [
       "./node_modules/@types",
       "../../node_modules/@types"
     ]
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
