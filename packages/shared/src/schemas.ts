@@ -70,7 +70,7 @@ const usernameSchema = z
   .regex(/^[a-zA-Z0-9._-]+$/, {
     message: "Username may only include letters, numbers, dots, underscores, or hyphens"
   })
-  .transform((value) => value.toLowerCase());
+  .transform((value: string) => value.toLowerCase());
 
 export const basicAuthAccountSchema = z.object({
   id: z.string(),
@@ -404,7 +404,7 @@ export const updatePublicDashboardRequestSchema = z
     config: z.unknown().optional(),
     isActive: z.boolean().optional()
   })
-  .refine((payload) => Object.keys(payload).length > 0, {
+  .refine((payload: Record<string, unknown>) => Object.keys(payload).length > 0, {
     message: "Update payload cannot be empty"
   });
 
@@ -482,7 +482,7 @@ export const updateTableDtoSchema = z
     name: z.string().min(1).optional(),
     description: z.string().nullable().optional()
   })
-  .refine((payload) => Object.keys(payload).length > 0, {
+  .refine((payload: Record<string, unknown>) => Object.keys(payload).length > 0, {
     message: "Update payload cannot be empty"
   });
 
@@ -500,7 +500,7 @@ export const updateColumnDtoSchema = z
     type: columnTypeSchema.optional(),
     config: z.unknown().optional()
   })
-  .refine((payload) => Object.keys(payload).length > 0, {
+  .refine((payload: Record<string, unknown>) => Object.keys(payload).length > 0, {
     message: "Update payload cannot be empty"
   });
 
@@ -546,7 +546,7 @@ export const updateViewDtoSchema = z
     name: z.string().optional(),
     config: viewConfigSchema.optional()
   })
-  .refine((payload) => Object.keys(payload).length > 0, {
+  .refine((payload: Record<string, unknown>) => Object.keys(payload).length > 0, {
     message: "Update payload cannot be empty"
   });
 
