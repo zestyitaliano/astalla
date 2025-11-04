@@ -13,6 +13,9 @@ importers:
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
+      '@types/node':
+        specifier: ^20.8.0
+        version: 20.19.21
       '@shared/api':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -41,9 +44,6 @@ importers:
       '@types/multer':
         specifier: ^1.4.7
         version: 1.4.13
-      '@types/node':
-        specifier: ^20.8.0
-        version: 20.19.21
       ts-node:
         specifier: ^10.9.1
         version: 10.9.2(@types/node@20.19.21)(typescript@5.9.3)
