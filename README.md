@@ -200,3 +200,14 @@ Pull requests trigger a GitHub Actions workflow that installs dependencies and r
 - `pnpm smoke` against a locally started backend (Postgres is provided via a service container)
 
 The pipeline fails on type errors, lint violations, Prisma schema issues, build regressions, or smoke check failures.
+
+## Tooling Versions
+
+This repo is pinned to:
+- Node: 22 (via .nvmrc / .node-version)
+- pnpm: 10.20.0 (via "packageManager" in package.json; Corepack will activate it)
+
+### Local setup
+- Use `nvm use` (or your Node version manager) to switch to Node 22.
+- Run `corepack enable` once on your machine.
+- Corepack reads "packageManager" and activates pnpm 10.20.0 automatically.

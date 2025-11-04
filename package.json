@@ -1,7 +1,7 @@
 {
   "name": "astalla",
   "private": true,
-  "packageManager": "pnpm@10.13.1",
+  "packageManager": "pnpm@10.20.0",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
@@ -11,5 +11,8 @@
     "format": "pnpm -r format --if-present",
     "smoke": "node scripts/smoke.mjs",
     "prebuild:backend": "pnpm -C packages/shared build"
+  },
+  "engines": {
+    "node": ">=22 <23"
   }
 }
