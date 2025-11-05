@@ -10,7 +10,9 @@
     "start": "node dist/index.js",
     "start:prod": "node dist/index.js",
     "db:seed-admin": "ts-node --transpile-only scripts/seed-admin.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prestart:prod": "pnpm prisma:migrate:deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
