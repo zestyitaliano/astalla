@@ -6,15 +6,11 @@
     "dev": "nest start --watch",
     "start": "nest start",
     "start:prod": "sh -c 'node dist/main.js || node dist/apps/backend/main.js || node dist/src/main.js'",
-    "prebuild": "pnpm prisma generate && pnpm -C ../../packages/shared build",
+    "prebuild": "pnpm -C ../../packages/shared build",
     "build": "nest build",
     "postbuild": "echo '--- dist ---' && ls -la dist || true && echo '--- dist/apps/backend ---' && ls -la dist/apps/backend || true && echo '--- apps/backend/dist ---' && ls -la apps/backend/dist || true",
     "lint": "eslint ./src --ext .ts",
     "typecheck": "tsc --noEmit",
-    "prisma": "prisma",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy",
-    "db:deploy-and-seed": "pnpm prisma:migrate && pnpm prisma db seed",
     "smoke:auth": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/smoke-auth.ts",
     "smoke:tables": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/smoke-tables.ts",
     "test:smoke:api": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/smoke-api.ts"
@@ -26,7 +22,6 @@
     "@nestjs/platform-express": "^10.4.7",
     "@nestjs/platform-socket.io": "^10.4.7",
     "@nestjs/websockets": "^10.4.7",
-    "@prisma/client": "^5.22.0",
     "@shared/api": "workspace:*",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
@@ -57,12 +52,8 @@
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.31.0",
-    "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.6.3"
-  },
-  "prisma": {
-    "seed": "node -r ts-node/register prisma/seed.ts"
   }
 }

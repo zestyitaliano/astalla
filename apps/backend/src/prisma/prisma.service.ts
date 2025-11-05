@@ -1,43 +1,26 @@
 import { INestApplication, Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { PrismaClient } from "@prisma/client";
-import process from "node:process";
 
+/**
+ * API-only; no DB access here. Provided for dependency injection compatibility.
+ */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  private readonly hasDatasource: boolean;
-
-  constructor(private readonly configService: ConfigService) {
-    const url = configService.get<string>("database.url");
-    super(url
-      ? {
-          datasources: {
-            db: {
-              url
-            }
-          }
-        }
-      : {});
-    this.hasDatasource = Boolean(url);
+  constructor() {
+    super();
   }
 
   async onModuleInit() {
-    if (!this.hasDatasource) {
-      return;
-    }
-    await this.$connect();
+    console.warn("PrismaService initialized in API-only backend; no database connection created.");
   }
 
   async onModuleDestroy() {
-    if (!this.hasDatasource) {
-      return;
-    }
-    await this.$disconnect();
+    console.warn("PrismaService destroyed in API-only backend; no database connection to close.");
   }
 
-  async enableShutdownHooks(app: INestApplication) {
-    process.on("beforeExit", async () => {
-      await app.close();
-    });
+  async enableShutdownHooks(_app: INestApplication) {
+    console.warn(
+      "PrismaService.enableShutdownHooks called in API-only backend; no shutdown hooks registered."
+    );
   }
 }
