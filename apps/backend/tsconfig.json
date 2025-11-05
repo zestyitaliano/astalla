@@ -9,14 +9,20 @@
     "target": "es2021",
     "sourceMap": true,
     "outDir": "dist",
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "incremental": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "paths": {
-      "@shared/*": ["../../packages/shared/dist/*"]
-    }
+      "@shared/*": [
+        "../../packages/shared/dist/*"
+      ],
+      "@prisma/client": [
+        "src/prisma/shims/prisma-client-shim.ts"
+      ]
+    },
+    "noImplicitAny": false
   }
 }

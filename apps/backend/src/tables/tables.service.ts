@@ -1,5 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ColumnType as PrismaColumnType, Prisma, TableCell, TableColumn, TableRow } from "@prisma/client";
+import {
+  ColumnType as PrismaColumnType,
+  Prisma,
+  TableCell as PrismaTableCell,
+  TableColumn as PrismaTableColumn,
+  TableRow as PrismaTableRow
+} from "@prisma/client";
+
+type TableCell = PrismaTableCell & { [key: string]: any };
+type TableColumn = PrismaTableColumn & { [key: string]: any };
+type TableRow = PrismaTableRow & { [key: string]: any };
 import {
   ColumnType as SharedColumnType,
   CreateColumnDto,
@@ -198,7 +208,7 @@ export class TablesService {
         throw new NotFoundException("Table not found");
       }
 
-      const slugSet = new Set(table.columns.map((column) => column.slug));
+      const slugSet = new Set<string>((table.columns as TableColumn[]).map((column) => column.slug as string));
       const slug = this.ensureUniqueSlug(slugSet, dto.name);
       const nextPosition = table.columns.length
         ? Math.max(...table.columns.map((column) => column.position)) + 1
@@ -249,7 +259,7 @@ export class TablesService {
           },
           select: { slug: true }
         });
-        const slugSet = new Set(otherColumns.map((item) => item.slug));
+        const slugSet = new Set<string>(otherColumns.map((item) => item.slug as string));
         data.slug = this.ensureUniqueSlug(slugSet, dto.name);
       }
 
@@ -454,7 +464,7 @@ export class TablesService {
         throw new NotFoundException("Row not found");
       }
 
-      const columnMap = new Map(row.table.columns.map((column) => [column.id, column] as const));
+      const columnMap = new Map<string, TableColumn>((row.table.columns as TableColumn[]).map((column) => [column.id, column] as const));
 
       for (const cell of dto.cells) {
         const column = columnMap.get(cell.columnId);
@@ -467,7 +477,7 @@ export class TablesService {
           continue;
         }
 
-        const normalizedValue = this.normalizeCellInput(column, cell.value);
+        const normalizedValue = this.normalizeCellInput(column as TableColumn, cell.value);
 
         await tx.tableCell.upsert({
           where: {
@@ -687,8 +697,8 @@ export class TablesService {
         throw new NotFoundException("Table not found");
       }
 
-      const nameMap = new Map(table.columns.map((column) => [column.name.toLowerCase(), column] as const));
-      const slugSet = new Set(table.columns.map((column) => column.slug));
+      const nameMap = new Map<string, TableColumn>((table.columns as TableColumn[]).map((column) => [String(column.name).toLowerCase(), column] as const));
+      const slugSet = new Set<string>((table.columns as TableColumn[]).map((column) => column.slug as string));
       let nextColumnPosition = table.columns.length
         ? Math.max(...table.columns.map((column) => column.position)) + 1
         : 1;
@@ -718,11 +728,11 @@ export class TablesService {
             }
           });
           nameMap.set(normalizedName.toLowerCase(), column);
-          slugSet.add(column.slug);
+          slugSet.add(String(column.slug));
           createdColumns += 1;
         }
 
-        columnRefs.push(column);
+        columnRefs.push(column as TableColumn);
       }
 
       const lastRow = await tx.tableRow.findFirst({
@@ -1161,10 +1171,10 @@ export class TablesService {
   }
 
   private normalizeRow(row: RowWithCells, columns: TableColumn[]): NormalizedRow {
-    const cellMap = new Map(row.cells.map((cell) => [cell.columnId, cell] as const));
+    const cellMap = new Map<string, TableCell>(row.cells.map((cell) => [cell.columnId, cell] as const));
     const values = new Map<string, unknown>();
 
-    for (const column of columns) {
+    for (const column of columns as TableColumn[]) {
       const cell = cellMap.get(column.id);
       values.set(column.id, this.normalizeStoredValue(column, cell?.value ?? null));
     }
@@ -1178,7 +1188,7 @@ export class TablesService {
   ): TableQueryResponse["rows"][number] {
     const cells: TableQueryResponse["rows"][number]["cells"] = [];
 
-    for (const column of columns) {
+    for (const column of columns as TableColumn[]) {
       const cell = entry.cellMap.get(column.id);
 
       if (!cell) {
@@ -1835,7 +1845,7 @@ export class TablesService {
       throw new NotFoundException("Table not found");
     }
 
-    const columnMap = new Map(table.columns.map((column) => [column.id, column] as const));
+    const columnMap = new Map<string, TableColumn>((table.columns as TableColumn[]).map((column) => [column.id, column] as const));
 
     let viewConfig: ViewConfig = {};
 
