@@ -7,37 +7,50 @@ export const authRouter = Router();
 
 authRouter.post('/basic-login', async (req, res) => {
   try {
-    const { emailOrUsername, password } = req.body ?? {};
-    if (!emailOrUsername || !password) {
-      return res.status(400).json({ message: 'Missing credentials' });
+    const { emailOrUsername, identifier, password } = req.body ?? {};
+
+    const rawIdentifier =
+      typeof emailOrUsername === "string" && emailOrUsername.trim().length > 0
+        ? emailOrUsername.trim().toLowerCase()
+        : typeof identifier === "string" && identifier.trim().length > 0
+        ? identifier.trim().toLowerCase()
+        : "";
+
+    if (!rawIdentifier || typeof password !== "string" || password.trim() === "") {
+      return res.status(400).json({ message: "Missing credentials" });
     }
 
     const user = await prisma.user.findFirst({
       where: {
-        OR: [
-          { email: emailOrUsername.toLowerCase() },
-          { username: emailOrUsername },
-        ],
-      },
+        OR: [{ email: rawIdentifier }, { username: rawIdentifier }]
+      }
     });
 
-    if (!user || !user.passwordHash) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    // For now, we just return a dummy access token – the Express API
+    // isn’t actually validating JWTs anywhere.
+    const accessToken = "astalla-dev-token";
 
     return res.status(200).json({
-      id: user.id,
-      email: user.email,
-      name: user.name ?? 'User',
-      role: user.role ?? 'user',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name ?? "User",
+        role: user.role ?? "ORG_ADMIN"
+      },
+      access_token: accessToken
     });
   } catch (error) {
-    console.error('[auth/basic-login] error', error);
-    return res.status(500).json({ message: 'Internal error' });
+    console.error("[auth/basic-login] error", error);
+    return res.status(500).json({ message: "Internal error" });
   }
 });
+
